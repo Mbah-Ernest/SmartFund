@@ -1,0 +1,119 @@
+using Microsoft.EntityFrameworkCore;
+using SmartFund.Application.Interfaces;
+using SmartFund.Application.Reporting.PersonalFinance;
+using SmartFund.Domain.Enums;
+using SmartFund.Domain.PersonalFinance.Enums;
+using SmartFund.Persistence.DbContext;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace SmartFund.Persistence.Reporting
+{
+    public sealed class PersonalFinanceDashboardService : IPersonalFinanceDashboardService
+    {
+        private readonly SmartFundDbContext _db;
+
+        public PersonalFinanceDashboardService(SmartFundDbContext db) => _db = db;
+
+        public async Task<PersonalFinanceDashboardDto> GetAsync(DateTime utcNow, CancellationToken ct)
+        {
+            var year = utcNow.Year;
+            var month = utcNow.Month;
+
+            var walletAccountIds = await _db.PersonalWallets
+                .AsNoTracking()
+                .Select(w => w.LedgerAccountId)
+                .ToListAsync(ct);
+
+            decimal totalBalance = 0m;
+
+            if (walletAccountIds.Count > 0)
+            {
+                totalBalance = await (
+                    from lt in _db.LedgerTransactions.AsNoTracking()
+                    from e in lt.Entries
+                    where (lt.Status == TransactionStatus.Draft || lt.Status == TransactionStatus.Posted)
+                          && lt.Status != TransactionStatus.Reversed
+                          && walletAccountIds.Contains(e.AccountId)
+                    select (decimal?)(e.Debit.Amount - e.Credit.Amount)
+                ).SumAsync(ct) ?? 0m;
+            }
+
+            var monthlyIncome = await (
+                from p in _db.PersonalTransactions.AsNoTracking()
+                join w in _db.PersonalWallets.AsNoTracking() on p.WalletId equals w.Id
+                join lt in _db.LedgerTransactions.AsNoTracking() on p.LedgerTransactionId equals lt.Id
+                from e in lt.Entries
+                where p.TransactionType == PersonalTransactionType.Income
+                      && p.Date.Year == year
+                      && p.Date.Month == month
+                      && lt.Status != TransactionStatus.Reversed
+                      && e.AccountId == w.LedgerAccountId
+                select (decimal?)e.Debit.Amount
+            ).SumAsync(ct) ?? 0m;
+
+            var monthlyExpenses = await (
+                from p in _db.PersonalTransactions.AsNoTracking()
+                join w in _db.PersonalWallets.AsNoTracking() on p.WalletId equals w.Id
+                join lt in _db.LedgerTransactions.AsNoTracking() on p.LedgerTransactionId equals lt.Id
+                from e in lt.Entries
+                where p.TransactionType == PersonalTransactionType.Expense
+                      && p.Date.Year == year
+                      && p.Date.Month == month
+                      && lt.Status != TransactionStatus.Reversed
+                      && e.AccountId == w.LedgerAccountId
+                select (decimal?)e.Credit.Amount
+            ).SumAsync(ct) ?? 0m;
+
+            // Materialize before grouping: EF can translate the joins/projection,
+            // but may fail translating GroupBy/Sum over value objects.
+            var expenseCategoryData = await (
+                from p in _db.PersonalTransactions.AsNoTracking()
+                join w in _db.PersonalWallets.AsNoTracking() on p.WalletId equals w.Id
+                join c in _db.PersonalCategories.AsNoTracking() on p.CategoryId equals c.Id
+                join lt in _db.LedgerTransactions.AsNoTracking() on p.LedgerTransactionId equals lt.Id
+                from e in lt.Entries
+                where p.TransactionType == PersonalTransactionType.Expense
+                      && p.Date.Year == year
+                      && p.Date.Month == month
+                      && lt.Status != TransactionStatus.Reversed
+                      && e.AccountId == w.LedgerAccountId
+                select new
+                {
+                    CategoryId = c.Id,
+                    CategoryName = c.Name,
+                    Amount = e.Credit.Amount
+                })
+                .ToListAsync(ct);
+
+            var topExpenseCategories = expenseCategoryData
+                .GroupBy(x => new { x.CategoryId, x.CategoryName })
+                .Select(g => new CategoryAmountRow(g.Key.CategoryId, g.Key.CategoryName, g.Sum(x => x.Amount)))
+                .OrderByDescending(x => x.Amount)
+                .Take(5)
+                .ToList();
+
+            var investmentContributions = await (
+                from c in _db.PersonalInvestmentContributions.AsNoTracking()
+                join w in _db.PersonalWallets.AsNoTracking() on c.WalletId equals w.Id
+                join lt in _db.LedgerTransactions.AsNoTracking() on c.LedgerTransactionId equals lt.Id
+                from e in lt.Entries
+                where c.Date.Year == year
+                      && c.Date.Month == month
+                      && lt.Status != TransactionStatus.Reversed
+                      && e.AccountId == w.LedgerAccountId
+                select (decimal?)e.Credit.Amount
+            ).SumAsync(ct) ?? 0m;
+
+            return new PersonalFinanceDashboardDto(
+                totalBalance,
+                monthlyIncome,
+                monthlyExpenses,
+                topExpenseCategories,
+                investmentContributions);
+        }
+    }
+}

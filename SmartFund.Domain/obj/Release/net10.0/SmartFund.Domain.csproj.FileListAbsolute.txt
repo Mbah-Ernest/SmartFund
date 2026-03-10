@@ -1,0 +1,11 @@
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Domain\bin\Release\net10.0\SmartFund.Domain.deps.json
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Domain\bin\Release\net10.0\SmartFund.Domain.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Domain\bin\Release\net10.0\SmartFund.Domain.pdb
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Domain\obj\Release\net10.0\SmartFund.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Domain\obj\Release\net10.0\SmartFund.Domain.AssemblyInfoInputs.cache
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Domain\obj\Release\net10.0\SmartFund.Domain.AssemblyInfo.cs
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Domain\obj\Release\net10.0\SmartFund.Domain.csproj.CoreCompileInputs.cache
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Domain\obj\Release\net10.0\SmartFund.Domain.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Domain\obj\Release\net10.0\refint\SmartFund.Domain.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Domain\obj\Release\net10.0\SmartFund.Domain.pdb
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Domain\obj\Release\net10.0\ref\SmartFund.Domain.dll

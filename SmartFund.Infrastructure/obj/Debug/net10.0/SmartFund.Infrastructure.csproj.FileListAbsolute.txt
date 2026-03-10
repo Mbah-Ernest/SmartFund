@@ -1,0 +1,11 @@
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Infrastructure\bin\Debug\net10.0\SmartFund.Infrastructure.deps.json
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Infrastructure\bin\Debug\net10.0\SmartFund.Infrastructure.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Infrastructure\bin\Debug\net10.0\SmartFund.Infrastructure.pdb
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Infrastructure\obj\Debug\net10.0\SmartFund.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Infrastructure\obj\Debug\net10.0\SmartFund.Infrastructure.AssemblyInfoInputs.cache
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Infrastructure\obj\Debug\net10.0\SmartFund.Infrastructure.AssemblyInfo.cs
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Infrastructure\obj\Debug\net10.0\SmartFund.Infrastructure.csproj.CoreCompileInputs.cache
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Infrastructure\obj\Debug\net10.0\SmartFund.Infrastructure.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Infrastructure\obj\Debug\net10.0\refint\SmartFund.Infrastructure.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Infrastructure\obj\Debug\net10.0\SmartFund.Infrastructure.pdb
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Infrastructure\obj\Debug\net10.0\ref\SmartFund.Infrastructure.dll

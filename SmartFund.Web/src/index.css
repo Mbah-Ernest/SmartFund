@@ -1,0 +1,50 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+:root {
+  color-scheme: light;
+}
+
+:root.dark {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+}
+
+/* Make native form controls readable in dark mode even when components don't
+   explicitly add `dark:` Tailwind classes. */
+:root.dark input,
+:root.dark select,
+:root.dark textarea {
+  background-color: rgb(2 6 23); /* slate-950 */
+  border-color: rgb(51 65 85); /* slate-700 */
+  color: rgb(226 232 240); /* slate-200 */
+}
+
+:root.dark input::placeholder,
+:root.dark textarea::placeholder {
+  color: rgb(148 163 184); /* slate-400 */
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.4s ease-out both;
+}

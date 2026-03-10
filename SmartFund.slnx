@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="SmartFund.API/SmartFund.API.csproj" Id="9478a8ec-e47b-47ba-8b0b-5414a70c1cbd" />
+  <Project Path="SmartFund.Application/SmartFund.Application.csproj" Id="f1aec9a4-fe04-49c6-92a6-94dbf56098b2" />
+  <Project Path="SmartFund.Domain/SmartFund.Domain.csproj" Id="ac524432-f147-4507-9bfb-205682c3d29d" />
+  <Project Path="SmartFund.Infrastructure/SmartFund.Infrastructure.csproj" Id="f28b47cb-115a-4aa5-8bfe-088017d1c4d1" />
+  <Project Path="SmartFund.Persistence/SmartFund.Persistence.csproj" Id="a4bb4cbf-5adc-438b-88cf-3a43fc4ca22f" />
+  <Project Path="SmartFund.Seeder/SmartFund.Seeder.csproj" />
+  <Project Path="SmartFund.Tests/SmartFund.Tests.csproj" Id="4547dc9d-b1dd-4dbc-85b3-77c62288b7f8" />
+</Solution>
