@@ -119,15 +119,15 @@ export default function GoalsPage() {
       </div>
 
       {error ? (
-        <div className="animate-fade-in-up flex items-start gap-3 rounded-2xl border border-rose-200 bg-gradient-to-r from-rose-50 to-rose-50/60 px-5 py-4 shadow-sm">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-500">
+        <div className="animate-fade-in-up flex items-start gap-3 rounded-2xl border border-rose-200 bg-gradient-to-r from-rose-50 to-rose-50/60 px-5 py-4 shadow-sm dark:border-rose-900/50 dark:from-rose-950/30 dark:to-rose-950/20">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-500 dark:bg-rose-950/50 dark:text-rose-400">
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
             </svg>
           </div>
           <div>
-            <p className="text-sm font-semibold text-rose-800">Error</p>
-            <p className="mt-0.5 text-sm text-rose-700">{error}</p>
+            <p className="text-sm font-semibold text-rose-800 dark:text-rose-200">Error</p>
+            <p className="mt-0.5 text-sm text-rose-700 dark:text-rose-300">{error}</p>
           </div>
         </div>
       ) : null}
@@ -139,7 +139,7 @@ export default function GoalsPage() {
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="text-xs font-medium text-slate-600">
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
                 Wallet Name
               </span>
               <input
@@ -151,7 +151,7 @@ export default function GoalsPage() {
               />
             </label>
             <label className="block">
-              <span className="text-xs font-medium text-slate-600">
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
                 Currency
               </span>
               <select
@@ -212,7 +212,7 @@ export default function GoalsPage() {
               <CartesianGrid
                 strokeDasharray="3 3"
                 vertical={false}
-                stroke="#E2E8F0"
+                stroke="var(--grid-stroke, #E2E8F0)"
               />
               <XAxis
                 dataKey="name"
@@ -231,7 +231,9 @@ export default function GoalsPage() {
                 contentStyle={{
                   borderRadius: 12,
                   border: 'none',
-                  boxShadow: '0 4px 24px rgba(0,0,0,0.08)'
+                  boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+                  backgroundColor: 'var(--tooltip-bg, #fff)',
+                  color: 'var(--tooltip-text, #334155)'
                 }}
               />
               <Area
@@ -250,22 +252,22 @@ export default function GoalsPage() {
       {loading ? (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="relative overflow-hidden rounded-2xl bg-white p-5 ring-1 ring-slate-200/60">
+            <div key={i} className="relative overflow-hidden rounded-2xl bg-white p-5 ring-1 ring-slate-200/60 dark:bg-slate-900 dark:ring-slate-800">
               <div className="flex items-center gap-3">
-                <div className="relative h-10 w-10 overflow-hidden rounded-xl bg-slate-100"><div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" /></div>
+                <div className="relative h-10 w-10 overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800"><div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent dark:via-slate-700/60" /></div>
                 <div className="space-y-1.5">
-                  <div className="relative h-3 w-24 overflow-hidden rounded bg-slate-100"><div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" /></div>
-                  <div className="h-2.5 w-10 rounded bg-slate-50" />
+                  <div className="relative h-3 w-24 overflow-hidden rounded bg-slate-100 dark:bg-slate-800"><div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent dark:via-slate-700/60" /></div>
+                  <div className="h-2.5 w-10 rounded bg-slate-50 dark:bg-slate-800/60" />
                 </div>
               </div>
-              <div className="relative mt-4 h-6 w-28 overflow-hidden rounded bg-slate-100"><div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" /></div>
-              <div className="mt-2 h-2.5 w-32 rounded bg-slate-50" />
+              <div className="relative mt-4 h-6 w-28 overflow-hidden rounded bg-slate-100 dark:bg-slate-800"><div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent dark:via-slate-700/60" /></div>
+              <div className="mt-2 h-2.5 w-32 rounded bg-slate-50 dark:bg-slate-800/60" />
             </div>
           ))}
         </div>
       ) : walletData.length === 0 ? (
-        <div className="flex h-44 flex-col items-center justify-center gap-3 rounded-2xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(59,130,246,0.04)] ring-1 ring-slate-200/60">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50">
+        <div className="flex h-44 flex-col items-center justify-center gap-3 rounded-2xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(59,130,246,0.04)] ring-1 ring-slate-200/60 dark:bg-slate-900 dark:ring-slate-800">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-950/40">
             <svg className="h-7 w-7 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3" />
             </svg>
@@ -278,20 +280,20 @@ export default function GoalsPage() {
           {walletData.map((w) => (
             <div
               key={w.id}
-              className="group rounded-2xl bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(59,130,246,0.04)] ring-1 ring-slate-200/60 transition-all duration-300 hover:shadow-[0_4px_20px_rgba(59,130,246,0.10)] hover:-translate-y-0.5"
+              className="group rounded-2xl bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(59,130,246,0.04)] ring-1 ring-slate-200/60 transition-all duration-300 hover:shadow-[0_4px_20px_rgba(59,130,246,0.10)] hover:-translate-y-0.5 dark:bg-slate-900 dark:ring-slate-800"
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/60 text-lg font-bold text-blue-500 shadow-sm ring-1 ring-blue-100/80 transition-transform duration-300 group-hover:scale-105">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/60 text-lg font-bold text-blue-500 shadow-sm ring-1 ring-blue-100/80 transition-transform duration-300 group-hover:scale-105 dark:from-blue-950/50 dark:to-blue-900/30 dark:text-blue-400 dark:ring-blue-900/50">
                   {w.name.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-slate-800">
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
                     {w.name}
                   </p>
                   <p className="text-xs text-slate-400">{w.currency}</p>
                 </div>
               </div>
-              <p className="mt-4 text-[22px] font-extrabold tracking-tight text-slate-900 tabular-nums">
+              <p className="mt-4 text-[22px] font-extrabold tracking-tight text-slate-900 dark:text-slate-50 tabular-nums">
                 {formatCurrency(w.balance)}
               </p>
               <p className="mt-0.5 text-xs text-slate-400">

@@ -119,15 +119,15 @@ export default function BudgetPage() {
       </div>
 
       {error ? (
-        <div className="animate-fade-in-up flex items-start gap-3 rounded-2xl border border-rose-200 bg-gradient-to-r from-rose-50 to-rose-50/60 px-5 py-4 shadow-sm">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-500">
+        <div className="animate-fade-in-up flex items-start gap-3 rounded-2xl border border-rose-200 bg-gradient-to-r from-rose-50 to-rose-50/60 px-5 py-4 shadow-sm dark:border-rose-900/50 dark:from-rose-950/30 dark:to-rose-950/20">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-500 dark:bg-rose-950/50 dark:text-rose-400">
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
             </svg>
           </div>
           <div>
-            <p className="text-sm font-semibold text-rose-800">Error</p>
-            <p className="mt-0.5 text-sm text-rose-700">{error}</p>
+            <p className="text-sm font-semibold text-rose-800 dark:text-rose-200">Error</p>
+            <p className="mt-0.5 text-sm text-rose-700 dark:text-rose-300">{error}</p>
           </div>
         </div>
       ) : null}
@@ -139,7 +139,7 @@ export default function BudgetPage() {
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="text-xs font-medium text-slate-600">
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
                 Category
               </span>
               <select
@@ -172,7 +172,7 @@ export default function BudgetPage() {
               ) : null}
             </label>
             <label className="block">
-              <span className="text-xs font-medium text-slate-600">
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
                 Monthly Limit
               </span>
               <input
@@ -200,27 +200,27 @@ export default function BudgetPage() {
       {loading ? (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="relative h-52 overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200/60 p-6">
+            <div key={i} className="relative h-52 overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200/60 p-6 dark:bg-slate-900 dark:ring-slate-800">
               <div className="space-y-4">
                 <div className="flex justify-between">
-                  <div className="relative h-3 w-24 overflow-hidden rounded bg-slate-100"><div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" /></div>
-                  <div className="relative h-5 w-16 overflow-hidden rounded-full bg-slate-100"><div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" /></div>
+                  <div className="relative h-3 w-24 overflow-hidden rounded bg-slate-100 dark:bg-slate-800"><div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent dark:via-slate-700/60" /></div>
+                  <div className="relative h-5 w-16 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"><div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent dark:via-slate-700/60" /></div>
                 </div>
-                <div className="relative h-7 w-32 overflow-hidden rounded bg-slate-100"><div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" /></div>
+                <div className="relative h-7 w-32 overflow-hidden rounded bg-slate-100 dark:bg-slate-800"><div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent dark:via-slate-700/60" /></div>
                 <div className="space-y-1.5">
                   <div className="flex justify-between">
-                    <div className="h-2.5 w-20 rounded bg-slate-100" />
-                    <div className="h-2.5 w-16 rounded bg-slate-100" />
+                    <div className="h-2.5 w-20 rounded bg-slate-100 dark:bg-slate-800" />
+                    <div className="h-2.5 w-16 rounded bg-slate-100 dark:bg-slate-800" />
                   </div>
-                  <div className="h-2.5 w-full rounded-full bg-slate-100" />
+                  <div className="h-2.5 w-full rounded-full bg-slate-100 dark:bg-slate-800" />
                 </div>
               </div>
             </div>
           ))}
         </div>
       ) : budgets.length === 0 ? (
-        <div className="flex h-52 flex-col items-center justify-center gap-3 rounded-2xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(59,130,246,0.04)] ring-1 ring-slate-200/60">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50">
+        <div className="flex h-52 flex-col items-center justify-center gap-3 rounded-2xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(59,130,246,0.04)] ring-1 ring-slate-200/60 dark:bg-slate-900 dark:ring-slate-800">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-950/40">
             <svg className="h-7 w-7 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -241,18 +241,18 @@ export default function BudgetPage() {
             return (
               <div
                 key={b.id}
-                className="group rounded-2xl bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(59,130,246,0.04)] ring-1 ring-slate-200/60 transition-all duration-300 hover:shadow-[0_4px_20px_rgba(59,130,246,0.10)] hover:-translate-y-0.5"
+                className="group rounded-2xl bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(59,130,246,0.04)] ring-1 ring-slate-200/60 transition-all duration-300 hover:shadow-[0_4px_20px_rgba(59,130,246,0.10)] hover:-translate-y-0.5 dark:bg-slate-900 dark:ring-slate-800"
               >
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-700">
+                  <h3 className="text-sm font-bold text-slate-700 dark:text-slate-100">
                     {categoryNameById.get(b.categoryId) ?? `Category #${b.categoryId}`}
                   </h3>
                   {overBudget ? (
-                    <span className="rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-bold text-rose-600 ring-1 ring-rose-100">
+                    <span className="rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-bold text-rose-600 ring-1 ring-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:ring-rose-800">
                       Over budget
                     </span>
                   ) : (
-                    <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-600 ring-1 ring-emerald-100">
+                    <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-600 ring-1 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-800">
                       On track
                     </span>
                   )}
@@ -262,7 +262,7 @@ export default function BudgetPage() {
                   Category ID: {b.categoryId}
                 </p>
 
-                <p className="mt-3 text-[28px] font-extrabold tracking-tight text-slate-900 tabular-nums">
+                <p className="mt-3 text-[28px] font-extrabold tracking-tight text-slate-900 dark:text-slate-50 tabular-nums">
                   {formatCurrency(b.amount)}
                   <span className="text-sm font-normal text-slate-400">
                     {' '}/ month
@@ -271,7 +271,7 @@ export default function BudgetPage() {
 
                 {/* Progress bar */}
                 <div className="mt-4">
-                  <div className="flex justify-between text-xs font-medium text-slate-500">
+                  <div className="flex justify-between text-xs font-medium text-slate-500 dark:text-slate-400">
                     <span>Spent: {formatCurrency(spent)}</span>
                     <span>
                       {remaining >= 0
@@ -279,7 +279,7 @@ export default function BudgetPage() {
                         : `${formatCurrency(Math.abs(remaining))} over`}
                     </span>
                   </div>
-                  <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-slate-100">
+                  <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                     <div
                       className={`h-full rounded-full transition-all duration-700 ease-out ${
                         overBudget ? 'bg-gradient-to-r from-rose-400 to-rose-500' : 'bg-gradient-to-r from-blue-400 to-blue-500'
@@ -301,7 +301,7 @@ export default function BudgetPage() {
                       .map((t, i) => (
                         <div
                           key={i}
-                          className="flex justify-between text-xs text-slate-600"
+                          className="flex justify-between text-xs text-slate-600 dark:text-slate-300"
                         >
                           <span>
                             {MONTH_NAMES[t.month]} {t.year}

@@ -3,6 +3,7 @@ using SmartFund.Application.Services.PersonalFinance;
 using SmartFund.Domain.Entities;
 using SmartFund.Domain.Enums;
 using SmartFund.Domain.PersonalFinance.Entities;
+using SmartFund.Domain.PersonalFinance.Enums;
 using SmartFund.Tests.PersonalFinance.Fakes;
 
 namespace SmartFund.Tests.PersonalFinance;
@@ -16,6 +17,7 @@ public sealed class PersonalInvestmentContributionServiceTests
         var trancheRepo = new InMemoryTrancheRepository();
         var ledgerTxRepo = new InMemoryLedgerTransactionRepository();
         var contribRepo = new InMemoryPersonalInvestmentContributionRepository();
+        var txRepo = new InMemoryPersonalTransactionRepository();
 
         var wallet = PersonalWallet.Create("Main", "NGN", ledgerAccountId: 10);
         await walletRepo.AddAsync(wallet, CancellationToken.None);
@@ -36,7 +38,7 @@ public sealed class PersonalInvestmentContributionServiceTests
         tranche.SetLiabilityAccount(55);
         await trancheRepo.AddAsync(tranche, CancellationToken.None);
 
-        var svc = new PersonalInvestmentContributionService(walletRepo, trancheRepo, ledgerTxRepo, contribRepo);
+        var svc = new PersonalInvestmentContributionService(walletRepo, trancheRepo, ledgerTxRepo, contribRepo, txRepo, new NullAuditService());
 
         var ledgerTxId = await svc.ContributeAsync(wallet.Id, tranche.Id, 200m, "Top up", CancellationToken.None);
 
@@ -48,5 +50,9 @@ public sealed class PersonalInvestmentContributionServiceTests
 
         contribRepo.Records.Should().ContainSingle();
         contribRepo.Records[0].LedgerTransactionId.Should().Be(ledgerTxId);
+
+        txRepo.Transactions.Should().ContainSingle();
+        txRepo.Transactions[0].LedgerTransactionId.Should().Be(ledgerTxId);
+        txRepo.Transactions[0].TransactionType.Should().Be(PersonalTransactionType.InvestmentContribution);
     }
 }

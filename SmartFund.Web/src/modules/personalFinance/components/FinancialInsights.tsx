@@ -167,15 +167,15 @@ const ICON_MAP: Record<FinancialInsight['icon'], string> = {
 };
 
 const SENTIMENT_STYLES: Record<FinancialInsight['sentiment'], string> = {
-  positive: 'border-emerald-200 bg-emerald-50/60',
-  negative: 'border-rose-200 bg-rose-50/60',
-  neutral: 'border-blue-200 bg-blue-50/60'
+  positive: 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-800/50 dark:bg-emerald-950/30',
+  negative: 'border-rose-200 bg-rose-50/60 dark:border-rose-800/50 dark:bg-rose-950/30',
+  neutral: 'border-blue-200 bg-blue-50/60 dark:border-blue-800/50 dark:bg-blue-950/30'
 };
 
 const SENTIMENT_TEXT: Record<FinancialInsight['sentiment'], string> = {
-  positive: 'text-emerald-800',
-  negative: 'text-rose-800',
-  neutral: 'text-blue-800'
+  positive: 'text-emerald-800 dark:text-emerald-200',
+  negative: 'text-rose-800 dark:text-rose-200',
+  neutral: 'text-blue-800 dark:text-blue-200'
 };
 
 export default function FinancialInsights({
@@ -192,8 +192,8 @@ export default function FinancialInsights({
     return (
       <div className="space-y-2.5">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="relative h-12 overflow-hidden rounded-xl bg-slate-100/80">
-            <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" style={{ animationDelay: `${i * 200}ms` }} />
+          <div key={i} className="relative h-12 overflow-hidden rounded-xl bg-slate-100/80 dark:bg-slate-800/60">
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent dark:via-slate-700/60" style={{ animationDelay: `${i * 200}ms` }} />
           </div>
         ))}
       </div>
@@ -202,9 +202,9 @@ export default function FinancialInsights({
 
   if (insights.length === 0) {
     return (
-      <div className="flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50/40 px-4 py-3">
+      <div className="flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50/40 px-4 py-3 dark:border-blue-900/40 dark:bg-blue-950/20">
         <span className="text-base select-none">✨</span>
-        <p className="text-sm font-medium text-blue-700/80">Add more transactions to unlock personalised insights.</p>
+        <p className="text-sm font-medium text-blue-700/80 dark:text-blue-300/80">Add more transactions to unlock personalised insights.</p>
       </div>
     );
   }

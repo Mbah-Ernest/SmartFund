@@ -85,10 +85,10 @@ export default function CategoryPieChart({
     return (
       <div className="flex h-80 items-center justify-center">
         <div className="relative">
-          <div className="h-44 w-44 rounded-full border-[12px] border-slate-100" />
-          <div className="absolute inset-0 h-44 w-44 animate-spin rounded-full border-[12px] border-transparent border-t-blue-200" style={{ animationDuration: '1.4s' }} />
+          <div className="h-44 w-44 rounded-full border-[12px] border-slate-100 dark:border-slate-800" />
+          <div className="absolute inset-0 h-44 w-44 animate-spin rounded-full border-[12px] border-transparent border-t-blue-200 dark:border-t-blue-700" style={{ animationDuration: '1.4s' }} />
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="h-3 w-16 rounded bg-slate-100" />
+            <div className="h-3 w-16 rounded bg-slate-100 dark:bg-slate-800" />
           </div>
         </div>
       </div>
@@ -98,7 +98,7 @@ export default function CategoryPieChart({
   if (data.length === 0) {
     return (
       <div className="flex h-80 flex-col items-center justify-center gap-3">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-950/40">
           <svg className="h-7 w-7 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" />
@@ -138,7 +138,9 @@ export default function CategoryPieChart({
           contentStyle={{
             borderRadius: 12,
             border: 'none',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.08)'
+            boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+            backgroundColor: 'var(--tooltip-bg, #fff)',
+            color: 'var(--tooltip-text, #334155)'
           }}
         />
         <Legend

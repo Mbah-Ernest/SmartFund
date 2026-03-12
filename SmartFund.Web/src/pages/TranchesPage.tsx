@@ -19,6 +19,14 @@ function formatCurrency(amount: number) {
   }).format(amount);
 }
 
+function toWholePercent(rate: number) {
+  return rate > 1 ? rate : rate * 100;
+}
+
+function formatRate(rate: number) {
+  return `${toWholePercent(rate).toFixed(2)}%`;
+}
+
 function toDateInputValue(d: Date) {
   return d.toISOString().slice(0, 10);
 }
@@ -65,7 +73,7 @@ export default function TranchesPage() {
       dealId: null,
       principal: 0,
       roiType: 1,
-      roiRate: 0.1,
+      roiRate: 10,
       startDate: toDateInputValue(today),
       maturityDate: toDateInputValue(addMonths(today, 1)),
       payoutType: 1,
@@ -119,6 +127,56 @@ export default function TranchesPage() {
     return map;
   }, [investors]);
 
+  const selectedDeal = useMemo(() => {
+    if (!createForm.dealId) return undefined;
+    return dealById.get(createForm.dealId);
+  }, [createForm.dealId, dealById]);
+
+  const dealAmountAllocated = useMemo(() => {
+    if (!createForm.dealId) return 0;
+    return tranches
+      .filter(t => t.dealId === createForm.dealId)
+      .reduce((sum, t) => sum + t.principal, 0);
+  }, [createForm.dealId, tranches]);
+
+  const dealAmountLeft = useMemo(() => {
+    if (!selectedDeal) return 0;
+    return selectedDeal.loanAmount - dealAmountAllocated;
+  }, [selectedDeal, dealAmountAllocated]);
+
+  function monthsBetween(startStr: string, endStr: string): number {
+    const s = new Date(startStr);
+    const e = new Date(endStr);
+    return (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth());
+  }
+
+  const constraintWarnings = useMemo(() => {
+    if (!selectedDeal) return [];
+    const warnings: string[] = [];
+
+    const dealRateWhole = toWholePercent(selectedDeal.interestRate);
+    if (createForm.roiRate > dealRateWhole) {
+      warnings.push(
+        `Tranche ROI rate (${createForm.roiRate.toFixed(2)}%) exceeds the deal interest rate (${dealRateWhole.toFixed(2)}%).`
+      );
+    }
+
+    const trancheMonths = monthsBetween(createForm.startDate, createForm.maturityDate);
+    if (trancheMonths > 0 && trancheMonths < selectedDeal.tenureMonths) {
+      warnings.push(
+        `Tranche tenure (${trancheMonths} month(s)) is shorter than the deal tenure (${selectedDeal.tenureMonths} months). The investor must be paid out before the deal matures.`
+      );
+    }
+
+    if (createForm.principal > 0 && createForm.principal > dealAmountLeft) {
+      warnings.push(
+        `Tranche principal (${formatCurrency(createForm.principal)}) exceeds the deal's remaining capacity (${formatCurrency(dealAmountLeft)} of ${formatCurrency(selectedDeal.loanAmount)}).`
+      );
+    }
+
+    return warnings;
+  }, [selectedDeal, createForm.roiRate, createForm.principal, createForm.startDate, createForm.maturityDate, dealAmountLeft]);
+
   const canCreate = useMemo(() => {
     const noticeOk =
       createForm.payoutType !== 3 || (createForm.noticeDays ?? 0) > 0;
@@ -143,7 +201,7 @@ export default function TranchesPage() {
       dealId: deals[0]?.id ?? null,
       principal: 0,
       roiType: 1,
-      roiRate: 0.1,
+      roiRate: 10,
       startDate: toDateInputValue(today),
       maturityDate: toDateInputValue(addMonths(today, 1)),
       payoutType: 1,
@@ -165,7 +223,7 @@ export default function TranchesPage() {
         dealId: Number(createForm.dealId),
         principal: Number(createForm.principal),
         roiType: Number(createForm.roiType),
-        roiRate: Number(createForm.roiRate),
+        roiRate: Number(createForm.roiRate) / 100,
         payoutType: Number(createForm.payoutType),
         noticeDays:
           Number(createForm.payoutType) === 3
@@ -229,9 +287,10 @@ export default function TranchesPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Tranches</h1>
-          <p className="text-slate-600 dark:text-slate-300">
-            Funding rounds ({tranches.length.toLocaleString()}).
+          <h1 className="text-[26px] font-extrabold tracking-tight text-slate-900 dark:text-slate-50">Tranches</h1>
+          <p className="mt-1 max-w-lg text-sm text-slate-500 dark:text-slate-400">
+            A tranche is a single funded slice of a deal — one investor's money with its own principal, interest rate, start date, and maturity date.
+            Currently {tranches.length.toLocaleString()} tranche(s).
           </p>
         </div>
 
@@ -239,16 +298,16 @@ export default function TranchesPage() {
           <button
             type="button"
             onClick={openCreateModal}
-            className="inline-flex items-center rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.97] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
           >
-            Create Tranche
+            + Create Tranche
           </button>
           <button
             type="button"
             onClick={openFundModal}
-            className="inline-flex items-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            className="rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-emerald-500/20 transition-all duration-200 hover:shadow-lg hover:shadow-emerald-500/30 hover:-translate-y-0.5 active:scale-[0.97]"
           >
-            Fund Tranche
+            💰 Fund Tranche
           </button>
         </div>
       </div>
@@ -420,6 +479,40 @@ export default function TranchesPage() {
             </div>
           </div>
 
+          {selectedDeal ? (
+            <div className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm dark:border-sky-900/50 dark:bg-sky-950/30">
+              <div className="mb-1 font-semibold text-sky-800 dark:text-sky-200">
+                📊 Deal ROI Info — {selectedDeal.dealCode}
+              </div>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sky-700 dark:text-sky-300">
+                <span>Interest rate:</span>
+                <span className="font-medium">{formatRate(selectedDeal.interestRate)}</span>
+                <span>Loan amount:</span>
+                <span className="font-medium">{formatCurrency(selectedDeal.loanAmount)}</span>
+                <span>Already allocated:</span>
+                <span className="font-medium">{formatCurrency(dealAmountAllocated)}</span>
+                <span>Remaining capacity:</span>
+                <span className="font-medium">{formatCurrency(dealAmountLeft)}</span>
+                <span>Tenure:</span>
+                <span className="font-medium">{selectedDeal.tenureMonths} month(s)</span>
+              </div>
+            </div>
+          ) : null}
+
+          {constraintWarnings.length > 0 ? (
+            <div className="space-y-1.5">
+              {constraintWarnings.map((w, i) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200"
+                >
+                  <span className="mt-0.5 shrink-0">⚠️</span>
+                  <span>{w}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1">
               <label className="text-sm font-medium text-slate-700">
@@ -438,7 +531,7 @@ export default function TranchesPage() {
 
             <div className="space-y-1">
               <label className="text-sm font-medium text-slate-700">
-                ROI rate (e.g. 0.1 for 10%)
+                ROI rate (%)
               </label>
               <input
                 value={createForm.roiRate || ''}
@@ -446,7 +539,7 @@ export default function TranchesPage() {
                   setCreateForm(s => ({ ...s, roiRate: Number(e.target.value) }))
                 }
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                placeholder="e.g. 0.1"
+                placeholder="e.g. 24"
                 inputMode="decimal"
               />
             </div>

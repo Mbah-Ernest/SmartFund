@@ -4,10 +4,16 @@
 
 :root {
   color-scheme: light;
+  --tooltip-bg: #fff;
+  --tooltip-text: #334155;
+  --grid-stroke: #e2e8f0;
 }
 
 :root.dark {
   color-scheme: dark;
+  --tooltip-bg: #1e293b;
+  --tooltip-text: #e2e8f0;
+  --grid-stroke: #334155;
 }
 
 body {

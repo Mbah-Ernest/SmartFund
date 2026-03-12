@@ -15,6 +15,7 @@ import {
 } from 'recharts';
 
 import type { ReactNode } from 'react';
+import InfoTooltip from '../modules/personalFinance/components/InfoTooltip';
 
 type InsuranceBufferReportDto = {
   totalExposure: number;
@@ -67,9 +68,18 @@ const COLORS = {
   slate500: '#64748b'
 };
 
-function cardShell(children: ReactNode) {
+function cardShell(title: string, subtitle: string, tooltip: string, children: ReactNode) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <div className="group rounded-2xl bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(59,130,246,0.04)] ring-1 ring-slate-200/60 transition-shadow duration-300 hover:shadow-[0_4px_20px_rgba(59,130,246,0.08)] dark:bg-slate-900 dark:ring-slate-800">
+      <div className="mb-4 flex items-start justify-between gap-2">
+        <div>
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">{title}</h3>
+            <InfoTooltip text={tooltip} />
+          </div>
+          <p className="mt-0.5 text-xs text-slate-400">{subtitle}</p>
+        </div>
+      </div>
       {children}
     </div>
   );
@@ -136,15 +146,11 @@ export default function DashboardCharts({
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       {cardShell(
+        'Exposure by Investor',
+        'Top 8 investors by principal invested',
+        'This chart shows which investors have the most money in the fund. Taller bars = more capital at risk. Helps you spot concentration risk — if one investor dominates, the fund is over-reliant on them.',
         <>
-          <div className="flex items-baseline justify-between">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
-              Exposure by investor
-            </h3>
-            <div className="text-xs text-slate-500 dark:text-slate-400">Top 8 by principal</div>
-          </div>
-
-          <div className="mt-3 h-56">
+          <div className="h-56">
             {loading ? (
               <div className="flex h-full items-center justify-center text-sm text-slate-500">
                 Loading…
@@ -182,15 +188,11 @@ export default function DashboardCharts({
       )}
 
       {cardShell(
+        'Upcoming Payouts',
+        'Next 30 days',
+        'This area chart shows how much money needs to be paid out to investors over the next 30 days as their tranches mature. Peaks = busy payout days — make sure there is enough liquidity.',
         <>
-          <div className="flex items-baseline justify-between">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
-              Upcoming payouts
-            </h3>
-            <div className="text-xs text-slate-500 dark:text-slate-400">Next 30 days</div>
-          </div>
-
-          <div className="mt-3 h-56">
+          <div className="h-56">
             {loading ? (
               <div className="flex h-full items-center justify-center text-sm text-slate-500">
                 Loading…
@@ -234,15 +236,11 @@ export default function DashboardCharts({
       )}
 
       {cardShell(
+        'Insurance & Deals',
+        `Coverage: ${formatPercent(insurance?.coverageRatio ?? 0)}`,
+        'Insurance reserves act as a safety net. The donut chart shows how much investor exposure is covered. The small chart shows how many deals are active vs closed.',
         <>
-          <div className="flex items-baseline justify-between">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">Insurance</h3>
-            <div className="text-xs text-slate-500 dark:text-slate-400">
-              Coverage: {formatPercent(insurance?.coverageRatio ?? 0)}
-            </div>
-          </div>
-
-          <div className="mt-3 grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div className="h-40">
               {loading ? (
                 <div className="flex h-full items-center justify-center text-sm text-slate-500">

@@ -22,6 +22,198 @@ namespace SmartFund.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("SmartFund.Domain.Entities.Agreement", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("DocumentUrl")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("SignedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SignedName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<long>("TrancheId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TrancheId", "Version")
+                        .IsUnique();
+
+                    b.ToTable("Agreements", (string)null);
+                });
+
+            modelBuilder.Entity("SmartFund.Domain.Entities.AuditEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<long?>("LedgerTransactionId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("ReversedByAuditEntryId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("ReversesAuditEntryId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Category");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("LedgerTransactionId");
+
+                    b.ToTable("AuditEntries", (string)null);
+                });
+
+            modelBuilder.Entity("SmartFund.Domain.Entities.Deal", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("BorrowerName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DealCode")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<decimal>("InterestRate")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal>("LoanAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TenureMonths")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DealCode")
+                        .IsUnique();
+
+                    b.ToTable("Deals", (string)null);
+                });
+
+            modelBuilder.Entity("SmartFund.Domain.Entities.InsuranceWallet", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("Balance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<long?>("DealId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("ReserveAccountId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DealId");
+
+                    b.HasIndex("ReserveAccountId");
+
+                    b.HasIndex("Type", "DealId");
+
+                    b.ToTable("InsuranceWallets", (string)null);
+                });
+
+            modelBuilder.Entity("SmartFund.Domain.Entities.Investor", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("nvarchar(254)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.ToTable("Investors", (string)null);
+                });
+
             modelBuilder.Entity("SmartFund.Domain.Entities.LedgerAccount", b =>
                 {
                     b.Property<long>("Id")
@@ -121,154 +313,6 @@ namespace SmartFund.Persistence.Migrations
                     b.ToTable("LedgerTransactions", (string)null);
                 });
 
-            modelBuilder.Entity("SmartFund.Domain.Entities.Investor", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(254)
-                        .HasColumnType("nvarchar(254)");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("Phone")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Email")
-                        .IsUnique();
-
-                    b.ToTable("Investors", (string)null);
-                });
-
-            modelBuilder.Entity("SmartFund.Domain.Entities.Deal", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("BorrowerName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("DealCode")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<decimal>("InterestRate")
-                        .HasColumnType("decimal(9,6)");
-
-                    b.Property<decimal>("LoanAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TenureMonths")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DealCode")
-                        .IsUnique();
-
-                    b.ToTable("Deals", (string)null);
-                });
-
-            modelBuilder.Entity("SmartFund.Domain.Entities.InsuranceWallet", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<decimal>("Balance")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<long?>("DealId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("ReserveAccountId")
-                        .HasColumnType("bigint");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DealId");
-
-                    b.HasIndex("ReserveAccountId");
-
-                    b.HasIndex("Type", "DealId");
-
-                    b.ToTable("InsuranceWallets", (string)null);
-                });
-
-            modelBuilder.Entity("SmartFund.Domain.Entities.Agreement", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("DocumentUrl")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<DateTime>("SignedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SignedName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<long>("TrancheId")
-                        .HasColumnType("bigint");
-
-                    b.Property<int>("Version")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TrancheId", "Version")
-                        .IsUnique();
-
-                    b.ToTable("Agreements", (string)null);
-                });
-
             modelBuilder.Entity("SmartFund.Domain.Entities.Tranche", b =>
                 {
                     b.Property<long>("Id")
@@ -329,26 +373,217 @@ namespace SmartFund.Persistence.Migrations
                     b.ToTable("Tranches", (string)null);
                 });
 
-            modelBuilder.Entity("SmartFund.Domain.Entities.Agreement", b =>
+            modelBuilder.Entity("SmartFund.Domain.PersonalBudget.Entities.Budget", b =>
                 {
-                    b.HasOne("SmartFund.Domain.Entities.Tranche", null)
-                        .WithMany()
-                        .HasForeignKey("TrancheId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<long>("CategoryId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Period")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId", "Period")
+                        .IsUnique();
+
+                    b.ToTable("PersonalBudgets", (string)null);
                 });
 
-            modelBuilder.Entity("SmartFund.Domain.Entities.InsuranceWallet", b =>
+            modelBuilder.Entity("SmartFund.Domain.PersonalBudget.Entities.BudgetTracking", b =>
                 {
-                    b.HasOne("SmartFund.Domain.Entities.Deal", null)
-                        .WithMany()
-                        .HasForeignKey("DealId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                    b.Property<long>("BudgetId")
+                        .HasColumnType("bigint");
 
-                    b.HasOne("SmartFund.Domain.Entities.LedgerAccount", null)
-                        .WithMany()
-                        .HasForeignKey("ReserveAccountId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("RemainingAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("SpentAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("BudgetId", "Year", "Month");
+
+                    b.HasIndex("Year", "Month");
+
+                    b.ToTable("PersonalBudgetTracking", (string)null);
+                });
+
+            modelBuilder.Entity("SmartFund.Domain.PersonalFinance.Entities.PersonalCategory", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Type", "Name")
+                        .IsUnique();
+
+                    b.ToTable("PersonalCategories", (string)null);
+                });
+
+            modelBuilder.Entity("SmartFund.Domain.PersonalFinance.Entities.PersonalGoal", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("Deadline")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal>("SavedAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TargetAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PersonalGoals", (string)null);
+                });
+
+            modelBuilder.Entity("SmartFund.Domain.PersonalFinance.Entities.PersonalInvestmentContribution", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<long>("LedgerTransactionId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("TrancheId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("WalletId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LedgerTransactionId");
+
+                    b.HasIndex("TrancheId");
+
+                    b.HasIndex("WalletId");
+
+                    b.ToTable("PersonalInvestmentContributions", (string)null);
+                });
+
+            modelBuilder.Entity("SmartFund.Domain.PersonalFinance.Entities.PersonalTransaction", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<long?>("CategoryId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<long>("LedgerTransactionId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("TransactionType")
+                        .HasColumnType("int");
+
+                    b.Property<long>("WalletId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("LedgerTransactionId");
+
+                    b.HasIndex("WalletId");
+
+                    b.ToTable("PersonalTransactions", (string)null);
+                });
+
+            modelBuilder.Entity("SmartFund.Domain.PersonalFinance.Entities.PersonalWallet", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<long>("LedgerAccountId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LedgerAccountId");
+
+                    b.ToTable("PersonalWallets", (string)null);
                 });
 
             modelBuilder.Entity("SmartFund.Persistence.DbContext.LedgerDailySequence", b =>
@@ -377,6 +612,28 @@ namespace SmartFund.Persistence.Migrations
                     b.HasKey("DateKey");
 
                     b.ToTable("TrancheDailySequences", (string)null);
+                });
+
+            modelBuilder.Entity("SmartFund.Domain.Entities.Agreement", b =>
+                {
+                    b.HasOne("SmartFund.Domain.Entities.Tranche", null)
+                        .WithMany()
+                        .HasForeignKey("TrancheId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SmartFund.Domain.Entities.InsuranceWallet", b =>
+                {
+                    b.HasOne("SmartFund.Domain.Entities.Deal", null)
+                        .WithMany()
+                        .HasForeignKey("DealId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("SmartFund.Domain.Entities.LedgerAccount", null)
+                        .WithMany()
+                        .HasForeignKey("ReserveAccountId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("SmartFund.Domain.Entities.LedgerEntry", b =>
@@ -447,11 +704,10 @@ namespace SmartFund.Persistence.Migrations
 
             modelBuilder.Entity("SmartFund.Domain.Entities.Tranche", b =>
                 {
-                    b.HasOne("SmartFund.Domain.Entities.LedgerAccount", null)
+                    b.HasOne("SmartFund.Domain.Entities.Deal", null)
                         .WithMany()
-                        .HasForeignKey("LiabilityAccountId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .HasForeignKey("DealId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("SmartFund.Domain.Entities.Investor", null)
                         .WithMany()
@@ -459,10 +715,81 @@ namespace SmartFund.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("SmartFund.Domain.Entities.Deal", null)
+                    b.HasOne("SmartFund.Domain.Entities.LedgerAccount", null)
                         .WithMany()
-                        .HasForeignKey("DealId")
+                        .HasForeignKey("LiabilityAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SmartFund.Domain.PersonalBudget.Entities.Budget", b =>
+                {
+                    b.HasOne("SmartFund.Domain.PersonalFinance.Entities.PersonalCategory", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SmartFund.Domain.PersonalBudget.Entities.BudgetTracking", b =>
+                {
+                    b.HasOne("SmartFund.Domain.PersonalBudget.Entities.Budget", null)
+                        .WithMany()
+                        .HasForeignKey("BudgetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SmartFund.Domain.PersonalFinance.Entities.PersonalInvestmentContribution", b =>
+                {
+                    b.HasOne("SmartFund.Domain.Entities.LedgerTransaction", "LedgerTransaction")
+                        .WithMany()
+                        .HasForeignKey("LedgerTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmartFund.Domain.Entities.Tranche", null)
+                        .WithMany()
+                        .HasForeignKey("TrancheId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmartFund.Domain.PersonalFinance.Entities.PersonalWallet", null)
+                        .WithMany()
+                        .HasForeignKey("WalletId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LedgerTransaction");
+                });
+
+            modelBuilder.Entity("SmartFund.Domain.PersonalFinance.Entities.PersonalTransaction", b =>
+                {
+                    b.HasOne("SmartFund.Domain.PersonalFinance.Entities.PersonalCategory", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("SmartFund.Domain.Entities.LedgerTransaction", null)
+                        .WithMany()
+                        .HasForeignKey("LedgerTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmartFund.Domain.PersonalFinance.Entities.PersonalWallet", null)
+                        .WithMany()
+                        .HasForeignKey("WalletId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SmartFund.Domain.PersonalFinance.Entities.PersonalWallet", b =>
+                {
+                    b.HasOne("SmartFund.Domain.Entities.LedgerAccount", null)
+                        .WithMany()
+                        .HasForeignKey("LedgerAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("SmartFund.Domain.Entities.LedgerTransaction", b =>

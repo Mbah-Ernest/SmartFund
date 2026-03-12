@@ -123,6 +123,16 @@ export type PersonalCategoryDto = {
   type: number;
 };
 
+export type PersonalTransactionDto = {
+  id: number;
+  amount: number;
+  wallet: string;
+  category: string;
+  type: string;
+  date: string;
+  description: string | null;
+};
+
 export type CreatePersonalCategoryRequest = {
   name: string;
   type: number;

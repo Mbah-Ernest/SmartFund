@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import StatCard from '../components/StatCard';
 import DashboardCharts from '../components/DashboardCharts';
+import InfoTooltip from '../modules/personalFinance/components/InfoTooltip';
 import { getDeals } from '../api/dealsApi';
 import { api } from '../api/axios';
 import { toApiClientError } from '../api/apiError';
@@ -116,29 +117,34 @@ export default function Dashboard() {
       <div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Dashboard</h1>
-            <p className="text-slate-600 dark:text-slate-300">
-              Summary of key portfolio metrics
-              {lastUpdatedAt
-                ? ` (last updated ${lastUpdatedAt.toLocaleString()}).`
-                : '.'}
-            </p>
+            <h1 className="text-[26px] font-extrabold tracking-tight text-slate-900 dark:text-slate-50">
+              Investment Dashboard
+            </h1>
+            {lastUpdatedAt ? (
+              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                Last updated {lastUpdatedAt.toLocaleString()}
+              </p>
+            ) : null}
           </div>
 
           <button
             type="button"
             onClick={() => void load()}
-            className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5 active:scale-[0.97] disabled:opacity-50 disabled:shadow-none"
             disabled={loading}
           >
-            {loading ? 'Refreshing…' : 'Refresh'}
+            {loading ? 'Refreshing…' : '↻ Refresh'}
           </button>
         </div>
       </div>
 
       {error ? (
-        <div className="rounded border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200">
-          {error}
+        <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-gradient-to-r from-rose-50 to-rose-50/60 px-5 py-4 shadow-sm dark:border-rose-900/50 dark:from-rose-950/30 dark:to-rose-950/20">
+          <span className="text-rose-500">⚠</span>
+          <div>
+            <p className="text-sm font-semibold text-rose-800 dark:text-rose-200">Something went wrong</p>
+            <p className="mt-0.5 text-sm text-rose-700 dark:text-rose-300">{error}</p>
+          </div>
         </div>
       ) : null}
 
@@ -147,6 +153,7 @@ export default function Dashboard() {
           title="Total Investor Funds"
           value={formatCurrency(totalInvestorFunds)}
           caption="Total principal exposure"
+          description="The total amount of money all investors have put into active tranches. This is how much capital the fund is managing."
           loading={loading}
         />
 
@@ -154,6 +161,7 @@ export default function Dashboard() {
           title="Total Deals"
           value={dealCount.toLocaleString()}
           caption="Created in the system"
+          description="A deal is a loan or investment opportunity. Deals group related tranches together — think of them as 'projects' investors fund."
           loading={loading}
         />
 
@@ -161,6 +169,7 @@ export default function Dashboard() {
           title="Active Tranches"
           value={trancheCount.toLocaleString()}
           caption="Total tranches across investors"
+          description="A tranche is a single funded slice of a deal. Each investor's money goes into a tranche with its own terms (rate, dates, etc)."
           loading={loading}
         />
 
@@ -168,6 +177,7 @@ export default function Dashboard() {
           title="Insurance Coverage"
           value={formatPercent(insuranceCoverageRatio)}
           caption={`Reserve: ${formatCurrency(insuranceReserve)}`}
+          description="Insurance coverage is the safety net. It shows what % of total investor exposure is backed by insurance reserves. 100% = fully protected."
           loading={loading}
         />
 
@@ -175,6 +185,7 @@ export default function Dashboard() {
           title="Upcoming Payouts"
           value={formatCurrency(upcomingTotalPayable)}
           caption={`${upcoming.length.toLocaleString()} tranche(s) in next 30 days`}
+          description="Money the fund needs to pay back to investors in the next 30 days — principal + interest on maturing tranches."
           loading={loading}
         />
       </div>
@@ -189,11 +200,15 @@ export default function Dashboard() {
         formatPercent={formatPercent}
       />
 
-      <section className="rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
-            Upcoming payouts (next 30 days)
-          </h2>
+      <section className="rounded-2xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(59,130,246,0.04)] ring-1 ring-slate-200/60 dark:bg-slate-900 dark:ring-slate-800">
+        <div className="border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+              Upcoming Payouts (next 30 days)
+            </h2>
+            <InfoTooltip text="These are tranches that will mature soon. When a tranche matures, the fund pays the investor back their principal + earned interest." />
+          </div>
+          <p className="mt-0.5 text-xs text-slate-400">Tranches maturing soon — principal + interest owed to investors</p>
         </div>
 
         <div className="overflow-auto">

@@ -107,18 +107,19 @@ export default function InvestorsPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Investors</h1>
-          <p className="text-slate-600 dark:text-slate-300">
-            People funding tranches ({investors.length.toLocaleString()}).
+          <h1 className="text-[26px] font-extrabold tracking-tight text-slate-900 dark:text-slate-50">Investors</h1>
+          <p className="mt-1 max-w-lg text-sm text-slate-500 dark:text-slate-400">
+            People who put money into the fund. Each investor can have multiple tranches across different deals.
+            Currently {investors.length.toLocaleString()} investor(s) in the system.
           </p>
         </div>
 
         <button
           type="button"
           onClick={openCreateModal}
-          className="inline-flex items-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          className="rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5 active:scale-[0.97]"
         >
-          Create Investor
+          + Create Investor
         </button>
       </div>
 

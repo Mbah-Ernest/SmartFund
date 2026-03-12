@@ -46,7 +46,7 @@ export default function IncomeExpenseChart({
   return (
     <ResponsiveContainer width="100%" height={300}>
       <BarChart data={data} barGap={4}>
-        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--grid-stroke, #E2E8F0)" />
         <XAxis
           dataKey="month"
           axisLine={false}
@@ -64,7 +64,9 @@ export default function IncomeExpenseChart({
           contentStyle={{
             borderRadius: 12,
             border: 'none',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.08)'
+            boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+            backgroundColor: 'var(--tooltip-bg, #fff)',
+            color: 'var(--tooltip-text, #334155)'
           }}
         />
         <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />

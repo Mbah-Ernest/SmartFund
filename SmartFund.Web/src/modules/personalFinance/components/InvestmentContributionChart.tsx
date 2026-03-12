@@ -30,7 +30,7 @@ function ChartSkeleton() {
         <path d="M0 180 Q50 160 100 140 T200 100 T300 80 T400 50 V200 H0 Z" fill="url(#skelGrad)" />
         <defs><linearGradient id="skelGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#DBEAFE" stopOpacity="0.4" /><stop offset="100%" stopColor="#DBEAFE" stopOpacity="0" /></linearGradient></defs>
       </svg>
-      <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+      <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/40 to-transparent dark:via-slate-700/40" />
     </div>
   );
 }
@@ -38,7 +38,7 @@ function ChartSkeleton() {
 function EmptyState() {
   return (
     <div className="flex h-72 flex-col items-center justify-center gap-3">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-950/40">
         <svg className="h-7 w-7 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
         </svg>
@@ -66,7 +66,7 @@ export default function InvestmentContributionChart({
             <stop offset="95%" stopColor="#60A5FA" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--grid-stroke, #E2E8F0)" />
         <XAxis
           dataKey="month"
           axisLine={false}
@@ -85,12 +85,14 @@ export default function InvestmentContributionChart({
             formatCurrency(value),
             'Contributions'
           ]}
-          labelStyle={{ color: '#334155', fontWeight: 600, marginBottom: 4 }}
+          labelStyle={{ color: 'var(--tooltip-text, #334155)', fontWeight: 600, marginBottom: 4 }}
           contentStyle={{
             borderRadius: 12,
             border: 'none',
             boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
-            padding: '10px 14px'
+            padding: '10px 14px',
+            backgroundColor: 'var(--tooltip-bg, #fff)',
+            color: 'var(--tooltip-text, #334155)'
           }}
         />
         <Area

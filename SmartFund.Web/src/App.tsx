@@ -10,6 +10,7 @@ import TranchesPage from './pages/TranchesPage';
 import InsurancePage from './pages/InsurancePage';
 import LedgerPage from './pages/LedgerPage';
 import SettingsPage from './pages/SettingsPage';
+import ActivityLogPage from './pages/ActivityLogPage';
 import LoginPage from './pages/LoginPage';
 import PersonalDashboard from './modules/personalFinance/pages/PersonalDashboard';
 import TransactionsPage from './modules/personalFinance/pages/TransactionsPage';
@@ -35,6 +36,7 @@ export default function App() {
         <Route path="tranches" element={<TranchesPage />} />
         <Route path="insurance" element={<InsurancePage />} />
         <Route path="ledger" element={<LedgerPage />} />
+        <Route path="activity-log" element={<ActivityLogPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="finance/dashboard" element={<PersonalDashboard />} />
         <Route path="finance/transactions" element={<TransactionsPage />} />

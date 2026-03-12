@@ -107,15 +107,15 @@ export default function CategoriesPage() {
       </div>
 
       {error ? (
-        <div className="animate-fade-in-up flex items-start gap-3 rounded-2xl border border-rose-200 bg-gradient-to-r from-rose-50 to-rose-50/60 px-5 py-4 shadow-sm">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-500">
+        <div className="animate-fade-in-up flex items-start gap-3 rounded-2xl border border-rose-200 bg-gradient-to-r from-rose-50 to-rose-50/60 px-5 py-4 shadow-sm dark:border-rose-900/50 dark:from-rose-950/30 dark:to-rose-950/20">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-500 dark:bg-rose-950/50 dark:text-rose-400">
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
             </svg>
           </div>
           <div>
-            <p className="text-sm font-semibold text-rose-800">Error</p>
-            <p className="mt-0.5 text-sm text-rose-700">{error}</p>
+            <p className="text-sm font-semibold text-rose-800 dark:text-rose-200">Error</p>
+            <p className="mt-0.5 text-sm text-rose-700 dark:text-rose-300">{error}</p>
           </div>
         </div>
       ) : null}
@@ -127,7 +127,7 @@ export default function CategoriesPage() {
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="text-xs font-medium text-slate-600">Name</span>
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-300">Name</span>
               <input
                 type="text"
                 value={name}
@@ -137,7 +137,7 @@ export default function CategoriesPage() {
               />
             </label>
             <label className="block">
-              <span className="text-xs font-medium text-slate-600">Type</span>
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-300">Type</span>
               <select
                 value={type}
                 onChange={(e) => setType(Number(e.target.value))}
@@ -178,7 +178,7 @@ export default function CategoriesPage() {
                 className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                   tab === t.key
                     ? 'bg-blue-500 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
                 }`}
               >
                 {t.label}
@@ -187,10 +187,10 @@ export default function CategoriesPage() {
           </div>
         </div>
 
-        <div className="mt-5 overflow-hidden rounded-xl ring-1 ring-slate-200/60">
+        <div className="mt-5 overflow-hidden rounded-xl ring-1 ring-slate-200/60 dark:ring-slate-800">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/60">
+              <tr className="border-b border-slate-100 bg-slate-50/60 dark:border-slate-800 dark:bg-slate-950">
                 <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-slate-400">Name</th>
                 <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-slate-400">ID</th>
                 <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-slate-400 text-right">Action</th>
@@ -199,10 +199,10 @@ export default function CategoriesPage() {
             <tbody>
               {loading ? (
                 Array.from({ length: 6 }).map((_, i) => (
-                  <tr key={i} className="border-b border-slate-50">
-                    <td className="px-4 py-3"><div className="h-3 w-40 rounded bg-slate-100" /></td>
-                    <td className="px-4 py-3"><div className="h-3 w-12 rounded bg-slate-100" /></td>
-                    <td className="px-4 py-3"><div className="ml-auto h-7 w-20 rounded bg-slate-100" /></td>
+                  <tr key={i} className="border-b border-slate-50 dark:border-slate-800">
+                    <td className="px-4 py-3"><div className="h-3 w-40 rounded bg-slate-100 dark:bg-slate-800" /></td>
+                    <td className="px-4 py-3"><div className="h-3 w-12 rounded bg-slate-100 dark:bg-slate-800" /></td>
+                    <td className="px-4 py-3"><div className="ml-auto h-7 w-20 rounded bg-slate-100 dark:bg-slate-800" /></td>
                   </tr>
                 ))
               ) : activeList.length === 0 ? (
@@ -214,20 +214,20 @@ export default function CategoriesPage() {
                 </tr>
               ) : (
                 activeList.map((c) => (
-                  <tr key={c.id} className="border-b border-slate-50">
-                    <td className="px-4 py-3">
-                      {editingId === c.id ? (
-                        <input
-                          type="text"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          className="block w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
-                        />
-                      ) : (
-                        <span className="font-semibold text-slate-800">{c.name}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-slate-500">{c.id}</td>
+                  <tr key={c.id} className="border-b border-slate-50 dark:border-slate-800">
+                      <td className="px-4 py-3">
+                        {editingId === c.id ? (
+                          <input
+                            type="text"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            className="block w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                          />
+                        ) : (
+                          <span className="font-semibold text-slate-800 dark:text-slate-100">{c.name}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{c.id}</td>
                     <td className="px-4 py-3 text-right">
                       {editingId === c.id ? (
                         <div className="flex justify-end gap-2">
@@ -245,7 +245,7 @@ export default function CategoriesPage() {
                               setEditingId(null);
                               setEditName('');
                             }}
-                            className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200"
+                            className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                           >
                             Cancel
                           </button>
@@ -257,7 +257,7 @@ export default function CategoriesPage() {
                             setEditingId(c.id);
                             setEditName(c.name);
                           }}
-                          className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200"
+                          className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                         >
                           Rename
                         </button>

@@ -41,6 +41,7 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(() =>
     localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1'
   );
+  const [investmentOpen, setInvestmentOpen] = useState(true);
   const [personalFinanceOpen, setPersonalFinanceOpen] = useState(true);
 
   useEffect(() => {
@@ -87,18 +88,33 @@ export default function Sidebar() {
         </button>
       </div>
 
-      <nav className="flex flex-col gap-1">
-        {mainItems.map(i => (
-          <SideLink
-            key={i.to}
-            to={i.to}
-            label={i.label}
-            icon={i.icon}
-            end={i.end}
-            collapsed={collapsed}
-          />
-        ))}
-      </nav>
+      {collapsed ? (
+        <div className="mt-2 h-px bg-slate-800" />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setInvestmentOpen(v => !v)}
+          className="flex items-center justify-between text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-300"
+        >
+          <span>Investment Management</span>
+          <span className="text-slate-400">{investmentOpen ? '▾' : '▸'}</span>
+        </button>
+      )}
+
+      {collapsed || investmentOpen ? (
+        <nav className="flex flex-col gap-1">
+          {mainItems.map(i => (
+            <SideLink
+              key={i.to}
+              to={i.to}
+              label={i.label}
+              icon={i.icon}
+              end={i.end}
+              collapsed={collapsed}
+            />
+          ))}
+        </nav>
+      ) : null}
 
       {collapsed ? (
         <div className="mt-2 h-px bg-slate-800" />
@@ -129,6 +145,12 @@ export default function Sidebar() {
 
       <div className="mt-auto space-y-3">
         <nav className="flex flex-col gap-1">
+          <SideLink
+            to="/activity-log"
+            label="Activity Log"
+            icon={<ClockIcon />}
+            collapsed={collapsed}
+          />
           <SideLink
             to="/settings"
             label="Settings"
@@ -254,6 +276,14 @@ function CogIcon() {
     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 15.5a3.5 3.5 0 110-7 3.5 3.5 0 010 7z" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M19.4 15a7.8 7.8 0 00.1-1 7.8 7.8 0 00-.1-1l2-1.6-2-3.4-2.4 1a7.6 7.6 0 00-1.7-1l-.4-2.6h-4l-.4 2.6a7.6 7.6 0 00-1.7 1l-2.4-1-2 3.4 2 1.6a7.8 7.8 0 00-.1 1 7.8 7.8 0 00.1 1l-2 1.6 2 3.4 2.4-1c.5.4 1.1.7 1.7 1l.4 2.6h4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.4 1 2-3.4-2-1.6z" />
+    </svg>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   );
 }

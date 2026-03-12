@@ -18,7 +18,8 @@ import type {
   RecordTransactionResponse,
   RecordInvestmentContributionRequest,
   CreatePersonalBudgetRequest,
-  CreatePersonalWalletRequest
+  CreatePersonalWalletRequest,
+  PersonalTransactionDto
 } from '../types/financeTypes';
 
 /* ── Dashboard & Reports ── */
@@ -151,6 +152,31 @@ export async function createWallet(
 }
 
 /* ── Transactions ── */
+
+export type TransactionOrderBy = 'inputTime' | 'date' | 'amount';
+export type TransactionOrderDirection = 'asc' | 'desc';
+
+export async function getTransactions(options?: {
+  orderBy?: TransactionOrderBy;
+  direction?: TransactionOrderDirection;
+  take?: number;
+}): Promise<PersonalTransactionDto[]> {
+  try {
+    const params = new URLSearchParams();
+    if (options?.orderBy) params.set('orderBy', options.orderBy);
+    if (options?.direction) params.set('direction', options.direction);
+    if (options?.take) params.set('take', String(options.take));
+
+    const qs = params.toString();
+
+    const { data } = await api.get<PersonalTransactionDto[]>(
+      qs ? `/personal-transactions?${qs}` : '/personal-transactions'
+    );
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
 
 export async function recordIncome(
   request: RecordIncomeRequest

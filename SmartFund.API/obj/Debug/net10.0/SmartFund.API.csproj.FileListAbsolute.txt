@@ -168,3 +168,11 @@ C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\obj\Debug\net1
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\obj\Debug\net10.0\SmartFund.API.genruntimeconfig.cache
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\obj\Debug\net10.0\ref\SmartFund.API.dll
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\bin\Debug\net10.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\.tmp-build-api\appsettings.Development.json
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\.tmp-build-api\appsettings.json
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\.tmp-build-api\SmartFund.API.staticwebassets.endpoints.json
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\.tmp-build-api\SmartFund.API.exe
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\.tmp-build-api\SmartFund.API.deps.json
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\.tmp-build-api\SmartFund.API.runtimeconfig.json
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\.tmp-build-api\SmartFund.API.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\.tmp-build-api\SmartFund.API.pdb

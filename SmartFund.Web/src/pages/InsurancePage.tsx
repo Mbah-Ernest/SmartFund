@@ -185,24 +185,27 @@ export default function InsurancePage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Insurance</h1>
-          <p className="text-slate-600 dark:text-slate-300">Insurance reserve protecting investors.</p>
+          <h1 className="text-[26px] font-extrabold tracking-tight text-slate-900 dark:text-slate-50">Insurance</h1>
+          <p className="mt-1 max-w-lg text-sm text-slate-500 dark:text-slate-400">
+            The insurance reserve is a safety net that protects investors. Money is set aside so that if a deal goes bad, investors can be compensated.
+            "Fund" adds money to the reserve; "Use" draws from it to cover a loss.
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={openFundModal}
-            className="inline-flex items-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            className="rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5 active:scale-[0.97]"
           >
-            Fund insurance
+            + Fund Insurance
           </button>
           <button
             type="button"
             onClick={openUseModal}
-            className="inline-flex items-center rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.97] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
           >
-            Use insurance
+            Use Insurance
           </button>
         </div>
       </div>
@@ -220,33 +223,36 @@ export default function InsurancePage() {
       ) : null}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Insurance reserve
+        <div className="group rounded-2xl bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(59,130,246,0.04)] ring-1 ring-slate-200/60 transition-all duration-300 hover:shadow-[0_4px_20px_rgba(59,130,246,0.08)] hover:-translate-y-0.5 dark:bg-slate-900 dark:ring-slate-800">
+          <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+            Insurance Reserve
           </div>
-          <div className="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-50">
+          <div className="mt-2 text-[26px] font-extrabold leading-none tracking-tight tabular-nums text-slate-900 dark:text-slate-50">
             {loading ? 'Loading…' : formatCurrency(report?.totalInsuranceReserve ?? 0)}
           </div>
+          <p className="mt-1.5 text-[13px] font-medium text-slate-500 dark:text-slate-400">Money set aside to protect investors</p>
         </div>
 
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Total exposure
+        <div className="group rounded-2xl bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(59,130,246,0.04)] ring-1 ring-slate-200/60 transition-all duration-300 hover:shadow-[0_4px_20px_rgba(59,130,246,0.08)] hover:-translate-y-0.5 dark:bg-slate-900 dark:ring-slate-800">
+          <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+            Total Exposure
           </div>
-          <div className="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-50">
+          <div className="mt-2 text-[26px] font-extrabold leading-none tracking-tight tabular-nums text-slate-900 dark:text-slate-50">
             {loading ? 'Loading…' : formatCurrency(report?.totalExposure ?? 0)}
           </div>
+          <p className="mt-1.5 text-[13px] font-medium text-slate-500 dark:text-slate-400">Total investor money at risk across all tranches</p>
         </div>
 
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Coverage ratio
+        <div className="group rounded-2xl bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(59,130,246,0.04)] ring-1 ring-slate-200/60 transition-all duration-300 hover:shadow-[0_4px_20px_rgba(59,130,246,0.08)] hover:-translate-y-0.5 dark:bg-slate-900 dark:ring-slate-800">
+          <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+            Coverage Ratio
           </div>
-          <div className="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-50">
+          <div className="mt-2 text-[26px] font-extrabold leading-none tracking-tight tabular-nums text-slate-900 dark:text-slate-50">
             {loading
               ? 'Loading…'
               : formatPercent(report?.coverageRatio ?? 0)}
           </div>
+          <p className="mt-1.5 text-[13px] font-medium text-slate-500 dark:text-slate-400">% of exposure covered — aim for 100%</p>
         </div>
       </div>
 

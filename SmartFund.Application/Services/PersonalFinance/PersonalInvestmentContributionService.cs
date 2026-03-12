@@ -6,6 +6,7 @@ using SmartFund.Domain.Entities;
 using SmartFund.Domain.Enums;
 using SmartFund.Domain.Exceptions;
 using SmartFund.Domain.PersonalFinance.Entities;
+using SmartFund.Domain.PersonalFinance.Enums;
 using SmartFund.Domain.ValueObjects;
 
 namespace SmartFund.Application.Services.PersonalFinance
@@ -16,17 +17,23 @@ namespace SmartFund.Application.Services.PersonalFinance
         private readonly ITrancheRepository _trancheRepo;
         private readonly ILedgerTransactionRepository _ledgerTxRepo;
         private readonly IPersonalInvestmentContributionRepository _contributionRepo;
+        private readonly IPersonalTransactionRepository _txRepo;
+        private readonly IAuditService _audit;
 
         public PersonalInvestmentContributionService(
             IPersonalWalletRepository walletRepo,
             ITrancheRepository trancheRepo,
             ILedgerTransactionRepository ledgerTxRepo,
-            IPersonalInvestmentContributionRepository contributionRepo)
+            IPersonalInvestmentContributionRepository contributionRepo,
+            IPersonalTransactionRepository txRepo,
+            IAuditService audit)
         {
             _walletRepo = walletRepo;
             _trancheRepo = trancheRepo;
             _ledgerTxRepo = ledgerTxRepo;
             _contributionRepo = contributionRepo;
+            _txRepo = txRepo;
+            _audit = audit;
         }
 
         public async Task<long> ContributeAsync(
@@ -74,6 +81,26 @@ namespace SmartFund.Application.Services.PersonalFinance
 
             // Single SaveChanges call for integrity (same EF DbContext under the hood).
             await _ledgerTxRepo.SaveChangesAsync(ct);
+
+            var personalTx = PersonalTransaction.Create(
+                walletId,
+                categoryId: null,
+                amount,
+                PersonalTransactionType.InvestmentContribution,
+                utcNow,
+                narration);
+
+            personalTx.AttachLedgerTransaction(ledgerTx.Id);
+
+            await _txRepo.AddAsync(personalTx, ct);
+            await _txRepo.SaveChangesAsync(ct);
+
+            await _audit.RecordAsync(
+                AuditCategory.PersonalFinance,
+                "Investment Contribution",
+                $"Contributed {amount:N2} NGN to tranche {tranche.TrancheCode} from wallet #{walletId}",
+                ledgerTx.Id,
+                ct);
 
             return ledgerTx.Id;
         }

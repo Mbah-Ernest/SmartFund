@@ -17,3 +17,7 @@ C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Persistence\obj\De
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Persistence\obj\Debug\net10.0\SmartFund.Persistence.pdb
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Persistence\obj\Debug\net10.0\SmartFund.Persistence.genruntimeconfig.cache
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Persistence\obj\Debug\net10.0\ref\SmartFund.Persistence.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\.tmp-build-api\SmartFund.Persistence.deps.json
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\.tmp-build-api\SmartFund.Persistence.runtimeconfig.json
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\.tmp-build-api\SmartFund.Persistence.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\.tmp-build-api\SmartFund.Persistence.pdb

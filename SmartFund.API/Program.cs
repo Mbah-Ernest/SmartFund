@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using SmartFund.Application.Interfaces;
 using SmartFund.Application.Services.PersonalFinance;
 using SmartFund.Application.UseCases.Tranches;
@@ -79,6 +82,9 @@ builder.Services.AddScoped<IPersonalInvestmentContributionRepository, PersonalIn
 builder.Services.AddScoped<IPersonalBudgetRepository, PersonalBudgetRepository>();
 builder.Services.AddScoped<IPersonalBudgetTrackingRepository, PersonalBudgetTrackingRepository>();
 
+builder.Services.AddScoped<IAuditRepository, AuditRepository>();
+builder.Services.AddScoped<IAuditService, SmartFund.Application.Services.AuditService>();
+
 builder.Services.AddScoped<IPersonalWalletService, PersonalWalletService>();
 builder.Services.AddScoped<IPersonalTransactionService, PersonalTransactionService>();
 builder.Services.AddScoped<IPersonalInvestmentContributionService, PersonalInvestmentContributionService>();
@@ -104,6 +110,79 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+// Ensure the database schema is up-to-date in development.
+// This prevents runtime errors like "Invalid object name" after introducing new migrations.
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<SmartFundDbContext>();
+
+    static bool TableExists(SmartFundDbContext ctx, string tableName)
+    {
+        var conn = ctx.Database.GetDbConnection();
+        var wasClosed = conn.State != System.Data.ConnectionState.Open;
+        if (wasClosed)
+            conn.Open();
+
+        try
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = @p0";
+
+            var p = cmd.CreateParameter();
+            p.ParameterName = "@p0";
+            p.Value = tableName;
+            cmd.Parameters.Add(p);
+
+            var result = cmd.ExecuteScalar();
+            return result is not null;
+        }
+        finally
+        {
+            if (wasClosed)
+                conn.Close();
+        }
+    }
+
+    // If the database was created outside EF migrations (or the history table was deleted),
+    // `Migrate()` will try to replay the entire migration chain and fail because tables already exist.
+    // In that case, we baseline the history table to the current set of migrations, then apply pending.
+    var history = db.GetService<IHistoryRepository>();
+
+    var historyExists = history.Exists();
+    var hasAppliedMigrations = historyExists && history.GetAppliedMigrations().Count > 0;
+    var looksLikeExistingDb = TableExists(db, "LedgerTransactions");
+
+    var needsBaseline = (!historyExists && looksLikeExistingDb) || (historyExists && !hasAppliedMigrations && looksLikeExistingDb);
+
+    if (needsBaseline)
+    {
+        if (!historyExists)
+            db.Database.ExecuteSqlRaw(history.GetCreateScript());
+
+        var productVersion = ProductInfo.GetVersion();
+
+        var allMigrations = db.Database.GetMigrations().ToList();
+        var auditTableExists = TableExists(db, "AuditEntries");
+
+        // If the audit table doesn't exist yet, leave the corresponding migration unapplied
+        // so that `Migrate()` will create it.
+        var toMarkApplied = auditTableExists
+            ? allMigrations
+            : allMigrations.Where(m => !m.Contains("AddAuditEntries", StringComparison.OrdinalIgnoreCase)).ToList();
+
+        foreach (var migrationId in toMarkApplied)
+        {
+            db.Database.ExecuteSqlRaw(
+                "INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES ({0}, {1})",
+                migrationId,
+                productVersion);
+        }
+    }
+
+    db.Database.Migrate();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

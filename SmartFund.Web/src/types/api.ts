@@ -188,3 +188,22 @@ export interface CreateLedgerAccountRequest {
   referenceType?: number;
   referenceId?: EntityId | null;
 }
+
+export interface AuditEntryDto {
+  id: EntityId;
+  category: number;
+  action: string;
+  description: string;
+  ledgerTransactionId?: EntityId | null;
+  reversesAuditEntryId?: EntityId | null;
+  reversedByAuditEntryId?: EntityId | null;
+  createdAtUtc: string;
+}
+
+export interface ReverseAuditEntryRequest {
+  pin: string;
+}
+
+export interface ReverseAuditEntryResponse {
+  reversalAuditEntryId: EntityId;
+}

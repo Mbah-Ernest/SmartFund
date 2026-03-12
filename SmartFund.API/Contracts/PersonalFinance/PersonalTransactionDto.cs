@@ -6,6 +6,7 @@ namespace SmartFund.API.Contracts.PersonalFinance
     {
         public long Id { get; set; }
         public decimal Amount { get; set; }
+        public string Wallet { get; set; } = default!;
         public string Category { get; set; } = default!;
         public string Type { get; set; } = default!;
         public DateTime Date { get; set; }

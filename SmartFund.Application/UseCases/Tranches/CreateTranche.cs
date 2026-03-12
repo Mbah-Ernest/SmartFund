@@ -16,19 +16,22 @@ namespace SmartFund.Application.UseCases.Tranches
         private readonly ITrancheCodeGenerator _codeGenerator;
         private readonly IInvestorRepository _investorRepo;
         private readonly IDealRepository _dealRepo;
+        private readonly IAuditService _audit;
 
         public CreateTranche(
             ITrancheRepository trancheRepo,
             ILedgerAccountRepository accountRepo,
             ITrancheCodeGenerator codeGenerator,
             IInvestorRepository investorRepo,
-            IDealRepository dealRepo)
+            IDealRepository dealRepo,
+            IAuditService audit)
         {
             _trancheRepo = trancheRepo;
             _accountRepo = accountRepo;
             _codeGenerator = codeGenerator;
             _investorRepo = investorRepo;
             _dealRepo = dealRepo;
+            _audit = audit;
         }
 
         public async Task<(long TrancheId, string TrancheCode, long LiabilityAccountId)> ExecuteAsync(
@@ -124,6 +127,13 @@ namespace SmartFund.Application.UseCases.Tranches
             // Save the tranche
             await _trancheRepo.AddAsync(tranche, ct);
             await _trancheRepo.SaveChangesAsync(ct);
+
+            await _audit.RecordAsync(
+                AuditCategory.InvestmentManagement,
+                "Create Tranche",
+                $"Created tranche {trancheCode} for investor #{investorId} — Principal: {principal:N2} NGN",
+                null,
+                ct);
 
             return (tranche.Id, trancheCode, liabilityAccount.Id);
         }

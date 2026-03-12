@@ -179,10 +179,10 @@ function deriveKeyMetrics(dash: PersonalFinanceDashboardDto) {
    ═══════════════════════════════════════════ */
 
 const SEV_BG: Record<InsightSeverity, string> = {
-  success: 'bg-emerald-50 ring-emerald-100',
-  warning: 'bg-amber-50 ring-amber-100',
-  danger: 'bg-rose-50 ring-rose-100',
-  info: 'bg-blue-50 ring-blue-100'
+  success: 'bg-emerald-50 ring-emerald-100 dark:bg-emerald-950/30 dark:ring-emerald-800/50',
+  warning: 'bg-amber-50 ring-amber-100 dark:bg-amber-950/30 dark:ring-amber-800/50',
+  danger: 'bg-rose-50 ring-rose-100 dark:bg-rose-950/30 dark:ring-rose-800/50',
+  info: 'bg-blue-50 ring-blue-100 dark:bg-blue-950/30 dark:ring-blue-800/50'
 };
 
 const SEV_DOT: Record<InsightSeverity, string> = {
@@ -193,10 +193,10 @@ const SEV_DOT: Record<InsightSeverity, string> = {
 };
 
 const SEV_TEXT: Record<InsightSeverity, string> = {
-  success: 'text-emerald-700',
-  warning: 'text-amber-700',
-  danger: 'text-rose-700',
-  info: 'text-blue-700'
+  success: 'text-emerald-700 dark:text-emerald-300',
+  warning: 'text-amber-700 dark:text-amber-300',
+  danger: 'text-rose-700 dark:text-rose-300',
+  info: 'text-blue-700 dark:text-blue-300'
 };
 
 /* ═══════════════════════════════════════════
@@ -219,7 +219,8 @@ function HealthMeter({ score, loading }: { score: number; loading?: boolean }) {
           <circle
             cx="50" cy="50" r="40"
             fill="none"
-            stroke="#E2E8F0"
+            stroke="currentColor"
+            className="text-slate-200 dark:text-slate-700"
             strokeWidth="8"
           />
           {!loading && (
@@ -237,7 +238,7 @@ function HealthMeter({ score, loading }: { score: number; loading?: boolean }) {
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           {loading ? (
-            <div className="h-6 w-10 animate-pulse rounded bg-slate-100" />
+            <div className="h-6 w-10 animate-pulse rounded bg-slate-100 dark:bg-slate-800" />
           ) : (
             <>
               <span className={`text-2xl font-extrabold tabular-nums ${colour}`}>
@@ -263,10 +264,10 @@ function MetricRow(props: {
 }) {
   return (
     <div className="flex items-center justify-between py-2">
-      <span className="text-xs font-medium text-slate-500">{props.label}</span>
+      <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{props.label}</span>
       {props.loading ? (
-        <div className="relative h-3.5 w-16 overflow-hidden rounded bg-slate-100">
-          <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+        <div className="relative h-3.5 w-16 overflow-hidden rounded bg-slate-100 dark:bg-slate-800">
+          <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent dark:via-slate-700/60" />
         </div>
       ) : (
         <span className={`text-xs font-bold tabular-nums ${SEV_TEXT[props.severity]}`}>
@@ -286,7 +287,7 @@ function InsightCard(props: { insight: Insight; index: number }) {
     >
       <div className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${SEV_DOT[ins.severity]}`} />
       <div className="min-w-0">
-        <p className="text-xs font-bold text-slate-700 truncate">{ins.label}</p>
+        <p className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">{ins.label}</p>
         <p className={`text-[11px] font-medium leading-snug ${SEV_TEXT[ins.severity]}`}>
           {ins.detail}
         </p>
@@ -307,14 +308,14 @@ function BudgetWarningRow(props: { warning: BudgetWarning }) {
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-slate-600">
+        <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
           Category #{w.categoryId}
         </span>
-        <span className={`text-[11px] font-bold tabular-nums ${w.over ? 'text-rose-600' : w.pct >= 80 ? 'text-amber-600' : 'text-slate-500'}`}>
+        <span className={`text-[11px] font-bold tabular-nums ${w.over ? 'text-rose-600 dark:text-rose-400' : w.pct >= 80 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'}`}>
           {fmt(w.spent)} / {fmt(w.budgetAmount)}
         </span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+      <div className="h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
         <div
           className={`h-full rounded-full transition-all duration-700 ease-out ${barColour}`}
           style={{ width: `${barPct}%` }}
@@ -426,19 +427,19 @@ export default function AIInsightsPanel({
   /* ── Skeleton ── */
   if (isLoading) {
     return (
-      <div className="rounded-2xl bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(59,130,246,0.04)] ring-1 ring-slate-200/60">
+      <div className="rounded-2xl bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(59,130,246,0.04)] ring-1 ring-slate-200/60 dark:bg-slate-900 dark:ring-slate-800">
         <div className="flex items-center gap-2 mb-5">
-          <div className="h-7 w-7 rounded-lg bg-slate-100 animate-pulse" />
-          <div className="h-3.5 w-24 rounded bg-slate-100 animate-pulse" />
+          <div className="h-7 w-7 rounded-lg bg-slate-100 dark:bg-slate-800 animate-pulse" />
+          <div className="h-3.5 w-24 rounded bg-slate-100 dark:bg-slate-800 animate-pulse" />
         </div>
         <div className="flex justify-center py-4">
           <HealthMeter score={0} loading />
         </div>
         <div className="mt-4 space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="relative h-10 overflow-hidden rounded-xl bg-slate-50">
+            <div key={i} className="relative h-10 overflow-hidden rounded-xl bg-slate-50 dark:bg-slate-800/50">
               <div
-                className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent"
+                className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent dark:via-slate-700/60"
                 style={{ animationDelay: `${i * 150}ms` }}
               />
             </div>
@@ -449,16 +450,16 @@ export default function AIInsightsPanel({
   }
 
   return (
-    <div className="rounded-2xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(59,130,246,0.04)] ring-1 ring-slate-200/60">
+    <div className="rounded-2xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(59,130,246,0.04)] ring-1 ring-slate-200/60 dark:bg-slate-900 dark:ring-slate-800">
       {/* ── Header ── */}
-      <div className="flex items-center gap-2.5 border-b border-slate-100 px-5 py-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-50 to-violet-100/60 text-violet-500 shadow-sm ring-1 ring-violet-100/80">
+      <div className="flex items-center gap-2.5 border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-50 to-violet-100/60 text-violet-500 shadow-sm ring-1 ring-violet-100/80 dark:from-violet-950/50 dark:to-violet-900/30 dark:text-violet-400 dark:ring-violet-800/50">
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
           </svg>
         </div>
         <div>
-          <h2 className="text-sm font-bold text-slate-800">AI Insights</h2>
+          <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100">AI Insights</h2>
           <p className="text-[11px] text-slate-400">Smart analysis of your finances</p>
         </div>
       </div>
@@ -471,7 +472,7 @@ export default function AIInsightsPanel({
         </div>
 
         {/* ── Key Metrics ── */}
-        <div className="divide-y divide-slate-100 rounded-xl bg-slate-50/60 px-3 py-1">
+        <div className="divide-y divide-slate-100 dark:divide-slate-800 rounded-xl bg-slate-50/60 dark:bg-slate-800/30 px-3 py-1">
           <MetricRow
             label="Savings Rate"
             value={`${metrics.savingsRate.toFixed(0)}%`}
@@ -505,7 +506,7 @@ export default function AIInsightsPanel({
         {!budgetsLoading && budgetWarnings.length > 0 && (
           <>
             <SectionTitle icon="🚨" title="Budget Alerts" />
-            <div className="space-y-2.5 rounded-xl bg-slate-50/60 px-3 py-2.5">
+            <div className="space-y-2.5 rounded-xl bg-slate-50/60 dark:bg-slate-800/30 px-3 py-2.5">
               {budgetWarnings.map((w) => (
                 <BudgetWarningRow key={w.id} warning={w} />
               ))}
@@ -516,9 +517,9 @@ export default function AIInsightsPanel({
         {!budgetsLoading && budgetWarnings.length === 0 && budgets.length > 0 && (
           <>
             <SectionTitle icon="✅" title="Budget Status" />
-            <div className="flex items-center gap-2 rounded-xl bg-emerald-50/60 px-3 py-2.5 ring-1 ring-emerald-100">
+            <div className="flex items-center gap-2 rounded-xl bg-emerald-50/60 px-3 py-2.5 ring-1 ring-emerald-100 dark:bg-emerald-950/30 dark:ring-emerald-800/50">
               <div className="h-2 w-2 rounded-full bg-emerald-400" />
-              <p className="text-[11px] font-semibold text-emerald-700">All budgets on track</p>
+              <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">All budgets on track</p>
             </div>
           </>
         )}
@@ -533,7 +534,7 @@ export default function AIInsightsPanel({
 
         {/* ── Quick Summary ── */}
         <SectionTitle icon="📊" title="Monthly Summary" />
-        <div className="rounded-xl bg-gradient-to-br from-slate-50 to-blue-50/30 px-3 py-3 ring-1 ring-slate-100">
+        <div className="rounded-xl bg-gradient-to-br from-slate-50 to-blue-50/30 px-3 py-3 ring-1 ring-slate-100 dark:from-slate-800/40 dark:to-blue-950/20 dark:ring-slate-800">
           <div className="grid grid-cols-2 gap-y-2.5 gap-x-4">
             <MiniStat label="Income" value={fmt(dashboard.monthlyIncome)} positive />
             <MiniStat label="Expenses" value={fmt(dashboard.monthlyExpenses)} />
@@ -556,7 +557,7 @@ function MiniStat(props: { label: string; value: string; positive?: boolean }) {
       <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
         {props.label}
       </p>
-      <p className={`text-sm font-bold tabular-nums ${props.positive ? 'text-slate-800' : 'text-slate-600'}`}>
+      <p className={`text-sm font-bold tabular-nums ${props.positive ? 'text-slate-800 dark:text-slate-100' : 'text-slate-600 dark:text-slate-300'}`}>
         {props.value}
       </p>
     </div>

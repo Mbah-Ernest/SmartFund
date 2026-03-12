@@ -15,17 +15,20 @@ public class FundTranche
     private readonly ILedgerTransactionRepository _txRepo;
     private readonly ILedgerAccountRepository _accountRepo;
     private readonly ILedgerSequenceGenerator _sequence;
+    private readonly IAuditService _audit;
 
     public FundTranche(
         ITrancheRepository trancheRepo,
         ILedgerTransactionRepository txRepo,
         ILedgerAccountRepository accountRepo,
-        ILedgerSequenceGenerator sequence)
+        ILedgerSequenceGenerator sequence,
+        IAuditService audit)
     {
         _trancheRepo = trancheRepo;
         _txRepo = txRepo;
         _accountRepo = accountRepo;
         _sequence = sequence;
+        _audit = audit;
     }
 
     public async Task<long> ExecuteAsync(
@@ -85,6 +88,13 @@ public class FundTranche
 
         await _txRepo.AddAsync(tx, ct);
         await _txRepo.SaveChangesAsync(ct);
+
+        await _audit.RecordAsync(
+            AuditCategory.InvestmentManagement,
+            "Fund Tranche",
+            $"Funded tranche {tranche.TrancheCode} with {amount:N2} NGN from bank account #{bankAccountId}",
+            tx.Id,
+            ct);
 
         return tx.Id;
     }

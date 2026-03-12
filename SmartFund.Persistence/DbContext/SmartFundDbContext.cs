@@ -29,6 +29,8 @@ namespace SmartFund.Persistence.DbContext
         public DbSet<Budget> PersonalBudgets => Set<Budget>();
         public DbSet<BudgetTracking> PersonalBudgetTracking => Set<BudgetTracking>();
 
+        public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
+
         public DbSet<LedgerEntry> LedgerEntries => Set<LedgerEntry>();
         public DbSet<LedgerDailySequence> LedgerDailySequences => Set<LedgerDailySequence>();
         public DbSet<TrancheDailySequence> TrancheDailySequences => Set<TrancheDailySequence>();

@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using SmartFund.Application.Interfaces;
 using SmartFund.Domain.Entities;
+using SmartFund.Domain.Enums;
 using SmartFund.Domain.Exceptions;
 
 namespace SmartFund.Application.UseCases.Deals
@@ -10,8 +11,13 @@ namespace SmartFund.Application.UseCases.Deals
     public sealed class CreateDeal
     {
         private readonly IDealRepository _repo;
+        private readonly IAuditService _audit;
 
-        public CreateDeal(IDealRepository repo) => _repo = repo;
+        public CreateDeal(IDealRepository repo, IAuditService audit)
+        {
+            _repo = repo;
+            _audit = audit;
+        }
 
         // Business policy: minimum effective monthly ROI required for every new deal.
         private const decimal MinEffectiveMonthlyRoi = 0.20m;
@@ -42,6 +48,13 @@ namespace SmartFund.Application.UseCases.Deals
 
             await _repo.AddAsync(deal, ct);
             await _repo.SaveChangesAsync(ct);
+
+            await _audit.RecordAsync(
+                AuditCategory.InvestmentManagement,
+                "Create Deal",
+                $"Created deal {dealCode} — {title} (Loan: {loanAmount:N2} NGN, Rate: {interestRate:P2}, Tenure: {tenureMonths}mo)",
+                null,
+                ct);
 
             return deal.Id;
         }
