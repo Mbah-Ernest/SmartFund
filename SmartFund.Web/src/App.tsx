@@ -18,6 +18,8 @@ import BudgetPage from './modules/personalFinance/pages/BudgetPage';
 import GoalsPage from './modules/personalFinance/pages/GoalsPage';
 import CategoriesPage from './modules/personalFinance/pages/CategoriesPage';
 import BankConnectionPage from './modules/personalFinance/pages/BankConnectionPage';
+import BankInboxPage from './modules/personalFinance/pages/BankInboxPage';
+import BankRulesPage from './modules/personalFinance/pages/BankRulesPage';
 
 export default function App() {
   return (
@@ -44,6 +46,9 @@ export default function App() {
         <Route path="finance/budgets" element={<BudgetPage />} />
         <Route path="finance/goals" element={<GoalsPage />} />
         <Route path="finance/categories" element={<CategoriesPage />} />
+        <Route path="finance/bank" element={<BankConnectionPage />} />
+        <Route path="finance/bank/inbox" element={<BankInboxPage />} />
+        <Route path="finance/bank/rules" element={<BankRulesPage />} />
         <Route path="finance/bank-test" element={<BankConnectionPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

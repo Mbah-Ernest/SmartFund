@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
+import { getBankInboxCount } from '../modules/personalFinance/services/personalFinanceApi';
 
 const SIDEBAR_COLLAPSED_KEY = 'smartfund.sidebar.collapsed';
 
@@ -18,6 +19,7 @@ function SideLink(props: {
   icon: ReactNode;
   collapsed: boolean;
   end?: boolean;
+  badge?: number;
 }) {
   return (
     <NavLink
@@ -29,10 +31,19 @@ function SideLink(props: {
       title={props.label}
       aria-label={props.label}
     >
-      <span className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-800/60 text-slate-200 group-hover:bg-slate-700/70">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-800/60 text-slate-200 group-hover:bg-slate-700/70">
         {props.icon}
       </span>
-      {props.collapsed ? null : <span className="truncate">{props.label}</span>}
+      {props.collapsed ? null : (
+        <span className="flex flex-1 items-center justify-between truncate">
+          <span className="truncate">{props.label}</span>
+          {props.badge != null && props.badge > 0 && (
+            <span className="ml-2 shrink-0 rounded-full bg-orange-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+              {props.badge > 99 ? '99+' : props.badge}
+            </span>
+          )}
+        </span>
+      )}
     </NavLink>
   );
 }
@@ -43,12 +54,21 @@ export default function Sidebar() {
   );
   const [investmentOpen, setInvestmentOpen] = useState(true);
   const [personalFinanceOpen, setPersonalFinanceOpen] = useState(true);
+  const [inboxCount, setInboxCount] = useState(0);
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0');
   }, [collapsed]);
 
-  type NavItem = { to: string; label: string; icon: ReactNode; end?: boolean };
+  useEffect(() => {
+    getBankInboxCount().then(setInboxCount).catch(() => {});
+    const id = setInterval(() => {
+      getBankInboxCount().then(setInboxCount).catch(() => {});
+    }, 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  type NavItem = { to: string; label: string; icon: ReactNode; end?: boolean; badge?: number };
 
   const mainItems: NavItem[] = [
     { to: '/', label: 'Dashboard', icon: <HomeIcon />, end: true },
@@ -65,7 +85,9 @@ export default function Sidebar() {
     { to: '/finance/budgets', label: 'Budgets', icon: <TargetIcon /> },
     { to: '/finance/goals', label: 'Goals & Wallets', icon: <WalletIcon /> },
     { to: '/finance/categories', label: 'Categories', icon: <TagIcon /> },
-    { to: '/finance/bank-test', label: 'Bank Connection', icon: <BankTestIcon /> }
+    { to: '/finance/bank', label: 'Bank', icon: <BankTestIcon /> },
+    { to: '/finance/bank/inbox', label: 'Bank Inbox', icon: <InboxIcon />, badge: inboxCount },
+    { to: '/finance/bank/rules', label: 'Bank Rules', icon: <RulesIcon /> },
   ];
 
   return (
@@ -139,6 +161,7 @@ export default function Sidebar() {
               label={i.label}
               icon={i.icon}
               collapsed={collapsed}
+              badge={i.badge}
             />
           ))}
         </nav>
@@ -295,6 +318,24 @@ function BankTestIcon() {
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 2l9 4v2H3V6l9-4z" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M5 8v10M9 8v10M15 8v10M19 8v10" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 18h18v2H3v-2z" />
+    </svg>
+  );
+}
+
+function InboxIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2 12l2-7h16l2 7" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2 12h4l2 3h8l2-3h4v7a1 1 0 01-1 1H3a1 1 0 01-1-1v-7z" />
+    </svg>
+  );
+}
+
+function RulesIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h10M4 18h7" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 15l2 2 4-4" />
     </svg>
   );
 }

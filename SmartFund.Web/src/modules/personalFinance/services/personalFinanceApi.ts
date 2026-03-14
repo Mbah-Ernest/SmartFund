@@ -234,6 +234,251 @@ export async function recordInvestmentContribution(
   }
 }
 
+/* ── Bank Accounts ── */
+
+export interface ConnectedBankAccountDto {
+  id: number;
+  monoAccountId: string;
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  currency: string;
+  balanceNaira: number;
+  syncStatus: 'Active' | 'ReauthRequired' | 'Error';
+  lastSyncedAtUtc: string;
+  lastSyncError: string | null;
+  totalTransactionsSynced: number;
+  connectedAtUtc: string;
+}
+
+export interface BankInboxItemDto {
+  id: number;
+  connectedBankAccountId: number;
+  monoTransactionId: string;
+  amountNaira: number;
+  direction: 'credit' | 'debit';
+  rawNarration: string;
+  normalizedNarration: string | null;
+  extractedMerchant: string | null;
+  transactionDateUtc: string;
+  importedAtUtc: string;
+  status: string;
+  isPending: boolean;
+  isReversal: boolean;
+  transferPairImportId: number | null;
+}
+
+export interface BankInboxPageDto {
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  items: BankInboxItemDto[];
+}
+
+export interface BankRuleDto {
+  id: number;
+  matchText: string;
+  isRegex: boolean;
+  caseSensitive: boolean;
+  categoryId: number;
+  transactionType: string;
+  priority: number;
+  isActive: boolean;
+  description: string | null;
+  autoPostCredits: boolean;
+  createdAtUtc: string;
+  lastMatchedAtUtc: string | null;
+  matchCount: number;
+}
+
+export async function getBankConnectToken(): Promise<string> {
+  try {
+    const { data } = await api.get<{ token: string }>('/bank/connect-token');
+    return data.token;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function connectBankAccount(authCode: string): Promise<ConnectedBankAccountDto> {
+  try {
+    const { data } = await api.post<ConnectedBankAccountDto>('/bank/connect', { authCode });
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function getConnectedAccounts(): Promise<ConnectedBankAccountDto[]> {
+  try {
+    const { data } = await api.get<ConnectedBankAccountDto[]>('/bank/accounts');
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function disconnectBankAccount(id: number): Promise<void> {
+  try {
+    await api.delete(`/bank/accounts/${id}`);
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function syncBankAccount(id: number): Promise<ConnectedBankAccountDto> {
+  try {
+    const { data } = await api.post<ConnectedBankAccountDto>(`/bank/accounts/${id}/sync`);
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function getReauthToken(id: number): Promise<string> {
+  try {
+    const { data } = await api.put<{ token: string }>(`/bank/accounts/${id}/reauth`);
+    return data.token;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function getBankInbox(
+  page = 1, pageSize = 50, accountId?: number
+): Promise<BankInboxPageDto> {
+  try {
+    const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+    if (accountId) params.set('accountId', String(accountId));
+    const { data } = await api.get<BankInboxPageDto>(`/bank/inbox?${params}`);
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function getBankInboxCount(): Promise<number> {
+  try {
+    const { data } = await api.get<{ count: number }>('/bank/inbox/count');
+    return data.count;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function categorizeInboxItem(
+  importId: number,
+  body: {
+    walletId: number;
+    categoryId: number;
+    transactionType: string;
+    description?: string | null;
+    createRule: boolean;
+    ruleMatchText?: string | null;
+  }
+): Promise<{ ledgerTransactionId: number }> {
+  try {
+    const { data } = await api.post<{ ledgerTransactionId: number }>(
+      `/bank/inbox/${importId}/categorize`,
+      body
+    );
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function excludeInboxItem(importId: number, note?: string): Promise<void> {
+  try {
+    await api.post(`/bank/inbox/${importId}/exclude`, { note: note ?? null });
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function bulkCategorize(body: {
+  importIds: number[];
+  walletId: number;
+  categoryId: number;
+  transactionType: string;
+}): Promise<{ posted: number }> {
+  try {
+    const { data } = await api.post<{ posted: number }>('/bank/inbox/bulk-categorize', body);
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function getBankRules(): Promise<BankRuleDto[]> {
+  try {
+    const { data } = await api.get<BankRuleDto[]>('/bank/rules');
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function createBankRule(body: {
+  matchText: string;
+  isRegex: boolean;
+  caseSensitive: boolean;
+  categoryId: number;
+  transactionType: string;
+  priority: number;
+  description?: string | null;
+  autoPostCredits: boolean;
+}): Promise<{ id: number }> {
+  try {
+    const { data } = await api.post<{ id: number }>('/bank/rules', body);
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function updateBankRule(
+  id: number,
+  body: {
+    matchText: string;
+    isRegex: boolean;
+    caseSensitive: boolean;
+    categoryId: number;
+    transactionType: string;
+    priority?: number | null;
+    description?: string | null;
+    autoPostCredits: boolean;
+  }
+): Promise<void> {
+  try {
+    await api.put(`/bank/rules/${id}`, body);
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function deleteBankRule(id: number): Promise<void> {
+  try {
+    await api.delete(`/bank/rules/${id}`);
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function testBankRule(body: {
+  matchText: string;
+  isRegex: boolean;
+  caseSensitive: boolean;
+  text: string;
+}): Promise<{ matches: boolean }> {
+  try {
+    const { data } = await api.post<{ matches: boolean }>('/bank/rules/test', body);
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
 /* ── Budgets ── */
 
 export async function getBudgets(): Promise<BudgetDto[]> {
