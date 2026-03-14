@@ -13,4 +13,14 @@
     <Folder Include="Pdf\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SmartFund.Application\SmartFund.Application.csproj" />
+    <ProjectReference Include="..\SmartFund.Domain\SmartFund.Domain.csproj" />
+  </ItemGroup>
+
 </Project>

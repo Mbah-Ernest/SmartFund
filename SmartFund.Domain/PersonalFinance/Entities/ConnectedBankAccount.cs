@@ -1,5 +1,6 @@
 using System;
 using SmartFund.Domain.Exceptions;
+using SmartFund.Domain.PersonalFinance.Enums;
 
 namespace SmartFund.Domain.PersonalFinance.Entities
 {
@@ -21,6 +22,10 @@ namespace SmartFund.Domain.PersonalFinance.Entities
 
         public DateTime LastSyncedAtUtc { get; private set; }
         public DateTime ConnectedAtUtc { get; private set; }
+
+        public BankAccountSyncStatus SyncStatus { get; private set; } = BankAccountSyncStatus.Active;
+        public string? LastSyncError { get; private set; }
+        public int TotalTransactionsSynced { get; private set; }
 
         private ConnectedBankAccount() { } // EF
 
@@ -57,6 +62,32 @@ namespace SmartFund.Domain.PersonalFinance.Entities
         {
             LastKnownBalanceKobo = balanceKobo;
             LastSyncedAtUtc = DateTime.SpecifyKind(utcNow, DateTimeKind.Utc);
+        }
+
+        public void MarkSyncSuccess(int newTransactionCount, DateTime utcNow)
+        {
+            LastSyncedAtUtc = DateTime.SpecifyKind(utcNow, DateTimeKind.Utc);
+            LastSyncError = null;
+            SyncStatus = BankAccountSyncStatus.Active;
+            TotalTransactionsSynced += newTransactionCount;
+        }
+
+        public void MarkSyncError(string error, DateTime utcNow)
+        {
+            LastSyncedAtUtc = DateTime.SpecifyKind(utcNow, DateTimeKind.Utc);
+            LastSyncError = string.IsNullOrWhiteSpace(error) ? "Unknown sync error." : error.Trim();
+            SyncStatus = BankAccountSyncStatus.Error;
+        }
+
+        public void MarkReauthRequired()
+        {
+            SyncStatus = BankAccountSyncStatus.ReauthRequired;
+        }
+
+        public void MarkActive()
+        {
+            SyncStatus = BankAccountSyncStatus.Active;
+            LastSyncError = null;
         }
     }
 }

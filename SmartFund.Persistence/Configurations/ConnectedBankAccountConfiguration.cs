@@ -24,6 +24,9 @@ namespace SmartFund.Persistence.Configurations
             builder.Property(x => x.LastKnownBalanceKobo).IsRequired();
             builder.Property(x => x.LastSyncedAtUtc).IsRequired();
             builder.Property(x => x.ConnectedAtUtc).IsRequired();
+            builder.Property(x => x.SyncStatus).IsRequired();
+            builder.Property(x => x.LastSyncError).HasMaxLength(1000);
+            builder.Property(x => x.TotalTransactionsSynced).IsRequired();
 
             builder.HasIndex(x => x.ConnectedAtUtc);
         }

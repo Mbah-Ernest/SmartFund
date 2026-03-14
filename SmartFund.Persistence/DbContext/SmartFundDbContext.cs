@@ -30,6 +30,8 @@ namespace SmartFund.Persistence.DbContext
         public DbSet<BudgetTracking> PersonalBudgetTracking => Set<BudgetTracking>();
 
         public DbSet<ConnectedBankAccount> ConnectedBankAccounts => Set<ConnectedBankAccount>();
+        public DbSet<BankImportedTransaction> BankImportedTransactions => Set<BankImportedTransaction>();
+        public DbSet<BankCategorizationRule> BankCategorizationRules => Set<BankCategorizationRule>();
 
         public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
 

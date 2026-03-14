@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using SmartFund.Application.Interfaces;
 using SmartFund.Application.Services.PersonalFinance;
 using SmartFund.Application.UseCases.Tranches;
+using SmartFund.Infrastructure.BankSync;
 using SmartFund.Persistence.DbContext;
 using SmartFund.Persistence.Repositories;
 using SmartFund.Persistence.Reporting;
@@ -82,6 +83,8 @@ builder.Services.AddScoped<IPersonalInvestmentContributionRepository, PersonalIn
 builder.Services.AddScoped<IPersonalBudgetRepository, PersonalBudgetRepository>();
 builder.Services.AddScoped<IPersonalBudgetTrackingRepository, PersonalBudgetTrackingRepository>();
 builder.Services.AddScoped<IConnectedBankAccountRepository, ConnectedBankAccountRepository>();
+builder.Services.AddScoped<IBankImportedTransactionRepository, BankImportedTransactionRepository>();
+builder.Services.AddScoped<IBankCategorizationRuleRepository, BankCategorizationRuleRepository>();
 
 builder.Services.AddScoped<IAuditRepository, AuditRepository>();
 builder.Services.AddScoped<IAuditService, SmartFund.Application.Services.AuditService>();
@@ -89,6 +92,16 @@ builder.Services.AddScoped<IAuditService, SmartFund.Application.Services.AuditSe
 builder.Services.AddScoped<IPersonalWalletService, PersonalWalletService>();
 builder.Services.AddScoped<IPersonalTransactionService, PersonalTransactionService>();
 builder.Services.AddScoped<IPersonalInvestmentContributionService, PersonalInvestmentContributionService>();
+
+// Bank sync + categorization
+builder.Services.Configure<MonoOptions>(builder.Configuration.GetSection("Mono"));
+builder.Services.AddHttpClient<MonoApiClient>();
+builder.Services.AddScoped<SmartFund.Application.Interfaces.IMonoApiClient, MonoApiClient>();
+builder.Services.AddScoped<CategorizationEngine>();
+builder.Services.AddScoped<BankInboxService>();
+builder.Services.AddScoped<BankSyncService>();
+builder.Services.AddScoped<BankLinkingService>();
+builder.Services.AddHostedService<MonoSyncJob>();
 
 // Use case
 builder.Services.AddScoped<CreateTranche>();
