@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,27 +11,12 @@ namespace SmartFund.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // ── ConnectedBankAccounts: link to PersonalWallet ────────────────────
             migrationBuilder.AddColumn<long>(
-                name: "PersonalWalletId",
-                table: "ConnectedBankAccounts",
+                name: "SourceBankImportedTransactionId",
+                table: "PersonalTransactions",
                 type: "bigint",
                 nullable: true);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_ConnectedBankAccounts_PersonalWalletId",
-                table: "ConnectedBankAccounts",
-                column: "PersonalWalletId");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_ConnectedBankAccounts_PersonalWallets_PersonalWalletId",
-                table: "ConnectedBankAccounts",
-                column: "PersonalWalletId",
-                principalTable: "PersonalWallets",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.SetNull);
-
-            // ── PersonalTransactions: provenance columns ─────────────────────────
             migrationBuilder.AddColumn<long>(
                 name: "SourceConnectedBankAccountId",
                 table: "PersonalTransactions",
@@ -39,17 +24,11 @@ namespace SmartFund.Persistence.Migrations
                 nullable: true);
 
             migrationBuilder.AddColumn<long>(
-                name: "SourceBankImportedTransactionId",
-                table: "PersonalTransactions",
+                name: "PersonalWalletId",
+                table: "ConnectedBankAccounts",
                 type: "bigint",
                 nullable: true);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_PersonalTransactions_SourceBankImportedTransactionId",
-                table: "PersonalTransactions",
-                column: "SourceBankImportedTransactionId");
-
-            // ── PersonalFinanceSettings: new singleton table ─────────────────────
             migrationBuilder.CreateTable(
                 name: "PersonalFinanceSettings",
                 columns: table => new
@@ -65,16 +44,43 @@ namespace SmartFund.Persistence.Migrations
                 {
                     table.PrimaryKey("PK_PersonalFinanceSettings", x => x.Id);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PersonalTransactions_SourceBankImportedTransactionId",
+                table: "PersonalTransactions",
+                column: "SourceBankImportedTransactionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ConnectedBankAccounts_PersonalWalletId",
+                table: "ConnectedBankAccounts",
+                column: "PersonalWalletId");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_ConnectedBankAccounts_PersonalWallets_PersonalWalletId",
+                table: "ConnectedBankAccounts",
+                column: "PersonalWalletId",
+                principalTable: "PersonalWallets",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.SetNull);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(name: "PersonalFinanceSettings");
+            migrationBuilder.DropForeignKey(
+                name: "FK_ConnectedBankAccounts_PersonalWallets_PersonalWalletId",
+                table: "ConnectedBankAccounts");
+
+            migrationBuilder.DropTable(
+                name: "PersonalFinanceSettings");
 
             migrationBuilder.DropIndex(
                 name: "IX_PersonalTransactions_SourceBankImportedTransactionId",
                 table: "PersonalTransactions");
+
+            migrationBuilder.DropIndex(
+                name: "IX_ConnectedBankAccounts_PersonalWalletId",
+                table: "ConnectedBankAccounts");
 
             migrationBuilder.DropColumn(
                 name: "SourceBankImportedTransactionId",
@@ -83,14 +89,6 @@ namespace SmartFund.Persistence.Migrations
             migrationBuilder.DropColumn(
                 name: "SourceConnectedBankAccountId",
                 table: "PersonalTransactions");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_ConnectedBankAccounts_PersonalWallets_PersonalWalletId",
-                table: "ConnectedBankAccounts");
-
-            migrationBuilder.DropIndex(
-                name: "IX_ConnectedBankAccounts_PersonalWalletId",
-                table: "ConnectedBankAccounts");
 
             migrationBuilder.DropColumn(
                 name: "PersonalWalletId",
