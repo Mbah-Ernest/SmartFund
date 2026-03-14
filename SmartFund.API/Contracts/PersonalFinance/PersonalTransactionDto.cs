@@ -11,5 +11,12 @@ namespace SmartFund.API.Contracts.PersonalFinance
         public string Type { get; set; } = default!;
         public DateTime Date { get; set; }
         public string? Description { get; set; }
+
+        /// <summary>Set when this transaction was created by categorizing a bank import.</summary>
+        public long? SourceConnectedBankAccountId { get; set; }
+        public long? SourceBankImportedTransactionId { get; set; }
+
+        /// <summary>Human-readable bank label, e.g. "GTBank ••••1234". Null for manual transactions.</summary>
+        public string? SourceBankLabel { get; set; }
     }
 }

@@ -28,6 +28,14 @@ namespace SmartFund.Persistence.Configurations
             builder.Property(x => x.LastSyncError).HasMaxLength(1000);
             builder.Property(x => x.TotalTransactionsSynced).IsRequired();
 
+            builder.Property(x => x.PersonalWalletId);
+
+            builder.HasOne<PersonalWallet>()
+                .WithMany()
+                .HasForeignKey(x => x.PersonalWalletId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
+
             builder.HasIndex(x => x.ConnectedAtUtc);
         }
     }

@@ -12,12 +12,15 @@ namespace SmartFund.Application.Services.PersonalFinance
 {
     public sealed class BankSyncService
     {
+        private const int DefaultBackfillMonths = 3;
+
         private readonly IConnectedBankAccountRepository _accountRepo;
         private readonly IBankImportedTransactionRepository _importRepo;
         private readonly IBankCategorizationRuleRepository _ruleRepo;
         private readonly CategorizationEngine _engine;
         private readonly BankInboxService _inboxService;
         private readonly IMonoApiClient _mono;
+        private readonly IPersonalFinanceSettingsRepository _settingsRepo;
         private readonly ILogger<BankSyncService> _logger;
 
         public BankSyncService(
@@ -27,6 +30,7 @@ namespace SmartFund.Application.Services.PersonalFinance
             CategorizationEngine engine,
             BankInboxService inboxService,
             IMonoApiClient mono,
+            IPersonalFinanceSettingsRepository settingsRepo,
             ILogger<BankSyncService> logger)
         {
             _accountRepo = accountRepo;
@@ -35,6 +39,7 @@ namespace SmartFund.Application.Services.PersonalFinance
             _engine = engine;
             _inboxService = inboxService;
             _mono = mono;
+            _settingsRepo = settingsRepo;
             _logger = logger;
         }
 
@@ -63,9 +68,20 @@ namespace SmartFund.Application.Services.PersonalFinance
         {
             _logger.LogInformation("Syncing account {AccountId} ({Bank})", account.Id, account.BankName);
 
-            DateTime? since = account.TotalTransactionsSynced == 0
-                ? DateTime.UtcNow.AddMonths(-3)
-                : account.LastSyncedAtUtc.AddDays(-1); // 1-day overlap to catch late-posted transactions
+            DateTime? since;
+            if (account.TotalTransactionsSynced == 0)
+            {
+                // On first sync respect the user's launch date so we don't pull too far back.
+                var settings = await _settingsRepo.GetAsync(ct);
+                var backfillFloor = DateTime.UtcNow.AddMonths(-DefaultBackfillMonths);
+                var launchDate = settings?.LaunchDateUtc ?? backfillFloor;
+                since = launchDate > backfillFloor ? launchDate : backfillFloor;
+            }
+            else
+            {
+                // 1-day overlap to catch late-posted transactions
+                since = account.LastSyncedAtUtc.AddDays(-1);
+            }
 
             List<MonoTransaction> transactions;
             try

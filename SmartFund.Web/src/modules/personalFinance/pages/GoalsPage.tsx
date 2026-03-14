@@ -11,8 +11,10 @@ import {
 import {
   getWallets,
   getWalletBalance,
-  createWallet
+  createWallet,
+  getConnectedAccounts
 } from '../services/personalFinanceApi';
+import type { ConnectedBankAccountDto } from '../services/personalFinanceApi';
 import type { PersonalWalletDto, WalletBalanceDto } from '../types/financeTypes';
 
 function formatCurrency(n: number) {
@@ -23,7 +25,7 @@ function formatCurrency(n: number) {
   }).format(n);
 }
 
-type WalletWithBalance = PersonalWalletDto & { balance: number };
+type WalletWithBalance = PersonalWalletDto & { balance: number; isBankWallet: boolean };
 
 export default function GoalsPage() {
   const [loading, setLoading] = useState(true);
@@ -40,7 +42,15 @@ export default function GoalsPage() {
     setLoading(true);
     setError(null);
     try {
-      const wallets = await getWallets();
+      const [wallets, bankAccounts] = await Promise.all([getWallets(), getConnectedAccounts()]);
+
+      // Build a set of wallet IDs that are linked to a bank account
+      const bankWalletIds = new Set(
+        bankAccounts
+          .filter((a: ConnectedBankAccountDto) => a.personalWalletId != null)
+          .map((a: ConnectedBankAccountDto) => a.personalWalletId as number)
+      );
+
       const withBalances: WalletWithBalance[] = await Promise.all(
         wallets.map(async (w) => {
           let balance = 0;
@@ -50,7 +60,7 @@ export default function GoalsPage() {
           } catch {
             /* wallet balance may not exist yet */
           }
-          return { ...w, balance };
+          return { ...w, balance, isBankWallet: bankWalletIds.has(w.id) };
         })
       );
       setWalletData(withBalances);
@@ -105,8 +115,7 @@ export default function GoalsPage() {
             Goals & Wallets
           </h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Manage your savings wallets and track progress toward financial
-            goals.
+            Manage your savings wallets and track progress toward financial goals.
           </p>
         </div>
         <button
@@ -180,9 +189,7 @@ export default function GoalsPage() {
       <div className="relative isolate overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 p-7 text-white shadow-xl shadow-blue-600/25">
         <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
         <div className="pointer-events-none absolute -left-6 bottom-0 h-24 w-24 rounded-full bg-white/5 blur-xl" />
-        <p className="relative text-[13px] font-semibold text-blue-100">
-          Combined Wallet Balance
-        </p>
+        <p className="relative text-[13px] font-semibold text-blue-100">Combined Wallet Balance</p>
         <p className="relative mt-2 text-[36px] font-extrabold tracking-tight leading-none tabular-nums">
           {loading ? (
             <span className="inline-block h-9 w-40 rounded-lg bg-white/20 animate-pulse" />
@@ -192,6 +199,11 @@ export default function GoalsPage() {
         </p>
         <p className="relative mt-2 text-sm font-medium text-blue-200">
           Across {walletData.length} wallet{walletData.length !== 1 ? 's' : ''}
+          {walletData.filter((w) => w.isBankWallet).length > 0 && (
+            <span className="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-[11px]">
+              {walletData.filter((w) => w.isBankWallet).length} bank
+            </span>
+          )}
         </p>
       </div>
 
@@ -209,40 +221,14 @@ export default function GoalsPage() {
                   <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="var(--grid-stroke, #E2E8F0)"
-              />
-              <XAxis
-                dataKey="name"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 12, fill: '#94A3B8' }}
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 12, fill: '#94A3B8' }}
-                tickFormatter={(v: number) => formatCurrency(v)}
-              />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--grid-stroke, #E2E8F0)" />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94A3B8' }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94A3B8' }} tickFormatter={(v: number) => formatCurrency(v)} />
               <Tooltip
                 formatter={(value: number) => formatCurrency(value)}
-                contentStyle={{
-                  borderRadius: 12,
-                  border: 'none',
-                  boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
-                  backgroundColor: 'var(--tooltip-bg, #fff)',
-                  color: 'var(--tooltip-text, #334155)'
-                }}
+                contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 24px rgba(0,0,0,0.08)', backgroundColor: 'var(--tooltip-bg, #fff)', color: 'var(--tooltip-text, #334155)' }}
               />
-              <Area
-                type="monotone"
-                dataKey="balance"
-                stroke="#3B82F6"
-                strokeWidth={2.5}
-                fill="url(#goalGrad)"
-              />
+              <Area type="monotone" dataKey="balance" stroke="#3B82F6" strokeWidth={2.5} fill="url(#goalGrad)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -273,7 +259,7 @@ export default function GoalsPage() {
             </svg>
           </div>
           <p className="text-sm font-medium text-slate-500">No wallets yet</p>
-          <p className="text-xs text-slate-400">Create your first wallet to start tracking</p>
+          <p className="text-xs text-slate-400">Create your first wallet or connect a bank account</p>
         </div>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -283,21 +269,38 @@ export default function GoalsPage() {
               className="group rounded-2xl bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(59,130,246,0.04)] ring-1 ring-slate-200/60 transition-all duration-300 hover:shadow-[0_4px_20px_rgba(59,130,246,0.10)] hover:-translate-y-0.5 dark:bg-slate-900 dark:ring-slate-800"
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/60 text-lg font-bold text-blue-500 shadow-sm ring-1 ring-blue-100/80 transition-transform duration-300 group-hover:scale-105 dark:from-blue-950/50 dark:to-blue-900/30 dark:text-blue-400 dark:ring-blue-900/50">
-                  {w.name.charAt(0).toUpperCase()}
+                <div className={`flex h-11 w-11 items-center justify-center rounded-xl text-lg font-bold shadow-sm ring-1 transition-transform duration-300 group-hover:scale-105 ${
+                  w.isBankWallet
+                    ? 'bg-gradient-to-br from-emerald-50 to-emerald-100/60 text-emerald-600 ring-emerald-100/80 dark:from-emerald-950/50 dark:to-emerald-900/30 dark:text-emerald-400 dark:ring-emerald-900/50'
+                    : 'bg-gradient-to-br from-blue-50 to-blue-100/60 text-blue-500 ring-blue-100/80 dark:from-blue-950/50 dark:to-blue-900/30 dark:text-blue-400 dark:ring-blue-900/50'
+                }`}>
+                  {w.isBankWallet ? (
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+                    </svg>
+                  ) : (
+                    w.name.charAt(0).toUpperCase()
+                  )}
                 </div>
-                <div>
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold text-slate-800 dark:text-slate-100">
                     {w.name}
                   </p>
-                  <p className="text-xs text-slate-400">{w.currency}</p>
+                  <div className="mt-0.5 flex items-center gap-1.5">
+                    <p className="text-xs text-slate-400">{w.currency}</p>
+                    {w.isBankWallet && (
+                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400">
+                        Bank
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               <p className="mt-4 text-[22px] font-extrabold tracking-tight text-slate-900 dark:text-slate-50 tabular-nums">
                 {formatCurrency(w.balance)}
               </p>
               <p className="mt-0.5 text-xs text-slate-400">
-                Created{' '}
+                {w.isBankWallet ? 'Last synced balance' : 'Created'}{' '}
                 {new Date(w.createdAt).toLocaleDateString('en-NG', {
                   year: 'numeric',
                   month: 'short',

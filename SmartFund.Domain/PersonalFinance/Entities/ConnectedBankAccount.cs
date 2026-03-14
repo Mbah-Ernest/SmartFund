@@ -108,5 +108,15 @@ namespace SmartFund.Domain.PersonalFinance.Entities
             SyncStatus = BankAccountSyncStatus.Active;
             LastSyncError = null;
         }
+
+        /// <summary>The PersonalWallet that mirrors this bank account's balance.</summary>
+        public long? PersonalWalletId { get; private set; }
+
+        public void LinkWallet(long walletId)
+        {
+            if (walletId <= 0)
+                throw new DomainException("WalletId must be a positive value.");
+            PersonalWalletId = walletId;
+        }
     }
 }

@@ -74,6 +74,20 @@ namespace SmartFund.Domain.PersonalFinance.Entities
             LedgerTransactionId = ledgerTransactionId;
         }
 
+        /// <summary>Set when this transaction was created from a bank import (provenance).</summary>
+        public long? SourceConnectedBankAccountId { get; private set; }
+        public long? SourceBankImportedTransactionId { get; private set; }
+
+        public void AttachProvenance(long connectedBankAccountId, long bankImportedTransactionId)
+        {
+            if (connectedBankAccountId <= 0)
+                throw new DomainException("SourceConnectedBankAccountId must be a positive value.");
+            if (bankImportedTransactionId <= 0)
+                throw new DomainException("SourceBankImportedTransactionId must be a positive value.");
+            SourceConnectedBankAccountId = connectedBankAccountId;
+            SourceBankImportedTransactionId = bankImportedTransactionId;
+        }
+
         public void UpdateDescription(string? description)
         {
             Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();

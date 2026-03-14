@@ -47,6 +47,10 @@ namespace SmartFund.Persistence.Configurations.PersonalFinance
                 .WithMany()
                 .HasForeignKey(x => x.LedgerTransactionId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Property(x => x.SourceConnectedBankAccountId);
+            builder.Property(x => x.SourceBankImportedTransactionId);
+            builder.HasIndex(x => x.SourceBankImportedTransactionId);
         }
     }
 }

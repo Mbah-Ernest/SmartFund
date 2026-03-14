@@ -136,9 +136,16 @@ export default function RecentTransactions({
               </div>
 
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
-                  {tx.description || tx.category}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
+                    {tx.description || tx.category}
+                  </p>
+                  {tx.sourceBankLabel && (
+                    <span className="shrink-0 inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400">
+                      {tx.sourceBankLabel}
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-slate-400">
                   {tx.wallet} · {formatDate(tx.date)}
                 </p>

@@ -36,5 +36,10 @@ namespace SmartFund.Persistence.Repositories
 
         public Task SaveChangesAsync(CancellationToken ct) =>
             _db.SaveChangesAsync(ct);
+
+        public Task<List<PersonalTransaction>> ListBankDerivedAsync(CancellationToken ct) =>
+            _db.PersonalTransactions
+                .Where(t => t.SourceBankImportedTransactionId != null)
+                .ToListAsync(ct);
     }
 }

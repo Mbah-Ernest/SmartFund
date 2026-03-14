@@ -12,5 +12,8 @@ namespace SmartFund.Application.Interfaces
         Task<List<PersonalTransaction>> ListAllAsync(CancellationToken ct);
         Task AddAsync(PersonalTransaction tx, CancellationToken ct);
         Task SaveChangesAsync(CancellationToken ct);
+
+        /// <summary>Lists transactions that were created by posting a bank import (have provenance).</summary>
+        Task<List<PersonalTransaction>> ListBankDerivedAsync(CancellationToken ct);
     }
 }

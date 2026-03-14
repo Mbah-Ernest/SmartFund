@@ -85,6 +85,7 @@ builder.Services.AddScoped<IPersonalBudgetTrackingRepository, PersonalBudgetTrac
 builder.Services.AddScoped<IConnectedBankAccountRepository, ConnectedBankAccountRepository>();
 builder.Services.AddScoped<IBankImportedTransactionRepository, BankImportedTransactionRepository>();
 builder.Services.AddScoped<IBankCategorizationRuleRepository, BankCategorizationRuleRepository>();
+builder.Services.AddScoped<IPersonalFinanceSettingsRepository, PersonalFinanceSettingsRepository>();
 
 builder.Services.AddScoped<IAuditRepository, AuditRepository>();
 builder.Services.AddScoped<IAuditService, SmartFund.Application.Services.AuditService>();

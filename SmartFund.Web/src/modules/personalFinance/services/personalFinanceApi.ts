@@ -19,7 +19,9 @@ import type {
   RecordInvestmentContributionRequest,
   CreatePersonalBudgetRequest,
   CreatePersonalWalletRequest,
-  PersonalTransactionDto
+  PersonalTransactionDto,
+  PersonalFinanceSettingsDto,
+  ResetResultDto
 } from '../types/financeTypes';
 
 /* ── Dashboard & Reports ── */
@@ -249,6 +251,7 @@ export interface ConnectedBankAccountDto {
   lastSyncError: string | null;
   totalTransactionsSynced: number;
   connectedAtUtc: string;
+  personalWalletId: number | null;
 }
 
 export interface BankInboxItemDto {
@@ -508,6 +511,42 @@ export async function getBudgetTracking(
     const { data } = await api.get<BudgetTrackingDto[]>(
       `/personal-budgets/${budgetId}/tracking`
     );
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+/* ── Personal Finance Settings ── */
+
+export async function getPersonalFinanceSettings(): Promise<PersonalFinanceSettingsDto> {
+  try {
+    const { data } = await api.get<PersonalFinanceSettingsDto>('/personal-finance/settings');
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function updatePersonalFinanceSettings(
+  launchDate: string
+): Promise<{ launchDateUtc: string; updatedAtUtc: string }> {
+  try {
+    const { data } = await api.put<{ launchDateUtc: string; updatedAtUtc: string }>(
+      '/personal-finance/settings',
+      { launchDate }
+    );
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function resetPersonalFinanceData(): Promise<ResetResultDto> {
+  try {
+    const { data } = await api.post<ResetResultDto>('/personal-finance/reset', {
+      confirmation: 'RESET'
+    });
     return data;
   } catch (error) {
     throw toApiClientError(error);

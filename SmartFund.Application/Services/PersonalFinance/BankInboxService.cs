@@ -17,19 +17,22 @@ namespace SmartFund.Application.Services.PersonalFinance
         private readonly IPersonalTransactionService _txService;
         private readonly IPersonalTransactionRepository _personalTxRepo;
         private readonly IPersonalWalletRepository _walletRepo;
+        private readonly IConnectedBankAccountRepository _bankAccountRepo;
 
         public BankInboxService(
             IBankImportedTransactionRepository importRepo,
             IBankCategorizationRuleRepository ruleRepo,
             IPersonalTransactionService txService,
             IPersonalTransactionRepository personalTxRepo,
-            IPersonalWalletRepository walletRepo)
+            IPersonalWalletRepository walletRepo,
+            IConnectedBankAccountRepository bankAccountRepo)
         {
             _importRepo = importRepo;
             _ruleRepo = ruleRepo;
             _txService = txService;
             _personalTxRepo = personalTxRepo;
             _walletRepo = walletRepo;
+            _bankAccountRepo = bankAccountRepo;
         }
 
         /// <summary>
@@ -68,7 +71,11 @@ namespace SmartFund.Application.Services.PersonalFinance
 
             var personalTx = await FindPersonalTransactionByLedgerIdAsync(ledgerTxId, ct);
             if (personalTx is not null)
+            {
                 import.MarkPosted(personalTx.Id);
+                personalTx.AttachProvenance(import.ConnectedBankAccountId, import.Id);
+                await _personalTxRepo.SaveChangesAsync(ct);
+            }
 
             await _importRepo.SaveChangesAsync(ct);
 
@@ -98,8 +105,8 @@ namespace SmartFund.Application.Services.PersonalFinance
             BankCategorizationRule rule,
             CancellationToken ct)
         {
-            var defaultWalletId = await GetDefaultWalletIdAsync(ct);
-            if (defaultWalletId <= 0) return; // No wallet configured; leave as NeedsReview
+            var walletId = await GetBankWalletIdAsync(import.ConnectedBankAccountId, ct);
+            if (walletId <= 0) return; // No wallet configured; leave as NeedsReview
 
             var amountNaira = import.AmountKobo / 100m;
             var description = import.NormalizedNarration ?? import.RawNarration;
@@ -107,9 +114,9 @@ namespace SmartFund.Application.Services.PersonalFinance
             long ledgerTxId = rule.TransactionType switch
             {
                 PersonalTransactionType.Income =>
-                    await _txService.RecordIncomeAsync(defaultWalletId, rule.CategoryId, amountNaira, description, import.TransactionDateUtc, ct),
+                    await _txService.RecordIncomeAsync(walletId, rule.CategoryId, amountNaira, description, import.TransactionDateUtc, ct),
                 PersonalTransactionType.Expense =>
-                    await _txService.RecordExpenseAsync(defaultWalletId, rule.CategoryId, amountNaira, description, import.TransactionDateUtc, ct),
+                    await _txService.RecordExpenseAsync(walletId, rule.CategoryId, amountNaira, description, import.TransactionDateUtc, ct),
                 _ => 0
             };
 
@@ -117,7 +124,11 @@ namespace SmartFund.Application.Services.PersonalFinance
 
             var personalTx = await FindPersonalTransactionByLedgerIdAsync(ledgerTxId, ct);
             if (personalTx is not null)
+            {
                 import.MarkAutoPosted(personalTx.Id);
+                personalTx.AttachProvenance(import.ConnectedBankAccountId, import.Id);
+                await _personalTxRepo.SaveChangesAsync(ct);
+            }
 
             await _importRepo.SaveChangesAsync(ct);
         }
@@ -165,8 +176,14 @@ namespace SmartFund.Application.Services.PersonalFinance
             return all.FirstOrDefault(t => t.LedgerTransactionId == ledgerTxId);
         }
 
-        private async Task<long> GetDefaultWalletIdAsync(CancellationToken ct)
+        /// <summary>Returns the linked bank wallet, falling back to the first available wallet.</summary>
+        private async Task<long> GetBankWalletIdAsync(long connectedBankAccountId, CancellationToken ct)
         {
+            var account = await _bankAccountRepo.GetByIdAsync(connectedBankAccountId, ct);
+            if (account?.PersonalWalletId > 0)
+                return account.PersonalWalletId!.Value;
+
+            // Fallback: first wallet in the system
             var wallets = await _walletRepo.ListAsync(ct);
             return wallets.Count > 0 ? wallets[0].Id : 0;
         }

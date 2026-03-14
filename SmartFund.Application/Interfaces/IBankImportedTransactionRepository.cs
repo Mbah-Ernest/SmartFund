@@ -17,5 +17,8 @@ namespace SmartFund.Application.Interfaces
         Task<List<BankImportedTransaction>> ListByAccountAsync(long accountId, CancellationToken ct);
         Task AddAsync(BankImportedTransaction tx, CancellationToken ct);
         Task SaveChangesAsync(CancellationToken ct);
+
+        /// <summary>Hard-deletes every row — used by the personal finance reset operation.</summary>
+        Task DeleteAllAsync(CancellationToken ct);
     }
 }

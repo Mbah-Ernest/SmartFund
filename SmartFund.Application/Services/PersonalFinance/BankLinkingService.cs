@@ -14,22 +14,25 @@ namespace SmartFund.Application.Services.PersonalFinance
         private readonly IConnectedBankAccountRepository _accountRepo;
         private readonly BankSyncService _syncService;
         private readonly IMonoApiClient _mono;
+        private readonly IPersonalWalletService _walletService;
 
         public BankLinkingService(
             IConnectedBankAccountRepository accountRepo,
             BankSyncService syncService,
-            IMonoApiClient mono)
+            IMonoApiClient mono,
+            IPersonalWalletService walletService)
         {
             _accountRepo = accountRepo;
             _syncService = syncService;
             _mono = mono;
+            _walletService = walletService;
         }
 
         /// <summary>Returns a server-side Mono Connect token for the browser widget. Secret never leaves server.</summary>
         public Task<string> GenerateConnectTokenAsync(CancellationToken ct) =>
             _mono.GenerateConnectTokenAsync(ct);
 
-        /// <summary>Exchanges auth code → Mono account ID, saves account, triggers backfill sync.</summary>
+        /// <summary>Exchanges auth code → Mono account ID, saves account, creates bank wallet, triggers backfill sync.</summary>
         public async Task<ConnectedBankAccount> ConnectAccountAsync(string authCode, CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(authCode))
@@ -41,11 +44,12 @@ namespace SmartFund.Application.Services.PersonalFinance
 
             var monoAccountId = await _mono.ExchangeCodeAsync(authCode, ct);
 
-            // Idempotent: if already connected, return existing
+            // Idempotent: if already connected, ensure wallet exists and return
             var existing = await _accountRepo.GetByMonoAccountIdAsync(monoAccountId, ct);
             if (existing is not null)
             {
                 existing.MarkActive();
+                await EnsureBankWalletAsync(existing, ct);
                 await _accountRepo.SaveChangesAsync(ct);
                 return existing;
             }
@@ -63,6 +67,10 @@ namespace SmartFund.Application.Services.PersonalFinance
                 DateTime.UtcNow);
 
             await _accountRepo.AddAsync(account, ct);
+            await _accountRepo.SaveChangesAsync(ct);
+
+            // Create the linked bank wallet
+            await EnsureBankWalletAsync(account, ct);
             await _accountRepo.SaveChangesAsync(ct);
 
             // Fire and forget — initial backfill runs in background
@@ -89,8 +97,26 @@ namespace SmartFund.Application.Services.PersonalFinance
 
             var token = await _mono.GenerateConnectTokenAsync(ct);
             account.MarkActive();
+            await EnsureBankWalletAsync(account, ct);
             await _accountRepo.SaveChangesAsync(ct);
             return token;
+        }
+
+        // ── private ──────────────────────────────────────────────────────────
+
+        private async Task EnsureBankWalletAsync(ConnectedBankAccount account, CancellationToken ct)
+        {
+            if (account.PersonalWalletId.HasValue)
+                return; // already linked
+
+            var last4 = account.AccountNumber.Length >= 4
+                ? account.AccountNumber[^4..]
+                : account.AccountNumber;
+
+            var walletName = $"{account.BankName} \u2022\u2022\u2022\u2022{last4}"; // ••••1234
+
+            var wallet = await _walletService.CreateWalletAsync(walletName, account.Currency, ct);
+            account.LinkWallet(wallet.Id);
         }
     }
 }

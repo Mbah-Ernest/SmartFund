@@ -22,18 +22,22 @@ namespace SmartFund.API.Controllers
         private readonly IPersonalWalletRepository _walletRepo;
         private readonly IPersonalCategoryRepository _categoryRepo;
 
+        private readonly IConnectedBankAccountRepository _bankAccountRepo;
+
         public PersonalTransactionController(
             IPersonalTransactionService tx,
             IPersonalInvestmentContributionService contributions,
             IPersonalTransactionRepository txRepo,
             IPersonalWalletRepository walletRepo,
-            IPersonalCategoryRepository categoryRepo)
+            IPersonalCategoryRepository categoryRepo,
+            IConnectedBankAccountRepository bankAccountRepo)
         {
             _tx = tx;
             _contributions = contributions;
             _txRepo = txRepo;
             _walletRepo = walletRepo;
             _categoryRepo = categoryRepo;
+            _bankAccountRepo = bankAccountRepo;
         }
 
         [HttpGet]
@@ -46,6 +50,7 @@ namespace SmartFund.API.Controllers
             var transactions = await _txRepo.ListAllAsync(ct);
             var wallets = await _walletRepo.ListAsync(ct);
             var categories = await _categoryRepo.ListAsync(ct);
+            var bankAccounts = await _bankAccountRepo.ListAsync(ct);
 
             var desc = !string.Equals(direction, "asc", StringComparison.OrdinalIgnoreCase);
 
@@ -74,6 +79,11 @@ namespace SmartFund.API.Controllers
 
             var walletMap = wallets.ToDictionary(w => w.Id, w => w.Name);
             var categoryMap = categories.ToDictionary(c => c.Id, c => c.Name);
+            var bankAccountMap = bankAccounts.ToDictionary(a => a.Id, a =>
+            {
+                var last4 = a.AccountNumber.Length >= 4 ? a.AccountNumber[^4..] : a.AccountNumber;
+                return $"{a.BankName} \u2022\u2022\u2022\u2022{last4}";
+            });
 
             static string TypeName(PersonalTransactionType t) => t switch
             {
@@ -92,7 +102,11 @@ namespace SmartFund.API.Controllers
                 Category = t.CategoryId.HasValue && categoryMap.TryGetValue(t.CategoryId.Value, out var cn) ? cn : "—",
                 Type = TypeName(t.TransactionType),
                 Date = t.Date,
-                Description = t.Description
+                Description = t.Description,
+                SourceConnectedBankAccountId = t.SourceConnectedBankAccountId,
+                SourceBankImportedTransactionId = t.SourceBankImportedTransactionId,
+                SourceBankLabel = t.SourceConnectedBankAccountId.HasValue &&
+                    bankAccountMap.TryGetValue(t.SourceConnectedBankAccountId.Value, out var bl) ? bl : null
             }).ToList();
 
             return Ok(dtos);

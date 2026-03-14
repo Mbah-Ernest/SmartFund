@@ -33,6 +33,8 @@ namespace SmartFund.Persistence.DbContext
         public DbSet<BankImportedTransaction> BankImportedTransactions => Set<BankImportedTransaction>();
         public DbSet<BankCategorizationRule> BankCategorizationRules => Set<BankCategorizationRule>();
 
+        public DbSet<PersonalFinanceSettings> PersonalFinanceSettings => Set<PersonalFinanceSettings>();
+
         public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
 
         public DbSet<LedgerEntry> LedgerEntries => Set<LedgerEntry>();

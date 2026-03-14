@@ -64,5 +64,8 @@ namespace SmartFund.Persistence.Repositories
 
         public Task SaveChangesAsync(CancellationToken ct) =>
             _db.SaveChangesAsync(ct);
+
+        public Task DeleteAllAsync(CancellationToken ct) =>
+            _db.BankImportedTransactions.ExecuteDeleteAsync(ct);
     }
 }

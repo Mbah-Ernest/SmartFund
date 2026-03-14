@@ -87,7 +87,8 @@ public sealed class BankController : ControllerBase
             a.LastSyncedAtUtc,
             a.LastSyncError,
             a.TotalTransactionsSynced,
-            a.ConnectedAtUtc
+            a.ConnectedAtUtc,
+            a.PersonalWalletId
         }));
     }
 

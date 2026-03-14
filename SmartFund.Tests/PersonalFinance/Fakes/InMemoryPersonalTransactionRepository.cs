@@ -30,4 +30,7 @@ internal sealed class InMemoryPersonalTransactionRepository : IPersonalTransacti
     }
 
     public Task SaveChangesAsync(CancellationToken ct) => Task.CompletedTask;
+
+    public Task<List<PersonalTransaction>> ListBankDerivedAsync(CancellationToken ct) =>
+        Task.FromResult(Transactions.Where(x => x.SourceBankImportedTransactionId != null).ToList());
 }

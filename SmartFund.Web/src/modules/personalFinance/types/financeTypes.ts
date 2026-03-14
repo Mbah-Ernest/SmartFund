@@ -131,6 +131,9 @@ export type PersonalTransactionDto = {
   type: string;
   date: string;
   description: string | null;
+  sourceConnectedBankAccountId: number | null;
+  sourceBankImportedTransactionId: number | null;
+  sourceBankLabel: string | null;
 };
 
 export type CreatePersonalCategoryRequest = {
@@ -170,4 +173,18 @@ export type FinancialInsight = {
   icon: 'trending-down' | 'trending-up' | 'alert' | 'info' | 'star';
   message: string;
   sentiment: 'positive' | 'negative' | 'neutral';
+};
+
+export type PersonalFinanceSettingsDto = {
+  launchDateUtc: string;
+  createdAtUtc: string | null;
+  updatedAtUtc: string | null;
+  lastResetAtUtc: string | null;
+  isConfigured: boolean;
+};
+
+export type ResetResultDto = {
+  deletedPersonalTransactions: number;
+  deletedLedgerTransactions: number;
+  message: string;
 };
