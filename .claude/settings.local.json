@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cd \"C:\\\\Users\\\\User\\\\Desktop\\\\Tech-Ideas\\\\Personal\\\\SmartFund\\\\SmartFund.Web\" && npx tsc --noEmit 2>&1)"
+      "Bash(cd \"C:\\\\Users\\\\User\\\\Desktop\\\\Tech-Ideas\\\\Personal\\\\SmartFund\\\\SmartFund.Web\" && npx tsc --noEmit 2>&1)",
+      "Bash(cd:*)",
+      "Bash(tasklist:*)",
+      "Bash(powershell -Command \"Get-Process -Id 48856 -ErrorAction SilentlyContinue | Select-Object Name,Id\" 2>&1)"
     ]
   }
 }

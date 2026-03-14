@@ -64,6 +64,25 @@ namespace SmartFund.Domain.PersonalFinance.Entities
             LastSyncedAtUtc = DateTime.SpecifyKind(utcNow, DateTimeKind.Utc);
         }
 
+        public void UpdateAccountInfo(
+            string? bankName,
+            string? accountNumber,
+            string? accountName,
+            string? accountType,
+            string? currency)
+        {
+            if (!string.IsNullOrWhiteSpace(bankName))
+                BankName = bankName.Trim();
+            if (!string.IsNullOrWhiteSpace(accountNumber))
+                AccountNumber = accountNumber.Trim();
+            if (!string.IsNullOrWhiteSpace(accountName))
+                AccountName = accountName.Trim();
+            if (!string.IsNullOrWhiteSpace(accountType))
+                AccountType = accountType.Trim();
+            if (!string.IsNullOrWhiteSpace(currency))
+                Currency = currency.Trim().ToUpperInvariant();
+        }
+
         public void MarkSyncSuccess(int newTransactionCount, DateTime utcNow)
         {
             LastSyncedAtUtc = DateTime.SpecifyKind(utcNow, DateTimeKind.Utc);

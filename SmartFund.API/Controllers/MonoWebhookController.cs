@@ -2,10 +2,12 @@ using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json.Nodes;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SmartFund.Application.Interfaces;
@@ -16,26 +18,23 @@ namespace SmartFund.API.Controllers;
 
 /// <summary>
 /// Receives webhook events from Mono and triggers the appropriate actions.
-/// Validates the HMAC-SHA512 signature on every request.
+/// Supports either a shared-secret header or an HMAC-SHA512 signature header.
 /// </summary>
 [ApiController]
 [Route("api/webhooks/mono")]
 public sealed class MonoWebhookController : ControllerBase
 {
-    private readonly IConnectedBankAccountRepository _accounts;
-    private readonly BankSyncService _sync;
     private readonly MonoOptions _options;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<MonoWebhookController> _logger;
 
     public MonoWebhookController(
-        IConnectedBankAccountRepository accounts,
-        BankSyncService sync,
+        IServiceScopeFactory scopeFactory,
         IOptions<MonoOptions> options,
         ILogger<MonoWebhookController> logger)
     {
-        _accounts = accounts;
-        _sync = sync;
         _options = options.Value;
+        _scopeFactory = scopeFactory;
         _logger = logger;
     }
 
@@ -44,83 +43,209 @@ public sealed class MonoWebhookController : ControllerBase
     {
         // Read raw body for HMAC verification
         Request.EnableBuffering();
-        var rawBody = await new StreamReader(Request.Body).ReadToEndAsync(ct);
+        var rawBody = await new StreamReader(Request.Body, Encoding.UTF8, leaveOpen: true).ReadToEndAsync(ct);
         Request.Body.Position = 0;
 
-        // Validate signature
-        if (!Request.Headers.TryGetValue("mono-webhook-secret", out var sigHeader))
+        // Validate secret/signature (if configured)
+        if (!IsValidWebhook(rawBody, out var validationError))
         {
-            _logger.LogWarning("Mono webhook received without signature header.");
-            return Unauthorized(new { error = "Missing mono-webhook-secret header." });
+            _logger.LogWarning("Mono webhook validation failed: {Error}", validationError);
+            return Unauthorized(new { error = validationError });
         }
 
-        if (!IsValidSignature(rawBody, sigHeader.ToString()))
+        JsonDocument doc;
+        try
         {
-            _logger.LogWarning("Mono webhook signature validation failed.");
-            return Unauthorized(new { error = "Invalid webhook signature." });
+            doc = JsonDocument.Parse(rawBody);
+        }
+        catch (JsonException)
+        {
+            return BadRequest(new { error = "Invalid JSON." });
         }
 
-        var node = JsonNode.Parse(rawBody);
-        var eventType = node?["event"]?.GetValue<string>() ?? string.Empty;
-        var monoAccountId = node?["data"]?["account"]?["id"]?.GetValue<string>()
-            ?? node?["data"]?["id"]?.GetValue<string>();
-
-        _logger.LogInformation("Mono webhook received: {EventType} for account {MonoAccountId}", eventType, monoAccountId);
-
-        switch (eventType)
+        using (doc)
         {
-            case "mono.events.account_updated":
-            case "mono.events.sync_successful":
-                if (!string.IsNullOrWhiteSpace(monoAccountId))
-                    await TriggerSyncAsync(monoAccountId, ct);
-                break;
+            var root = doc.RootElement;
 
-            case "mono.events.reauthorisation":
-                if (!string.IsNullOrWhiteSpace(monoAccountId))
-                    await MarkReauthRequiredAsync(monoAccountId, ct);
-                break;
+            var eventType = TryGetString(root,
+                (null, "event"),
+                (null, "type"),
+                ("data", "event"),
+                ("data", "type")) ?? string.Empty;
 
-            default:
-                _logger.LogDebug("Mono webhook: unhandled event type {EventType}", eventType);
-                break;
+            var monoAccountId = TryGetString(root,
+                (null, "mono_id"),
+                (null, "account_id"),
+                (null, "accountId"),
+                ("data", "mono_id"),
+                ("data", "account_id"),
+                ("data", "accountId"),
+                ("data", "id"),
+                ("data.account", "id"));
+
+            _logger.LogInformation("Mono webhook received: {EventType} for account {MonoAccountId}", eventType, monoAccountId);
+
+            // Event names vary by Mono configuration/version. Handle the common ones.
+            var evt = eventType.ToLowerInvariant();
+            if (!string.IsNullOrWhiteSpace(monoAccountId))
+            {
+                if (evt.Contains("reauth", StringComparison.OrdinalIgnoreCase))
+                {
+                    _ = TriggerMarkReauthRequiredAsync(monoAccountId);
+                }
+                else if (evt.Contains("sync", StringComparison.OrdinalIgnoreCase)
+                         || evt.Contains("job", StringComparison.OrdinalIgnoreCase)
+                         || evt.Contains("account_updated", StringComparison.OrdinalIgnoreCase)
+                         || evt == "job_update"
+                         || evt == "sync_success"
+                         || evt == "sync_failed")
+                {
+                    _ = TriggerSyncInBackgroundAsync(monoAccountId);
+                }
+            }
         }
 
         return Ok(new { received = true });
     }
 
-    private bool IsValidSignature(string rawBody, string receivedSignature)
+    private bool IsValidWebhook(string rawBody, out string? error)
     {
-        if (string.IsNullOrWhiteSpace(_options.WebhookSecret))
-            return true; // Dev mode: no secret configured — accept all
+        error = null;
 
-        var keyBytes = Encoding.UTF8.GetBytes(_options.WebhookSecret);
-        var bodyBytes = Encoding.UTF8.GetBytes(rawBody);
-        var hash = HMACSHA512.HashData(keyBytes, bodyBytes);
-        var expected = Convert.ToHexStringLower(hash);
-
-        return CryptographicOperations.FixedTimeEquals(
-            Encoding.UTF8.GetBytes(expected),
-            Encoding.UTF8.GetBytes(receivedSignature.ToLowerInvariant()));
-    }
-
-    private async Task TriggerSyncAsync(string monoAccountId, CancellationToken ct)
-    {
-        var account = await _accounts.GetByMonoAccountIdAsync(monoAccountId, ct);
-        if (account is null)
+        if (string.IsNullOrWhiteSpace(_options.WebhookSecret)
+            || _options.WebhookSecret.StartsWith("replace_", StringComparison.OrdinalIgnoreCase))
         {
-            _logger.LogDebug("Webhook sync: account {MonoAccountId} not found in DB, skipping.", monoAccountId);
-            return;
+            return true; // Dev mode: secret not configured — accept all
         }
-        await _sync.SyncAccountAsync(account, ct);
+
+        // Shared-secret header (simplest). Mono dashboard sometimes sends the same secret back.
+        var providedSecret = Request.Headers["mono-webhook-secret"].ToString();
+        if (string.IsNullOrWhiteSpace(providedSecret))
+            providedSecret = Request.Headers["x-mono-webhook-secret"].ToString();
+
+        if (!string.IsNullOrWhiteSpace(providedSecret))
+        {
+            if (FixedEquals(providedSecret, _options.WebhookSecret))
+                return true;
+
+            // If it doesn't match, it might actually be a signature; fall through.
+        }
+
+        // Signature header (HMAC-SHA512 over raw request body)
+        var receivedSignature = Request.Headers["mono-signature"].ToString();
+        if (string.IsNullOrWhiteSpace(receivedSignature))
+            receivedSignature = Request.Headers["x-mono-signature"].ToString();
+        if (string.IsNullOrWhiteSpace(receivedSignature))
+            receivedSignature = Request.Headers["mono-webhook-secret"].ToString();
+
+        if (string.IsNullOrWhiteSpace(receivedSignature))
+        {
+            error = "Missing webhook secret/signature header.";
+            return false;
+        }
+
+        receivedSignature = receivedSignature.Trim();
+        if (receivedSignature.StartsWith("sha512=", StringComparison.OrdinalIgnoreCase))
+            receivedSignature = receivedSignature[7..];
+
+        var expected = ComputeHmacSha512Hex(_options.WebhookSecret, rawBody);
+        if (FixedEquals(expected, receivedSignature.ToLowerInvariant()))
+            return true;
+
+        error = "Invalid webhook signature/secret.";
+        return false;
     }
 
-    private async Task MarkReauthRequiredAsync(string monoAccountId, CancellationToken ct)
+    private static bool FixedEquals(string a, string b)
     {
-        var account = await _accounts.GetByMonoAccountIdAsync(monoAccountId, ct);
-        if (account is null) return;
+        var ba = Encoding.UTF8.GetBytes(a);
+        var bb = Encoding.UTF8.GetBytes(b);
+        return ba.Length == bb.Length && CryptographicOperations.FixedTimeEquals(ba, bb);
+    }
 
-        account.MarkReauthRequired();
-        await _accounts.SaveChangesAsync(ct);
-        _logger.LogInformation("Account {AccountId} ({Bank}) marked as ReauthRequired.", account.Id, account.BankName);
+    private static string ComputeHmacSha512Hex(string secret, string payload)
+    {
+        var keyBytes = Encoding.UTF8.GetBytes(secret);
+        var bodyBytes = Encoding.UTF8.GetBytes(payload);
+        var hash = HMACSHA512.HashData(keyBytes, bodyBytes);
+        return Convert.ToHexStringLower(hash);
+    }
+
+    private Task TriggerSyncInBackgroundAsync(string monoAccountId)
+    {
+        return Task.Run(async () =>
+        {
+            try
+            {
+                await using var scope = _scopeFactory.CreateAsyncScope();
+                var accounts = scope.ServiceProvider.GetRequiredService<IConnectedBankAccountRepository>();
+                var sync = scope.ServiceProvider.GetRequiredService<BankSyncService>();
+
+                var account = await accounts.GetByMonoAccountIdAsync(monoAccountId, CancellationToken.None);
+                if (account is null)
+                {
+                    _logger.LogDebug("Webhook sync: account {MonoAccountId} not found in DB, skipping.", monoAccountId);
+                    return;
+                }
+
+                await sync.SyncAccountAsync(account, CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Webhook-triggered sync failed for MonoAccountId={MonoAccountId}", monoAccountId);
+            }
+        }, CancellationToken.None);
+    }
+
+    private Task TriggerMarkReauthRequiredAsync(string monoAccountId)
+    {
+        return Task.Run(async () =>
+        {
+            try
+            {
+                await using var scope = _scopeFactory.CreateAsyncScope();
+                var accounts = scope.ServiceProvider.GetRequiredService<IConnectedBankAccountRepository>();
+
+                var account = await accounts.GetByMonoAccountIdAsync(monoAccountId, CancellationToken.None);
+                if (account is null) return;
+
+                account.MarkReauthRequired();
+                await accounts.SaveChangesAsync(CancellationToken.None);
+                _logger.LogInformation("Account {AccountId} ({Bank}) marked as ReauthRequired.", account.Id, account.BankName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Webhook-triggered reauth mark failed for MonoAccountId={MonoAccountId}", monoAccountId);
+            }
+        }, CancellationToken.None);
+    }
+
+    private static string? TryGetString(JsonElement root, params (string? parent, string name)[] paths)
+    {
+        foreach (var (parent, name) in paths)
+        {
+            if (parent is null)
+            {
+                if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty(name, out var p) && p.ValueKind == JsonValueKind.String)
+                    return p.GetString();
+                continue;
+            }
+
+            JsonElement obj = root;
+            foreach (var seg in parent.Split('.', StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (obj.ValueKind != JsonValueKind.Object || !obj.TryGetProperty(seg, out var next) || next.ValueKind != JsonValueKind.Object)
+                {
+                    obj = default;
+                    break;
+                }
+                obj = next;
+            }
+
+            if (obj.ValueKind == JsonValueKind.Object && obj.TryGetProperty(name, out var val) && val.ValueKind == JsonValueKind.String)
+                return val.GetString();
+        }
+
+        return null;
     }
 }

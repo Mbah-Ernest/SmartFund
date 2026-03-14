@@ -39,13 +39,23 @@ public sealed class BankSyncController : ControllerBase
 
         await _sync.SyncAccountAsync(account, ct);
 
+        // Reload to get the latest balance and status after sync
+        var updated = await _accounts.GetByIdAsync(id, ct) ?? account;
+
         return Ok(new
         {
-            account.Id,
-            SyncStatus = account.SyncStatus.ToString(),
-            account.LastSyncedAtUtc,
-            account.LastSyncError,
-            account.TotalTransactionsSynced
+            updated.Id,
+            updated.MonoAccountId,
+            updated.BankName,
+            updated.AccountNumber,
+            updated.AccountName,
+            updated.Currency,
+            BalanceNaira = updated.LastKnownBalanceKobo / 100m,
+            SyncStatus = updated.SyncStatus.ToString(),
+            updated.LastSyncedAtUtc,
+            updated.LastSyncError,
+            updated.TotalTransactionsSynced,
+            updated.ConnectedAtUtc
         });
     }
 

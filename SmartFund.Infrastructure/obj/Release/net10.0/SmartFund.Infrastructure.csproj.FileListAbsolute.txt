@@ -10,3 +10,9 @@ C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Infrastructure\obj
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Infrastructure\obj\Release\net10.0\refint\SmartFund.Infrastructure.dll
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Infrastructure\obj\Release\net10.0\SmartFund.Infrastructure.pdb
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Infrastructure\obj\Release\net10.0\ref\SmartFund.Infrastructure.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Infrastructure\bin\Release\net10.0\SmartFund.Application.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Infrastructure\bin\Release\net10.0\SmartFund.Domain.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Infrastructure\bin\Release\net10.0\SmartFund.Application.pdb
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Infrastructure\bin\Release\net10.0\SmartFund.Domain.pdb
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Infrastructure\obj\Release\net10.0\SmartFund.Infrastructure.csproj.AssemblyReference.cache
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Infrastructure\obj\Release\net10.0\SmartFun.80F378B5.Up2Date

@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SmartFund.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+55c00f0a8a622bc194ed0f1357d696ec5e4bae30")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+619e798c1d6dfabb3e1dbd3c6272a2ffbca2c66b")]
 [assembly: System.Reflection.AssemblyProductAttribute("SmartFund.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SmartFund.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -152,6 +152,7 @@ namespace SmartFund.Application.Services.PersonalFinance
             try
             {
                 var info = await _mono.GetAccountInfoAsync(account.MonoAccountId, ct);
+                account.UpdateAccountInfo(info.BankName, info.AccountNumber, info.AccountName, info.AccountType, info.Currency);
                 account.UpdateBalance(info.BalanceKobo, DateTime.UtcNow);
             }
             catch (Exception ex)

@@ -16,7 +16,7 @@ declare global {
     Connect: new (config: {
       key: string;
       data?: { customer?: { name?: string; email?: string } };
-      onSuccess: (data: { code: string }) => void;
+      onSuccess: (data: { code?: string; id?: string }) => void;
       onClose?: () => void;
     }) => { setup: () => void; open: () => void };
   }
@@ -141,9 +141,12 @@ export default function BankConnectionPage() {
       const token = await getBankConnectToken();
       const instance = new window.Connect({
         key: token,
-        onSuccess: async (data: { code: string }) => {
+        onSuccess: async (data: { code?: string; id?: string }) => {
           try {
-            const account = await connectBankAccount(data.code);
+            const authCode = data.code ?? data.id;
+            if (!authCode) throw new Error('Mono did not return an authorization code.');
+
+            const account = await connectBankAccount(authCode);
             setAccounts(prev => {
               const exists = prev.some(a => a.id === account.id);
               return exists
@@ -460,12 +463,14 @@ export default function BankConnectionPage() {
                             Synced {formatRelativeTime(account.lastSyncedAtUtc)}
                           </p>
                           {hasError && account.lastSyncError && (
-                            <p
-                              className="mt-0.5 max-w-[160px] truncate text-[10px] text-rose-500"
-                              title={account.lastSyncError}
+                            <button
+                              type="button"
+                              onClick={() => setError(account.lastSyncError)}
+                              className="mt-0.5 max-w-[240px] text-left text-[10px] text-rose-500 underline decoration-rose-400/50 underline-offset-2 break-words"
+                              title="Click to view full error"
                             >
                               {account.lastSyncError}
-                            </p>
+                            </button>
                           )}
                         </div>
                         <div className="flex items-center gap-1">

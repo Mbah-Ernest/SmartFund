@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -27,28 +28,45 @@ public sealed class BankController : ControllerBase
     [HttpGet("connect-token")]
     public async Task<IActionResult> GetConnectToken(CancellationToken ct)
     {
-        var token = await _linking.GenerateConnectTokenAsync(ct);
-        return Ok(new { token });
+        try
+        {
+            var token = await _linking.GenerateConnectTokenAsync(ct);
+            return Ok(new { token });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return StatusCode(503, new { error = "Bank connection service is temporarily unavailable. Please check your Mono API key configuration.", detail = ex.Message });
+        }
     }
 
     /// <summary>Exchanges auth code for a Mono account ID, saves account, triggers initial sync.</summary>
     [HttpPost("connect")]
     public async Task<IActionResult> Connect([FromBody] ConnectRequest body, CancellationToken ct)
     {
-        var account = await _linking.ConnectAccountAsync(body.AuthCode, ct);
-        return Ok(new
+        try
         {
-            account.Id,
-            account.MonoAccountId,
-            account.BankName,
-            account.AccountNumber,
-            account.AccountName,
-            account.AccountType,
-            account.Currency,
-            BalanceNaira = account.LastKnownBalanceKobo / 100m,
-            SyncStatus = account.SyncStatus.ToString(),
-            account.ConnectedAtUtc
-        });
+            var account = await _linking.ConnectAccountAsync(body.AuthCode, ct);
+            return Ok(new
+            {
+                account.Id,
+                account.MonoAccountId,
+                account.BankName,
+                account.AccountNumber,
+                account.AccountName,
+                account.AccountType,
+                account.Currency,
+                BalanceNaira = account.LastKnownBalanceKobo / 100m,
+                SyncStatus = account.SyncStatus.ToString(),
+                account.LastSyncedAtUtc,
+                account.LastSyncError,
+                account.TotalTransactionsSynced,
+                account.ConnectedAtUtc
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return StatusCode(503, new { error = "Failed to connect bank account. Please try again.", detail = ex.Message });
+        }
     }
 
     /// <summary>Lists all connected accounts with sync status.</summary>
@@ -110,8 +128,15 @@ public sealed class BankController : ControllerBase
     [HttpPut("accounts/{id:long}/reauth")]
     public async Task<IActionResult> GetReauthToken(long id, CancellationToken ct)
     {
-        var token = await _linking.GenerateReauthTokenAsync(id, ct);
-        return Ok(new { token });
+        try
+        {
+            var token = await _linking.GenerateReauthTokenAsync(id, ct);
+            return Ok(new { token });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return StatusCode(503, new { error = "Bank connection service is temporarily unavailable.", detail = ex.Message });
+        }
     }
 }
 

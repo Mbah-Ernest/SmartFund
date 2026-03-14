@@ -839,6 +839,10 @@
         }
       },
       "SmartFund.Infrastructure/1.0.0": {
+        "dependencies": {
+          "SmartFund.Application": "1.0.0",
+          "SmartFund.Domain": "1.0.0"
+        },
         "runtime": {
           "SmartFund.Infrastructure.dll": {
             "assemblyVersion": "1.0.0.0",

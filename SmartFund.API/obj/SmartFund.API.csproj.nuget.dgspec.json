@@ -568,6 +568,16 @@
       "frameworks": {
         "net10.0": {
           "targetAlias": "net10.0",
+          "dependencies": {
+            "Microsoft.Extensions.Logging.Abstractions": {
+              "target": "Package",
+              "version": "[10.0.0, )"
+            },
+            "Microsoft.Extensions.Options": {
+              "target": "Package",
+              "version": "[10.0.0, )"
+            }
+          },
           "imports": [
             "net461",
             "net462",
@@ -1228,7 +1238,14 @@
         "frameworks": {
           "net10.0": {
             "targetAlias": "net10.0",
-            "projectReferences": {}
+            "projectReferences": {
+              "C:\\Users\\User\\Desktop\\Tech-Ideas\\Personal\\SmartFund\\SmartFund.Application\\SmartFund.Application.csproj": {
+                "projectPath": "C:\\Users\\User\\Desktop\\Tech-Ideas\\Personal\\SmartFund\\SmartFund.Application\\SmartFund.Application.csproj"
+              },
+              "C:\\Users\\User\\Desktop\\Tech-Ideas\\Personal\\SmartFund\\SmartFund.Domain\\SmartFund.Domain.csproj": {
+                "projectPath": "C:\\Users\\User\\Desktop\\Tech-Ideas\\Personal\\SmartFund\\SmartFund.Domain\\SmartFund.Domain.csproj"
+              }
+            }
           }
         },
         "warningProperties": {
@@ -1246,6 +1263,16 @@
       "frameworks": {
         "net10.0": {
           "targetAlias": "net10.0",
+          "dependencies": {
+            "Microsoft.Extensions.Hosting.Abstractions": {
+              "target": "Package",
+              "version": "[10.0.0, )"
+            },
+            "Microsoft.Extensions.Http": {
+              "target": "Package",
+              "version": "[10.0.0, )"
+            }
+          },
           "imports": [
             "net461",
             "net462",
