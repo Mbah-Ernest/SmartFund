@@ -12,3 +12,4 @@ C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Infrastructure\obj
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\.tmp-build-api\SmartFund.Infrastructure.deps.json
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\.tmp-build-api\SmartFund.Infrastructure.dll
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\.tmp-build-api\SmartFund.Infrastructure.pdb
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Infrastructure\obj\Debug\net10.0\SmartFund.Infrastructure.sourcelink.json

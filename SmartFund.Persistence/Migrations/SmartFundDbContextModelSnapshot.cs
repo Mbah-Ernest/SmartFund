@@ -422,6 +422,63 @@ namespace SmartFund.Persistence.Migrations
                     b.ToTable("PersonalBudgetTracking", (string)null);
                 });
 
+            modelBuilder.Entity("SmartFund.Domain.PersonalFinance.Entities.ConnectedBankAccount", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AccountName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("AccountNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("AccountType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("BankName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("ConnectedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<long>("LastKnownBalanceKobo")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("LastSyncedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("MonoAccountId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConnectedAtUtc");
+
+                    b.HasIndex("MonoAccountId")
+                        .IsUnique();
+
+                    b.ToTable("ConnectedBankAccounts", (string)null);
+                });
+
             modelBuilder.Entity("SmartFund.Domain.PersonalFinance.Entities.PersonalCategory", b =>
                 {
                     b.Property<long>("Id")

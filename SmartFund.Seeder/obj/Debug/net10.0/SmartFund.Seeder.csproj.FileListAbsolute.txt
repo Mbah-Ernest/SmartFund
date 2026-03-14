@@ -4,7 +4,6 @@ C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Seeder\obj\Debug\n
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Seeder\obj\Debug\net10.0\SmartFund.Seeder.AssemblyInfo.cs
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Seeder\obj\Debug\net10.0\SmartFund.Seeder.csproj.CoreCompileInputs.cache
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Seeder\bin\Debug\net10.0\appsettings.json
-C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Seeder\bin\Debug\net10.0\SmartFund.Seeder.exe
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Seeder\bin\Debug\net10.0\SmartFund.Seeder.deps.json
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Seeder\bin\Debug\net10.0\SmartFund.Seeder.runtimeconfig.json
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Seeder\bin\Debug\net10.0\SmartFund.Seeder.dll
@@ -82,3 +81,5 @@ C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Seeder\obj\Debug\n
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Seeder\obj\Debug\net10.0\SmartFund.Seeder.pdb
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Seeder\obj\Debug\net10.0\SmartFund.Seeder.genruntimeconfig.cache
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Seeder\obj\Debug\net10.0\ref\SmartFund.Seeder.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Seeder\obj\Debug\net10.0\SmartFund.Seeder.sourcelink.json
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Seeder\bin\Debug\net10.0\SmartFund.Seeder.exe

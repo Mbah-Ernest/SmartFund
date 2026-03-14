@@ -176,3 +176,4 @@ C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\.tmp-build-api\SmartFund.API
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\.tmp-build-api\SmartFund.API.runtimeconfig.json
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\.tmp-build-api\SmartFund.API.dll
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\.tmp-build-api\SmartFund.API.pdb
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\obj\Debug\net10.0\SmartFund.API.sourcelink.json

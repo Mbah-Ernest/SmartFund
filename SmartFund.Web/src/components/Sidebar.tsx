@@ -64,7 +64,8 @@ export default function Sidebar() {
     { to: '/finance/transactions', label: 'Transactions', icon: <ArrowsIcon /> },
     { to: '/finance/budgets', label: 'Budgets', icon: <TargetIcon /> },
     { to: '/finance/goals', label: 'Goals & Wallets', icon: <WalletIcon /> },
-    { to: '/finance/categories', label: 'Categories', icon: <TagIcon /> }
+    { to: '/finance/categories', label: 'Categories', icon: <TagIcon /> },
+    { to: '/finance/bank-test', label: 'Bank Connection', icon: <BankTestIcon /> }
   ];
 
   return (
@@ -284,6 +285,16 @@ function ClockIcon() {
   return (
     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function BankTestIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 2l9 4v2H3V6l9-4z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 8v10M9 8v10M15 8v10M19 8v10" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 18h18v2H3v-2z" />
     </svg>
   );
 }

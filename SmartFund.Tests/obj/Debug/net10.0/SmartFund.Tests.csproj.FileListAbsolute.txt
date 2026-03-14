@@ -101,3 +101,4 @@ C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Tests\obj\Debug\ne
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Tests\obj\Debug\net10.0\SmartFund.Tests.pdb
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Tests\obj\Debug\net10.0\SmartFund.Tests.genruntimeconfig.cache
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Tests\obj\Debug\net10.0\ref\SmartFund.Tests.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Tests\obj\Debug\net10.0\SmartFund.Tests.sourcelink.json

@@ -81,6 +81,7 @@ builder.Services.AddScoped<IPersonalTransactionRepository, PersonalTransactionRe
 builder.Services.AddScoped<IPersonalInvestmentContributionRepository, PersonalInvestmentContributionRepository>();
 builder.Services.AddScoped<IPersonalBudgetRepository, PersonalBudgetRepository>();
 builder.Services.AddScoped<IPersonalBudgetTrackingRepository, PersonalBudgetTrackingRepository>();
+builder.Services.AddScoped<IConnectedBankAccountRepository, ConnectedBankAccountRepository>();
 
 builder.Services.AddScoped<IAuditRepository, AuditRepository>();
 builder.Services.AddScoped<IAuditService, SmartFund.Application.Services.AuditService>();
@@ -103,6 +104,8 @@ builder.Services.AddScoped<SmartFund.Application.UseCases.Insurance.UseInsurance
 builder.Services.AddScoped<SmartFund.Application.UseCases.Deals.CreateDeal>();
 builder.Services.AddScoped<SmartFund.Application.UseCases.Deals.ListDeals>();
 builder.Services.AddScoped<SmartFund.Application.UseCases.Deals.GetDeal>();
+
+builder.Services.AddHttpClient();
 
 // Add OpenAPI/Swagger services
 builder.Services.AddOpenApi();

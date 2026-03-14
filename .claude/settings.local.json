@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"C:\\\\Users\\\\User\\\\Desktop\\\\Tech-Ideas\\\\Personal\\\\SmartFund\\\\SmartFund.Web\" && npx tsc --noEmit 2>&1)"
+    ]
+  }
+}

@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SmartFund.Seeder")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c5522cce7c72365dfbfd5ef575814ae4bf55bdb8")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+55c00f0a8a622bc194ed0f1357d696ec5e4bae30")]
 [assembly: System.Reflection.AssemblyProductAttribute("SmartFund.Seeder")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SmartFund.Seeder")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

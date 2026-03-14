@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getAuthToken } from '../auth/authStorage';
+import { getAuthToken, clearAuthToken } from '../auth/authStorage';
 
 export const api = axios.create({
   // Dev default calls the ASP.NET API directly to avoid relying on dev-server proxy.
@@ -20,3 +20,14 @@ api.interceptors.request.use(config => {
   }
   return config;
 });
+
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error?.response?.status === 401) {
+      clearAuthToken();
+      window.location.assign('/login');
+    }
+    return Promise.reject(error);
+  }
+);
