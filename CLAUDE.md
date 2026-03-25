@@ -4,6 +4,40 @@
 
 SmartFund is a Nigerian investment fund management platform for a fund operator (not a retail app). It tracks investor tranches inside deals, enforces double-entry bookkeeping on every cash movement, and records a full audit trail. A secondary personal-finance module lets individual users track wallets, budgets, and spending goals. The system is built for one fund operator running the backend locally or on-premise.
 
+### Current focus (Personal Finance + Mono + AI)
+
+The current development focus is on making the Personal Finance module production-grade (UX + correctness) and wiring bank data via Mono.
+
+- **Mono bank sync**
+  - Config lives in `SmartFund.API/appsettings.json` under `Mono:*`.
+  - `Mono:PublicKey` is used for Mono Connect; `Mono:SecretKey` is used for server-to-server calls via `mono-sec-key`.
+  - Webhook receiver exists at `POST /api/webhooks/mono` (`SmartFund.API/Controllers/MonoWebhookController.cs`).
+  - `Mono:SkipTlsVerification` is an escape hatch for dev-only TLS interception issues (only applied in Development via `Program.cs`).
+  - Transactions query currently uses a `start`/`end` date range and expects `dd-MM-yyyy` formatting (per `MOMO.md`).
+
+- **Planned Personal Finance architecture changes (next milestones)**
+  - Treat each connected bank account as a wallet (1:1), and *compute* aggregate totals in UI (avoid a persisted “All Banks” wallet).
+  - Persist provenance when posting from bank inbox → personal transactions (store source bank account / import ids).
+  - Add per-user (or MVP global) Personal Finance settings: Launch Date controls initial backfill; include Reset to purge/import reset + resync.
+
+- **AI assistant direction**
+  - The assistant should support decision coaching (e.g., “Can I afford a ₦600k iPhone?”) by checking goals, priorities, average spending, income/expense trends, and cash runway.
+  - It should work as a chat-first experience: user asks questions in a messaging interface and gets grounded answers based on SmartFund data.
+  - Implementation principle: the LLM must not invent numbers; it should call trusted server-side “tools” (report queries over the DB) and only format/justify based on returned data.
+  - Planned interfaces/channels:
+    - Telegram (first-class chat UI)
+    - WhatsApp (later) via inbound webhook → map phone to user → call assistant → reply via provider API
+  - Planned tool-calling capabilities (server-authoritative actions):
+    - Retrieve balances (wallet + connected bank accounts)
+    - Summarize spend by category/time range (e.g., Food + Travel last month)
+    - Plan/create budgets and track budget health
+    - Suggest spending cuts with targeted ratios (what to reduce and by how much)
+    - Initiate transfers (requires explicit user confirmation + audit trail)
+  - Personal Finance Management scope:
+    - Connect with users’ bank accounts (Mono)
+    - Connect AI agent to Personal Finance data + goals/budgets
+    - Connect agent to a chat interface (Telegram first) for insights + tool calls
+
 ## 2. Tech Stack
 
 - **Backend:** C# / .NET 10 (`net10.0`), ASP.NET Core 10.0.2, nullable reference types enabled
@@ -86,7 +120,6 @@ npm run preview  # preview production build
 ## 6. Additional Documentation
 
 - `.claude/docs/architectural_patterns.md` — Clean Architecture layers, Repository pattern, Use Case pattern, double-entry ledger, EF Fluent config, DomainException error boundary, and audit trail patterns with file:line references and extension guidance.
-- `.claude/docs/mono_integration.md` — Mono Connect widget integration: correct setup/open lifecycle, backend proxy pattern, API endpoints, balance format (kobo), and production checklist.
 
 ## Adding New Features or Fixing Bugs
 

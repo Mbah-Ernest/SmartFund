@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -32,6 +33,20 @@ namespace SmartFund.Persistence.Repositories
             _db.PersonalTransactions
                 .OrderByDescending(x => x.Date)
                 .ThenByDescending(x => x.Id)
+                .ToListAsync(ct);
+
+        public Task<List<PersonalTransaction>> ListByDateRangeAsync(DateTime from, DateTime to, CancellationToken ct) =>
+            _db.PersonalTransactions
+                .Where(t => t.Date >= from.Date && t.Date <= to.Date)
+                .OrderByDescending(t => t.Date)
+                .ThenByDescending(t => t.Id)
+                .ToListAsync(ct);
+
+        public Task<List<PersonalTransaction>> ListRecentAsync(int take, CancellationToken ct) =>
+            _db.PersonalTransactions
+                .OrderByDescending(t => t.Date)
+                .ThenByDescending(t => t.Id)
+                .Take(take <= 0 ? 20 : take)
                 .ToListAsync(ct);
 
         public Task SaveChangesAsync(CancellationToken ct) =>

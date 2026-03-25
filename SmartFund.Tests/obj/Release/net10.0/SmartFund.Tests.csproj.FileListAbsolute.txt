@@ -101,3 +101,8 @@ C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Tests\obj\Release\
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Tests\obj\Release\net10.0\SmartFund.Tests.pdb
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Tests\obj\Release\net10.0\SmartFund.Tests.genruntimeconfig.cache
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Tests\obj\Release\net10.0\ref\SmartFund.Tests.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Tests\bin\Release\net10.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Tests\bin\Release\net10.0\Microsoft.Extensions.Logging.Abstractions.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Tests\bin\Release\net10.0\Microsoft.Extensions.Options.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Tests\bin\Release\net10.0\Microsoft.Extensions.Primitives.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Tests\obj\Release\net10.0\SmartFund.Tests.sourcelink.json

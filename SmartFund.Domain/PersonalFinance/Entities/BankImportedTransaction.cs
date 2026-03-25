@@ -152,6 +152,26 @@ namespace SmartFund.Domain.PersonalFinance.Entities
             TransferPairImportId = pairImportId;
         }
 
+        /// <summary>Marks this import as one side of a detected inter-account transfer. Excludes it from P&amp;L.</summary>
+        public void MarkPairedTransfer(long pairImportId)
+        {
+            if (pairImportId <= 0)
+                throw new DomainException("PairImportId must be a positive value.");
+            if (Status == BankImportStatus.ManuallyPosted || Status == BankImportStatus.AutoPosted)
+                throw new DomainException("Cannot pair a transaction that has already been posted to the ledger.");
+            TransferPairImportId = pairImportId;
+            Status = BankImportStatus.PairedTransfer;
+        }
+
+        /// <summary>Removes the transfer pairing, returning the import to NeedsReview for manual categorization.</summary>
+        public void UnmarkPairedTransfer()
+        {
+            if (Status != BankImportStatus.PairedTransfer)
+                throw new DomainException("Transaction is not in PairedTransfer state.");
+            TransferPairImportId = null;
+            Status = BankImportStatus.NeedsReview;
+        }
+
         public void SetReviewNote(string note)
         {
             ReviewNote = string.IsNullOrWhiteSpace(note) ? null : note.Trim();

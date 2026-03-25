@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
@@ -20,6 +21,7 @@ namespace SmartFund.Infrastructure.BankSync
         public string SecretKey { get; set; } = string.Empty;
         public string WebhookSecret { get; set; } = string.Empty;
         public string BaseUrl { get; set; } = "https://api.withmono.com";
+        public bool SkipTlsVerification { get; set; }
         public int BackfillMonths { get; set; } = 3;
         public int SyncIntervalMinutes { get; set; } = 15;
     }
@@ -63,6 +65,10 @@ namespace SmartFund.Infrastructure.BankSync
                 try
                 {
                     using var req = new HttpRequestMessage(method, relativeUrl);
+                    // Some networks/proxies have issues with HTTP/2 negotiation.
+                    // Mono endpoints work fine over HTTP/1.1.
+                    req.Version = HttpVersion.Version11;
+                    req.VersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
                     if (content is not null)
                         req.Content = content;
 

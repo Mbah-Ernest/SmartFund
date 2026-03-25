@@ -13,12 +13,14 @@ import MonthOverMonthCard from '../components/MonthOverMonthCard';
 import {
   getDashboard,
   getCashFlow,
+  getCashRunway,
   getTransactions,
   getWalletBalances,
   getMonthlyIncome,
   getMonthlyExpenses,
   getBudgets,
-  getBudgetTracking
+  getBudgetTracking,
+  type CashRunwayDto,
 } from '../services/personalFinanceApi';
 import type {
   PersonalFinanceDashboardDto,
@@ -122,6 +124,7 @@ export default function PersonalDashboard() {
   const [investModalOpen, setInvestModalOpen] = useState(false);
 
   const [dashboard, setDashboard] = useState<PersonalFinanceDashboardDto | null>(null);
+  const [runway, setRunway] = useState<CashRunwayDto | null>(null);
   const [cashflow, setCashflow] = useState<CashFlowRow[]>([]);
   const [incomeRows, setIncomeRows] = useState<MonthlyCategoryAmountRow[]>([]);
   const [expenseRows, setExpenseRows] = useState<MonthlyCategoryAmountRow[]>([]);
@@ -142,8 +145,9 @@ export default function PersonalDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [dash, cf, inc, exp, wb, budgets, txs] = await Promise.all([
+      const [dash, rwy, cf, inc, exp, wb, budgets, txs] = await Promise.all([
         getDashboard(),
+        getCashRunway().catch(() => null),
         getCashFlow(),
         getMonthlyIncome(),
         getMonthlyExpenses(),
@@ -152,6 +156,7 @@ export default function PersonalDashboard() {
         getTransactions({ orderBy: 'inputTime', direction: 'desc', take: 50 })
       ] as const);
       setDashboard(dash);
+      setRunway(rwy);
       setCashflow(cf);
       setIncomeRows(inc);
       setExpenseRows(exp);
@@ -224,10 +229,16 @@ export default function PersonalDashboard() {
       ? dashboard.monthlyExpenses / dashboard.monthlyIncome
       : null;
 
-  const runwayMonths =
-    dashboard && dashboard.monthlyExpenses > 0
-      ? dashboard.totalBalance / dashboard.monthlyExpenses
-      : null;
+  const runwayMonths = runway?.runwayMonths ?? null;
+
+  const burnTrendCaption = (() => {
+    if (!runway || runway.avgMonthlyBurnNaira === 0) return 'Not enough data yet';
+    const pct = Math.abs(runway.burnTrend * 100).toFixed(0);
+    const lastMonth = formatCurrency(runway.lastMonthBurnNaira);
+    if (runway.burnTrend > 0.05) return `↑ ${pct}% above avg — burn rising (last month ${lastMonth})`;
+    if (runway.burnTrend < -0.05) return `↓ ${pct}% below avg — burn falling (last month ${lastMonth})`;
+    return `Stable — avg ${formatCurrency(runway.avgMonthlyBurnNaira)}/mo`;
+  })();
 
   return (
     <div className="space-y-8">
@@ -356,8 +367,8 @@ export default function PersonalDashboard() {
         <MetricCard
           title="Runway"
           value={runwayMonths === null ? '—' : `${runwayMonths.toFixed(1)} months`}
-          caption="How long your balance could cover current expenses"
-          tooltip="Runway tells you: if you stopped earning money today, how many months could you survive on your current balance? 6+ months is a solid emergency fund."
+          caption={burnTrendCaption}
+          tooltip="Runway = total balance ÷ average monthly expenses (last 3 complete months). If you stopped earning today, this is how long your money would last. 6+ months is a solid emergency fund."
           tone={runwayMonths !== null && runwayMonths >= 6 ? 'positive' : runwayMonths !== null && runwayMonths >= 3 ? 'neutral' : 'negative'}
           loading={loading}
         />

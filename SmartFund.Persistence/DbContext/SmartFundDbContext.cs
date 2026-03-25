@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using SmartFund.Domain.Agent;
 using SmartFund.Domain.Entities;
 using SmartFund.Domain.PersonalBudget.Entities;
 using SmartFund.Domain.PersonalFinance.Entities;
@@ -36,6 +37,7 @@ namespace SmartFund.Persistence.DbContext
         public DbSet<PersonalFinanceSettings> PersonalFinanceSettings => Set<PersonalFinanceSettings>();
 
         public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
+        public DbSet<PendingAgentAction> PendingAgentActions => Set<PendingAgentAction>();
 
         public DbSet<LedgerEntry> LedgerEntries => Set<LedgerEntry>();
         public DbSet<LedgerDailySequence> LedgerDailySequences => Set<LedgerDailySequence>();

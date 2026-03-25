@@ -20,6 +20,7 @@ import CategoriesPage from './modules/personalFinance/pages/CategoriesPage';
 import BankConnectionPage from './modules/personalFinance/pages/BankConnectionPage';
 import BankInboxPage from './modules/personalFinance/pages/BankInboxPage';
 import BankRulesPage from './modules/personalFinance/pages/BankRulesPage';
+import AiChatPage from './modules/personalFinance/pages/AiChatPage';
 
 export default function App() {
   return (
@@ -50,6 +51,7 @@ export default function App() {
         <Route path="finance/bank/inbox" element={<BankInboxPage />} />
         <Route path="finance/bank/rules" element={<BankRulesPage />} />
         <Route path="finance/bank-test" element={<BankConnectionPage />} />
+        <Route path="finance/ai-chat" element={<AiChatPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -13,3 +13,9 @@ C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\.tmp-build-api\SmartFund.Dom
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\.tmp-build-api\SmartFund.Domain.dll
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\.tmp-build-api\SmartFund.Domain.pdb
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.Domain\obj\Debug\net10.0\SmartFund.Domain.sourcelink.json
+C:\Users\User\AppData\Local\Temp\build_check\SmartFund.Domain.deps.json
+C:\Users\User\AppData\Local\Temp\build_check\SmartFund.Domain.dll
+C:\Users\User\AppData\Local\Temp\build_check\SmartFund.Domain.pdb
+C:\Users\User\AppData\Local\Temp\sfbuild_check\SmartFund.Domain.deps.json
+C:\Users\User\AppData\Local\Temp\sfbuild_check\SmartFund.Domain.dll
+C:\Users\User\AppData\Local\Temp\sfbuild_check\SmartFund.Domain.pdb

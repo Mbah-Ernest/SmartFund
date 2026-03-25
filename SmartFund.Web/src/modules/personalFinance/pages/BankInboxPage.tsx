@@ -4,6 +4,7 @@ import {
   categorizeInboxItem,
   excludeInboxItem,
   bulkCategorize,
+  unpairTransfer,
   type BankInboxItemDto,
 } from '../services/personalFinanceApi';
 import { getCategories, getWallets } from '../services/personalFinanceApi';
@@ -79,6 +80,7 @@ export default function BankInboxPage() {
 
   const [postingId, setPostingId] = useState<number | null>(null);
   const [excludingId, setExcludingId] = useState<number | null>(null);
+  const [unpairingId, setUnpairingId] = useState<number | null>(null);
   const [bulkPosting, setBulkPosting] = useState(false);
   const [bulkCategoryId, setBulkCategoryId] = useState<number | ''>('');
   const [bulkWalletId, setBulkWalletId] = useState<number | ''>('');
@@ -171,6 +173,23 @@ export default function BankInboxPage() {
     }
   }
 
+  /* ── Unlink transfer pair ────────────────────────────────────────────── */
+  async function handleUnpair(item: BankInboxItemDto) {
+    setUnpairingId(item.id);
+    setError(null);
+    try {
+      await unpairTransfer(item.id);
+      // Reload page — both sides return to NeedsReview and need to be re-fetched
+      await loadPage(page);
+      setSuccessMsg('Transfer unlinked. Both transactions returned to inbox.');
+      setTimeout(() => setSuccessMsg(null), 4000);
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    } finally {
+      setUnpairingId(null);
+    }
+  }
+
   function removeItem(id: number) {
     setItems(prev => prev.filter(i => i.id !== id));
     setTotal(prev => Math.max(0, prev - 1));
@@ -188,9 +207,11 @@ export default function BankInboxPage() {
     });
   }
 
+  const reviewableItems = items.filter(i => i.status !== 'PairedTransfer');
+
   function toggleAll() {
-    if (selectedIds.size === items.length) setSelectedIds(new Set());
-    else setSelectedIds(new Set(items.map(i => i.id)));
+    if (selectedIds.size === reviewableItems.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(reviewableItems.map(i => i.id)));
   }
 
   /* ── Bulk categorize ─────────────────────────────────────────────────── */
@@ -223,7 +244,7 @@ export default function BankInboxPage() {
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const hasBulkSelection = selectedIds.size > 0;
-  const allSelected = items.length > 0 && selectedIds.size === items.length;
+  const allSelected = reviewableItems.length > 0 && selectedIds.size === reviewableItems.length;
 
   /* ── Filtered categories for a row ──────────────────────────────────── */
   function getCategoriesForDirection(direction: 'credit' | 'debit') {
@@ -381,10 +402,12 @@ export default function BankInboxPage() {
         ) : (
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {items.map(item => {
+              const isPaired = item.status === 'PairedTransfer';
               const isExpanded = expandedId === item.id;
               const form = forms[item.id];
               const isPosting = postingId === item.id;
               const isExcluding = excludingId === item.id;
+              const isUnpairing = unpairingId === item.id;
               const isCredit = item.direction === 'credit';
               const sortedCats = getCategoriesForDirection(item.direction);
 
@@ -392,29 +415,43 @@ export default function BankInboxPage() {
                 <div
                   key={item.id}
                   className={`transition-colors ${
-                    isExpanded
+                    isPaired
+                      ? 'bg-violet-50/40 dark:bg-violet-950/10'
+                      : isExpanded
                       ? 'bg-blue-50/60 dark:bg-blue-950/20'
                       : 'hover:bg-slate-50/60 dark:hover:bg-slate-800/30'
                   }`}
                 >
                   {/* Row summary line */}
                   <div className="flex items-center gap-4 px-6 py-4">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.has(item.id)}
-                      onChange={() => toggleSelect(item.id)}
-                      onClick={e => e.stopPropagation()}
-                      className="h-4 w-4 rounded border-slate-300 accent-blue-500"
-                    />
+                    {isPaired ? (
+                      <div className="h-4 w-4" /> /* spacer — no checkbox for paired */
+                    ) : (
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(item.id)}
+                        onChange={() => toggleSelect(item.id)}
+                        onClick={e => e.stopPropagation()}
+                        className="h-4 w-4 rounded border-slate-300 accent-blue-500"
+                      />
+                    )}
 
                     <button
                       type="button"
-                      onClick={() => toggleExpand(item)}
+                      onClick={() => !isPaired && toggleExpand(item)}
                       className="min-w-0 flex-1 text-left"
+                      disabled={isPaired}
                     >
-                      <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
-                        {item.normalizedNarration ?? item.rawNarration}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className={`truncate text-sm font-semibold ${isPaired ? 'text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-100'}`}>
+                          {item.normalizedNarration ?? item.rawNarration}
+                        </p>
+                        {isPaired && (
+                          <span className="shrink-0 rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-600 dark:bg-violet-900/40 dark:text-violet-400">
+                            Transfer
+                          </span>
+                        )}
+                      </div>
                       {item.normalizedNarration && item.normalizedNarration !== item.rawNarration && (
                         <p className="mt-0.5 truncate text-[11px] text-slate-400">{item.rawNarration}</p>
                       )}
@@ -422,12 +459,16 @@ export default function BankInboxPage() {
 
                     <div className="w-32 text-right">
                       <p className={`text-sm font-bold tabular-nums ${
-                        isCredit ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-100'
+                        isPaired
+                          ? 'text-slate-400 dark:text-slate-500'
+                          : isCredit ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-100'
                       }`}>
                         {isCredit ? '+' : '−'}{formatNaira(item.amountNaira)}
                       </p>
                       <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
-                        isCredit
+                        isPaired
+                          ? 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'
+                          : isCredit
                           ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
                           : 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400'
                       }`}>
@@ -440,22 +481,34 @@ export default function BankInboxPage() {
                     </div>
 
                     <div className="flex w-28 justify-end">
-                      <button
-                        type="button"
-                        onClick={() => toggleExpand(item)}
-                        className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                          isExpanded
-                            ? 'border-blue-300 bg-blue-100 text-blue-700 dark:border-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
-                            : 'border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:border-blue-800/50 dark:bg-blue-950/30 dark:text-blue-400'
-                        }`}
-                      >
-                        {isExpanded ? 'Collapse' : 'Categorize'}
-                      </button>
+                      {isPaired ? (
+                        <button
+                          type="button"
+                          onClick={() => handleUnpair(item)}
+                          disabled={isUnpairing}
+                          title="This was auto-detected as a transfer between your accounts. Click to unlink and categorize manually."
+                          className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-600 transition-colors hover:bg-violet-100 hover:border-violet-300 disabled:opacity-60 dark:border-violet-800/50 dark:bg-violet-950/30 dark:text-violet-400"
+                        >
+                          {isUnpairing ? 'Unlinking…' : 'Unlink'}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => toggleExpand(item)}
+                          className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                            isExpanded
+                              ? 'border-blue-300 bg-blue-100 text-blue-700 dark:border-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                              : 'border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:border-blue-800/50 dark:bg-blue-950/30 dark:text-blue-400'
+                          }`}
+                        >
+                          {isExpanded ? 'Collapse' : 'Categorize'}
+                        </button>
+                      )}
                     </div>
                   </div>
 
-                  {/* Expanded categorization form */}
-                  {isExpanded && (
+                  {/* Expanded categorization form — never shown for paired transfers */}
+                  {isExpanded && !isPaired && (
                     <div className="border-t border-blue-100 bg-blue-50/80 px-6 py-5 dark:border-blue-900/40 dark:bg-blue-950/20">
                       <div className="flex flex-wrap items-end gap-3">
 

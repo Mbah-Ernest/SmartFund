@@ -14,6 +14,15 @@ namespace SmartFund.Application.Interfaces
         Task<List<BankImportedTransaction>> ListByStatusAsync(BankImportStatus status, CancellationToken ct);
         Task<List<BankImportedTransaction>> ListNeedsReviewAsync(int page, int pageSize, long? accountId, CancellationToken ct);
         Task<int> CountNeedsReviewAsync(CancellationToken ct);
+
+        /// <summary>Returns NeedsReview + PairedTransfer items for the inbox view (paginated).</summary>
+        Task<List<BankImportedTransaction>> ListInboxAsync(int page, int pageSize, long? accountId, CancellationToken ct);
+
+        /// <summary>Finds unresolved imports from OTHER accounts that could be the opposite side of a transfer.</summary>
+        Task<List<BankImportedTransaction>> FindPotentialPairsAsync(
+            long excludeAccountId, long amountKobo, string oppositeDirection,
+            DateTime transactionDateUtc, int windowDays, CancellationToken ct);
+
         Task<List<BankImportedTransaction>> ListByAccountAsync(long accountId, CancellationToken ct);
         Task AddAsync(BankImportedTransaction tx, CancellationToken ct);
         Task SaveChangesAsync(CancellationToken ct);

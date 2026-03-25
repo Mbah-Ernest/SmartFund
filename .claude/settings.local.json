@@ -4,7 +4,30 @@
       "Bash(cd \"C:\\\\Users\\\\User\\\\Desktop\\\\Tech-Ideas\\\\Personal\\\\SmartFund\\\\SmartFund.Web\" && npx tsc --noEmit 2>&1)",
       "Bash(cd:*)",
       "Bash(tasklist:*)",
-      "Bash(powershell -Command \"Get-Process -Id 48856 -ErrorAction SilentlyContinue | Select-Object Name,Id\" 2>&1)"
+      "Bash(powershell -Command \"Get-Process -Id 48856 -ErrorAction SilentlyContinue | Select-Object Name,Id\" 2>&1)",
+      "Skill(claude-api)",
+      "Bash(find:*)",
+      "Bash(dotnet tool:*)",
+      "Bash(curl:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWUiOiJhZG1pbiIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWVpZGVudGlmaWVyIjoiMSIsIm5iZiI6MTc3MzgyNjc5MywiZXhwIjoxNzczODU1NTkzLCJpc3MiOiJTbWFydEZ1bmQiLCJhdWQiOiJTbWFydEZ1bmQuV2ViIn0.oYxBuAg3loqfCGVU_5j0nE8v3ttxg2S2bqTkdMboqM4\"\n\necho \"=== TEST 1: hi \\(greeting - no tools\\) ===\"\ncurl -s -X POST http://localhost:5123/api/agent/chat \\\\\n  -H \"Content-Type: application/json\" \\\\\n  -H \"Authorization: Bearer $TOKEN\" \\\\\n  -d '{\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}]}' | node -e \"\nconst chunks=[]; process.stdin.on\\('data',c=>chunks.push\\(c\\)\\); process.stdin.on\\('end',\\(\\)=>{\n  const d=JSON.parse\\(chunks.join\\(''\\)\\);\n  console.log\\('REPLY:', d.reply\\);\n  console.log\\('TOOLS:', d.toolTraces.map\\(t=>t.toolName\\)\\);\n}\\);\"\necho \"\")",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWUiOiJhZG1pbiIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWVpZGVudGlmaWVyIjoiMSIsIm5iZiI6MTc3MzgyNjc5MywiZXhwIjoxNzczODU1NTkzLCJpc3MiOiJTbWFydEZ1bmQiLCJhdWQiOiJTbWFydEZ1bmQuV2ViIn0.oYxBuAg3loqfCGVU_5j0nE8v3ttxg2S2bqTkdMboqM4\"\n\necho \"=== TEST 12: What did I spend in January 2026? ===\"\ncurl -s --max-time 30 -X POST http://localhost:5123/api/agent/chat \\\\\n  -H \"Content-Type: application/json\" \\\\\n  -H \"Authorization: Bearer $TOKEN\" \\\\\n  -d '{\"messages\":[{\"role\":\"user\",\"content\":\"What did I spend in January 2026?\"}]}' | node -e \"\nconst c=[]; process.stdin.on\\('data',x=>c.push\\(x\\)\\); process.stdin.on\\('end',\\(\\)=>{\n  const d=JSON.parse\\(c.join\\(''\\)\\);\n  console.log\\('REPLY:', d.reply.substring\\(0,1000\\)\\);\n  console.log\\('TOOLS:', JSON.stringify\\(d.toolTraces.map\\(t=>\\({name:t.toolName, ms:t.durationMs}\\)\\)\\)\\);\n}\\);\"\necho \"\")",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWUiOiJhZG1pbiIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWVpZGVudGlmaWVyIjoiMSIsIm5iZiI6MTc3MzgyNjc5MywiZXhwIjoxNzczODU1NTkzLCJpc3MiOiJTbWFydEZ1bmQiLCJhdWQiOiJTbWFydEZ1bmQuV2ViIn0.oYxBuAg3loqfCGVU_5j0nE8v3ttxg2S2bqTkdMboqM4\"\n\nsleep 15\n\necho \"=== TEST 12: January 2026 spending \\(after rate-limit cooldown\\) ===\"\ncurl -s -w \"\\\\n---TIME:%{time_total}s STATUS:%{http_code}---\\\\n\" --max-time 60 \\\\\n  -X POST http://localhost:5123/api/agent/chat \\\\\n  -H \"Content-Type: application/json\" \\\\\n  -H \"Authorization: Bearer $TOKEN\" \\\\\n  -d '{\"messages\":[{\"role\":\"user\",\"content\":\"What did I spend in January 2026?\"}]}')",
+      "Read(//c/Users/User/Desktop/Tech-Ideas/Personal/**)",
+      "Bash(dotnet new:*)",
+      "Bash(dotnet sln:*)",
+      "Bash(dotnet add:*)",
+      "Bash(rm SmartFund.Domain/Class1.cs SmartFund.Application/Class1.cs SmartFund.Infrastructure/Class1.cs SmartFund.Persistence/Class1.cs)",
+      "Bash(mkdir -p SmartFund.Domain/Exceptions SmartFund.Domain/Auth SmartFund.Domain/PersonalFinance/Entities SmartFund.Domain/PersonalFinance/Enums SmartFund.Domain/PersonalBudget/Entities SmartFund.Domain/PersonalBudget/Enums SmartFund.Domain/Agent SmartFund.Application/Interfaces SmartFund.Application/Services/PersonalFinance SmartFund.Application/Services/Agent SmartFund.Application/Reporting/PersonalFinance SmartFund.Infrastructure/BankSync SmartFund.Persistence/DbContext SmartFund.Persistence/Configurations SmartFund.Persistence/Repositories SmartFund.Persistence/Reporting SmartFund.API/Controllers SmartFund.API/Filters SmartFund.API/Services SmartFund.API/Middleware)",
+      "Bash(ls:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet ef:*)",
+      "Bash(npm create:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node -e \"const r = require\\(''''./node_modules/recharts''''\\); const p = Object.keys\\(r.Pie?.propTypes || {}\\); console.log\\(p.join\\(''''\\\\n''''\\)\\);\")",
+      "Bash(wc -l C:UsersUserDesktopTech-IdeasPersonalSmartFundSmartFund.ApplicationServicesPersonalFinance/*.cs)",
+      "Bash(grep -r \"LinkTransferPair\\\\|TransferPairImportId\" /c/Users/User/Desktop/Tech-Ideas/Personal/SmartFund --include=*.cs)"
     ]
   }
 }

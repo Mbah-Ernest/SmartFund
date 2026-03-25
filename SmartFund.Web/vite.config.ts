@@ -3,7 +3,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-const apiTarget = process.env.VITE_API_PROXY_TARGET ?? 'http://localhost:5123';
+// Visual Studio typically launches the API on HTTPS in Development. Default to that.
+// Override with VITE_API_PROXY_TARGET if you run the API elsewhere.
+const apiTarget = process.env.VITE_API_PROXY_TARGET ?? 'https://localhost:7274';
 
 export default defineConfig({
   plugins: [react()],

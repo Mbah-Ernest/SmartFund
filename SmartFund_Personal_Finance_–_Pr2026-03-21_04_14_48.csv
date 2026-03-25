@@ -1,0 +1,190 @@
+﻿"Submission Date","What country do you currently live in?","What is your age range?","Which best describes your current primary financial situation?","Which device(s) do you primarily use to manage your money? Select all that apply.","How many bank accounts do you actively use?","How often do you currently check your bank balance or transactions?","Do you currently use any app or method to track your income and expenses? Select all that apply.","What is your favorite personal finance app and what do you like most about it?","Are you aware that some apps can connect to your Nigerian bank account to automatically import your transactions via Mono or Okra?","How comfortable are you with the idea of linking your bank account to a third-party personal finance app?","Which concerns would prevent you from linking your bank account? Select all that apply.","What would make you comfortable enough to link your bank account? Select all that apply.","What level of permissions would you be willing to grant a personal finance app?","How frequently would you want the app to sync your bank transactions?","How acceptable is a delay between when a transaction happens and when it appears in the app?","How important is it that the app shows PENDING transactions e.g. a card charge that hasn't fully settled?","What should the app do when a bank sync fails or your account gets disconnected?","How would you prefer to handle transactions entered manually vs. ones imported from the bank if they overlap or duplicate?","What is the most frustrating thing you've experienced or can imagine with bank transaction imports?","How do you feel about a workflow where imported bank transactions land in an inbox first and you review each one before it counts in your reports?","How willing are you to spend time each week reviewing and categorizing imported transactions?","Describe your ideal transaction review experience in 1 to 2 sentences.","How accurate does auto-categorization need to be before you'd trust it?","How would you prefer to correct a wrong category?","How important is it that the app recognizes Nigerian merchant names e.g. Shoprite, Chicken Republic, MTN, Bolt?","Which of the following category features would you use? Select all that apply.","What categories are most important for you to track in your own spending? e.g. Food, transport, school fees, airtime or data","Do you currently budget your money in any way?","Which budgeting style appeals to you most?","What has stopped you from sticking to a budget in the past?","Which financial reports or charts would you check regularly? Select all that apply.","What one thing would MOST increase your trust in a personal finance app that wants to connect to your bank?","How often would you want to look at your spending analytics?","What financial insight would be most useful to see on your home dashboard the first screen when you open the app?","Do you actively save money toward specific goals e.g. vacation, phone, emergency fund, school fees?","What is one financial goal you are currently working toward or wish you were working toward?","How important is seeing your NET WORTH (total assets minus debts) tracked over time?","What export formats would you use? Select all that apply.","For what purposes would you use exported statements? Select all that apply.","What date range options do you need for statements?","Which channels do you prefer for financial alerts? Select all that apply.","Which notifications are most valuable to you? Select all that apply.","How often would you want a spending summary notification?","What would make you immediately turn off all notifications from a finance app?","How much time are you willing to spend on setup when you first install a personal finance app?","What accessibility needs matter to you in a finance app? Select all that apply.","Which of the following would most likely stop you from continuing to use a personal finance app after the first week?","Describe your ideal personal finance app experience in 2 to 3 sentences. What would make you love it?","Which 3 personal finance features are MOST important to you? Pick exactly 3.","Must-Have, Nice-to-Have, or Not Needed — Connecting your bank accounts","Must-Have, Nice-to-Have, or Not Needed — Auto-categorization","Must-Have, Nice-to-Have, or Not Needed — Budget caps per category","Must-Have, Nice-to-Have, or Not Needed — Savings goals","Must-Have, Nice-to-Have, or Not Needed — Charts and spending analytics","Must-Have, Nice-to-Have, or Not Needed — Net worth tracking","Must-Have, Nice-to-Have, or Not Needed — Transaction inbox review","Must-Have, Nice-to-Have, or Not Needed — Data export PDF or CSV","Must-Have, Nice-to-Have, or Not Needed — Push or SMS or WhatsApp alerts","Must-Have, Nice-to-Have, or Not Needed — Cashflow forecast","Is there a personal finance feature you really want that is NOT listed above?","Which channels do you prefer for financial alerts? Select all that apply.","Which notifications are most valuable to you? Select all that apply.","How often would you want a spending summary notification?","What would make you immediately turn off all notifications from a finance app?","How much time are you willing to spend on setup when you first install a personal finance app?","What accessibility needs matter to you in a finance app? Select all that apply.","Which of the following would most likely stop you from continuing to use a personal finance app after the first week?","Describe your ideal personal finance app experience in 2 to 3 sentences. What would make you love it?","How important is it that you can export your transaction data?","What is your expectation for a personal finance app's pricing?","What is the maximum monthly amount you'd pay for a personal finance app with bank sync, budgets, goals, and analytics?","Which specific features would you be MOST willing to pay for? Select up to 3.","Which of the following would be a DEAL-BREAKER that stops you from paying? Select all that apply.","If a free plan limited you to 1 connected bank account and 3 months of history, and a paid plan at N1000 per month gave unlimited accounts plus full history plus AI insights plus export — which would you choose?","What would need to be true for you to recommend this app's paid plan to a friend?","Which apps have you used to manage personal finances? Select all that apply.","What is your FAVORITE finance management tool today and what do you love most about it?","What is the number 1 thing missing from your current favorite tool that SmartFund could provide?","Would you be willing to join a 30-minute video call to share your experience? We'd compensate you with N5000 airtime.","If yes or maybe, what is the best way to reach you? Email, phone, or WhatsApp number.","Any final thoughts, suggestions, or questions for the SmartFund team?"
+"Mar 21, 2026",Nigeria,18–24,"Student full-time","Android smartphone",2,"Multiple times a day","My bank's own app","Opay, it is easy to use and no unnecessary charges","No I wasn't aware",1,"Fear of unauthorized transactions or fraud
+Not trusting the company behind the app
+Not understanding what permissions are granted
+Risk of my banking credentials being exposed
+The app being hacked or data breach
+Not wanting the company to see my transaction history
+Worried about data selling","Read-only access cannot initiate transactions
+Regulatory approval or CBN-licensed aggregator
+Clear explanation of what data is accessed
+Ability to revoke access instantly
+End-to-end encryption or ISO 27001 certification
+Positive reviews from trusted people
+A known reputable company
+A prominent Nigerian fintech partnership
+Ability to link without sharing my bank password OAuth-based","Read transactions plus account balance","In real-time as soon as a transaction happens","Unacceptable it must appear immediately",5,"Show a silent error badge I'll notice and fix it","The app should auto-detect duplicates and merge them",,"I love it I want full control","I'd spend 2 to 5 min per week maximum",,"90 percent or more I'd only use it if it's nearly perfect","Tap to change confirm done",5,"Default categories provided by the app Food Transport etc.
+Ability to create my own custom categories
+Category icons and colors
+Category-level monthly spending limits budget caps per category",,"Yes loosely in my head","Goals-based work backwards from savings targets",,"Monthly income vs. expenses summary",,"A few times a week",,"Yes I have defined goals and save regularly",,5,"PDF statement like a bank statement
+Excel or CSV for my own analysis
+Google Sheets export","Personal record-keeping
+Visa or embassy applications","Custom date range","Push notification in-app
+SMS
+Email","Budget warnings e.g. 80% spent
+Budget exceeded
+Monthly summary or report ready","Every few days",,"5 minutes willing to connect accounts and set a few preferences","High contrast or dark mode","It's too slow or buggy",,"Automatic bank transaction import
+Smart auto-categorization of spending
+Monthly budget creation and tracking
+Budget overspend alerts
+Savings goals with progress tracking
+Spending analytics and charts
+Net worth tracking over time
+Transaction inbox or review workflow
+Auto-categorization rules you can create
+PDF or CSV data export and statements
+Real-time transaction notifications
+Cashflow forecasting",Nice-to-Have,Nice-to-Have,Nice-to-Have,Nice-to-Have,Nice-to-Have,Nice-to-Have,Nice-to-Have,Nice-to-Have,Nice-to-Have,Nice-to-Have,,"Push notification in-app
+SMS
+Email","Every transaction that comes in
+Large transactions above a threshold I set
+Budget warnings e.g. 80% spent
+Budget exceeded
+Goal milestone reached
+Weekly spending summary
+Monthly summary or report ready
+Bank sync error or disconnection
+Unusual activity or potential fraud",Weekly,,"As long as it takes setup quality matters to me","Large text or font size control
+Screen reader compatibility","It's too slow or buggy",,5,"It should be completely free always","N2000 to N5000 per month","Advanced analytics and custom reports
+Budget alerts via SMS or WhatsApp
+Data export and history beyond 12 months","Paying per month prefer annual or one-time
+Being locked out of my own historical data","Stick with the free plan",,Other,,,"Yes please contact me",omoyelud@gmail.com,
+"Mar 20, 2026",Nigeria,18–24,"Student full-time","Android smartphone","3 to 4","Once a week or less","I don't track my finances","Opay or palmpay: friendly user interface, swift and fast","Yes but I've never tried it",3,"None I'd be comfortable linking","Read-only access cannot initiate transactions
+Regulatory approval or CBN-licensed aggregator
+Clear explanation of what data is accessed
+End-to-end encryption or ISO 27001 certification
+Positive reviews from trusted people
+A known reputable company
+Ability to link without sharing my bank password OAuth-based","All of the above plus allow transfers with confirmation","In real-time as soon as a transaction happens","Unacceptable it must appear immediately",2,"Show a silent error badge I'll notice and fix it","The app should flag potential duplicates and let me decide",N/A,"I love it I want full control","I wouldn't want to do this at all",N/A,"80 percent a few corrections are fine","Tap to change and optionally create a rule for future",3,"Default categories provided by the app Food Transport etc.
+Ability to create my own custom categories",All,"I've tried but don't stick to it","I don't want to budget just show me what I spend","I don't budget","Monthly income vs. expenses summary
+Spending breakdown by category pie or bar chart
+Month-over-month trends am I spending more or less than last month
+Average daily or weekly spend
+Top merchants where I spend the most","Integrity and regulation","Only when I'm worried about money",Balance,"I've tried but struggled to maintain it",Saving,3,"PDF statement like a bank statement","Personal record-keeping
+Visa or embassy applications
+Loan applications
+Tax filing
+Business expense reporting
+Sharing with a partner or family","Custom date range","SMS
+Email","Every transaction that comes in",Monthly,"Too much unnecessary notifications like opay","5 minutes willing to connect accounts and set a few preferences","Large text or font size control
+High contrast or dark mode","It's too slow or buggy","Easy ui and good ux, not buggy.","Automatic bank transaction import
+Smart auto-categorization of spending
+Savings goals with progress tracking
+Spending analytics and charts
+PDF or CSV data export and statements
+Real-time transaction notifications",Must-Have,Must-Have,Nice-to-Have,Nice-to-Have,Must-Have,Nice-to-Have,Must-Have,Must-Have,Nice-to-Have,Nice-to-Have,N/A,"SMS
+Email","Every transaction that comes in
+Large transactions above a threshold I set",Monthly,"Too much unnecessary ones like opay","5 minutes willing to connect accounts and set preferences","Large text or font size control
+High contrast or dark mode","The UI is confusing","Easy ui, good ux, fast",3,"It should be completely free always","N0 I won't pay for this","AI-powered spending insights and advice
+None I won't pay for any feature",Other,"Stick with the free plan",N/A,PiggyVest,"Lock and invest",N/A,"No I'd rather stay anonymous",chineduokoyej@gmail.com,Good
+"Mar 20, 2026",Nigeria,18–24,"Student full-time","Android smartphone","3 to 4","Multiple times a day","My bank's own app",,"No I wasn't aware",3,"Fear of unauthorized transactions or fraud
+Not trusting the company behind the app
+Not understanding what permissions are granted
+Risk of my banking credentials being exposed
+Worried about data selling","Read-only access cannot initiate transactions
+Regulatory approval or CBN-licensed aggregator
+Clear explanation of what data is accessed
+Ability to revoke access instantly","Read transactions only","In real-time as soon as a transaction happens","Acceptable if within 15 minutes",5,"Send me a push notification","The app should auto-detect duplicates and merge them",,"I'd skip the inbox entirely if auto-categorization is good enough","I'd happily spend 15 to 30 min per week",,"100 percent anything less than perfect is annoying","Tap to change and optionally create a rule for future",5,"Default categories provided by the app Food Transport etc.
+Ability to create my own custom categories
+Ability to rename or merge default categories
+Sub-categories e.g. Food to Groceries or Restaurants or Takeout
+Category icons and colors",,"No I just spend and see what's left","Percentage-based e.g. 50% needs 30% wants 20% savings",,"Monthly income vs. expenses summary
+Spending breakdown by category pie or bar chart
+Average daily or weekly spend
+Top merchants where I spend the most",,Daily,,"Yes informally I just keep money aside",,5,"PDF statement like a bank statement","Personal record-keeping
+Visa or embassy applications
+Loan applications
+Tax filing
+Business expense reporting","Custom date range","Push notification in-app
+SMS
+Email","Every transaction that comes in
+Large transactions above a threshold I set
+Budget warnings e.g. 80% spent
+Budget exceeded
+Goal milestone reached e.g. 50% saved
+Weekly spending summary
+Monthly summary or report ready
+Bank sync error or disconnection
+Unusual activity or potential fraud",Daily,,"Under 2 minutes just get me started","Simple language no financial jargon","Transactions are wrong or missing",,"Automatic bank transaction import
+Spending analytics and charts
+Auto-categorization rules you can create",Nice-to-Have,Nice-to-Have,Nice-to-Have,Nice-to-Have,Must-Have,Nice-to-Have,Must-Have,Must-Have,Must-Have,Nice-to-Have,,"Push notification in-app
+SMS
+Email","Every transaction that comes in
+Budget exceeded
+Weekly spending summary
+Monthly summary or report ready
+Bank sync error or disconnection
+Unusual activity or potential fraud",Daily,,"Under 2 minutes just get me started","Simple language no financial jargon","Transactions are wrong or missing",,5,"It should be completely free always","N0 I won't pay for this","None I won't pay for any feature","No free trial before paying","Upgrade to paid if I saw value in the first month",,Cowrywise,,,"No I'd rather stay anonymous",,
+"Mar 20, 2026",Nigeria,18–24,"Student full-time","Android smartphone","3 to 4","Once a day","My bank's own app","Opay 
+The charges rate is not that high unlike normal banks","No I wasn't aware",4,"The app being hacked or data breach","Regulatory approval or CBN-licensed aggregator","Read transactions plus balance plus account details","I don't need automatic sync I prefer to enter transactions myself","Acceptable if within 15 minutes",1,"Send me an email","The app should flag potential duplicates and let me decide","Network issues","I like it I'd use it occasionally","I'd happily spend 15 to 30 min per week",,"60 to 70 percent I'll fix the rest","Tap to change confirm done",4,"Ability to create my own custom categories","Airtime or data","Yes I follow a strict written budget","Goals-based work backwards from savings targets","Unplanned issues","Monthly income vs. expenses summary
+Month-over-month trends am I spending more or less than last month","If they can guarantee safety and can help me monitor how I spend",Weekly,,"Yes I have defined goals and save regularly",,2,"PDF statement like a bank statement","Visa or embassy applications
+Loan applications","This month or last month","SMS
+Email","Every transaction that comes in",Daily,,"Under 2 minutes just get me started","Screen reader compatibility","Categories are always wrong",,"Automatic bank transaction import
+Budget overspend alerts",Must-Have,Nice-to-Have,Must-Have,Must-Have,Must-Have,"Not Needed",Must-Have,Nice-to-Have,Nice-to-Have,Nice-to-Have,,"Push notification in-app
+SMS","Every transaction that comes in",Daily,,"Under 2 minutes just get me started","Screen reader compatibility","Transactions are wrong or missing",,4,"Free basic features but I'd pay for advanced ones","N500 to N1000 per month","Advanced analytics and custom reports","Paying per month prefer annual or one-time","Upgrade to paid immediately",,PiggyVest,,,"Yes please contact me",,
+"Mar 20, 2026",Nigeria,18–24,"Student full-time","Android smartphone","3 to 4","A few times a week","My bank's own app",,"No I wasn't aware",2,"Fear of unauthorized transactions or fraud
+Not trusting the company behind the app
+Risk of my banking credentials being exposed","Regulatory approval or CBN-licensed aggregator
+Clear explanation of what data is accessed
+Ability to revoke access instantly
+A known reputable company
+Ability to link without sharing my bank password OAuth-based","Read transactions plus account balance","In real-time as soon as a transaction happens","Acceptable if within 15 minutes",4,"Send me a push notification","The app should auto-detect duplicates and merge them",,"I'd skip the inbox entirely if auto-categorization is good enough","I'd spend 2 to 5 min per week maximum",,"90 percent or more I'd only use it if it's nearly perfect","Tap to change confirm done",4,"Default categories provided by the app Food Transport etc.",,"No I just spend and see what's left","I don't want to budget just show me what I spend",,"Monthly income vs. expenses summary",,"A few times a week",,"I've tried but struggled to maintain it",,4,"PDF statement like a bank statement","Personal record-keeping","This month or last month","Push notification in-app
+SMS
+Email","Every transaction that comes in
+Budget exceeded
+Goal milestone reached e.g. 50% saved
+Monthly summary or report ready
+Bank sync error or disconnection
+Unusual activity or potential fraud",Daily,,"Under 2 minutes just get me started","Large text or font size control
+Screen reader compatibility
+Simple language no financial jargon
+None standard design is fine","Transactions are wrong or missing",,"Monthly budget creation and tracking
+PDF or CSV data export and statements
+Real-time transaction notifications",Nice-to-Have,Nice-to-Have,Nice-to-Have,Nice-to-Have,Nice-to-Have,Nice-to-Have,Nice-to-Have,Must-Have,Must-Have,Nice-to-Have,,"Push notification in-app
+SMS
+Email","Every transaction that comes in
+Budget exceeded
+Weekly spending summary
+Monthly summary or report ready
+Bank sync error or disconnection
+Unusual activity or potential fraud",Daily,,"Under 2 minutes just get me started","Large text or font size control
+Screen reader compatibility
+Simple language no financial jargon
+None standard design is fine","Transactions are wrong or missing",,4,"Free basic features but I'd pay for advanced ones","N1000 to N2000 per month","Bank account connection and sync
+AI-powered spending insights and advice
+Advanced analytics and custom reports
+Unlimited savings goals","Having to pay just to link my bank account
+No free trial before paying
+Data is deleted if I downgrade or cancel
+Price increases without notice
+Being locked out of my own historical data
+I don't trust the company enough to pay","Upgrade to paid if I saw value in the first month",,None,,,"Maybe depends on timing",07071545323,"It is a nice innovation idea, I feel it will bring much impact in today's finance ecosystem."
+"Mar 20, 2026",Nigeria,18–24,"Student full-time","Android smartphone",2,"Once a day","I don't track my finances","Opay, the fact that is allows 3 free transfers per day","No I wasn't aware",2,"Fear of unauthorized transactions or fraud","Read-only access cannot initiate transactions","Read transactions only","In real-time as soon as a transaction happens","Acceptable if within 24 hours",3,"Send me a push notification","The app should flag potential duplicates and let me decide",,"I like it I'd use it occasionally","I wouldn't want to do this at all",,"60 to 70 percent I'll fix the rest","Tap to change confirm done",3,"Default categories provided by the app Food Transport etc.",,"Yes I follow a strict written budget","Percentage-based e.g. 50% needs 30% wants 20% savings",,"Monthly income vs. expenses summary",,Daily,,"I've tried but struggled to maintain it",,3,"Excel or CSV for my own analysis","Personal record-keeping","All time","SMS
+Email
+WhatsApp message","Every transaction that comes in
+Large transactions above a threshold I set
+Budget warnings e.g. 80% spent
+Budget exceeded
+Goal milestone reached e.g. 50% saved
+Weekly spending summary
+Monthly summary or report ready
+Bank sync error or disconnection
+Unusual activity or potential fraud",Daily,,"5 minutes willing to connect accounts and set a few preferences","High contrast or dark mode","It's too slow or buggy",,"Automatic bank transaction import
+Smart auto-categorization of spending
+Monthly budget creation and tracking
+Savings goals with progress tracking",Nice-to-Have,Nice-to-Have,Nice-to-Have,Must-Have,Nice-to-Have,Nice-to-Have,Must-Have,Nice-to-Have,Nice-to-Have,Nice-to-Have,,"Push notification in-app
+SMS
+Email","Every transaction that comes in
+Large transactions above a threshold I set
+Budget warnings e.g. 80% spent
+Budget exceeded
+Goal milestone reached
+Weekly spending summary
+Monthly summary or report ready
+Bank sync error or disconnection
+Unusual activity or potential fraud
+None I find notifications annoying",Daily,,"5 minutes willing to connect accounts and set preferences",,"It's too slow or buggy",,5,"It should be completely free always","N1000 to N2000 per month","Bank account connection and sync
+AI-powered spending insights and advice
+Advanced analytics and custom reports
+Unlimited savings goals
+Budget alerts via SMS or WhatsApp","No free trial before paying","Upgrade to paid if I saw value in the first month",,Other,,,"Yes please contact me",07019137778,

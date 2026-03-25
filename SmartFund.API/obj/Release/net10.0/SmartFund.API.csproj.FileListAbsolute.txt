@@ -169,3 +169,5 @@ C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\obj\Release\ne
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\obj\Release\net10.0\SmartFund.API.pdb
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\obj\Release\net10.0\SmartFund.API.genruntimeconfig.cache
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\obj\Release\net10.0\ref\SmartFund.API.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\bin\Release\net10.0\Anthropic.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\bin\Release\net10.0\Microsoft.Extensions.AI.Abstractions.dll

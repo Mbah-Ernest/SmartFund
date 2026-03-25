@@ -1,5 +1,6 @@
 using SmartFund.Application.Interfaces;
 using SmartFund.Domain.PersonalFinance.Entities;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -21,6 +22,18 @@ internal sealed class InMemoryPersonalTransactionRepository : IPersonalTransacti
 
     public Task<List<PersonalTransaction>> ListAllAsync(CancellationToken ct) =>
         Task.FromResult(Transactions.OrderByDescending(x => x.Date).ToList());
+
+    public Task<List<PersonalTransaction>> ListByDateRangeAsync(DateTime from, DateTime to, CancellationToken ct) =>
+        Task.FromResult(Transactions
+            .Where(t => t.Date.Date >= from.Date && t.Date.Date <= to.Date)
+            .OrderByDescending(t => t.Date)
+            .ToList());
+
+    public Task<List<PersonalTransaction>> ListRecentAsync(int take, CancellationToken ct) =>
+        Task.FromResult(Transactions
+            .OrderByDescending(t => t.Date)
+            .Take(take <= 0 ? 20 : take)
+            .ToList());
 
     public Task AddAsync(PersonalTransaction tx, CancellationToken ct)
     {

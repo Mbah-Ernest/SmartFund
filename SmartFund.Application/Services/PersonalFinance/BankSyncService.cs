@@ -19,6 +19,7 @@ namespace SmartFund.Application.Services.PersonalFinance
         private readonly IBankCategorizationRuleRepository _ruleRepo;
         private readonly CategorizationEngine _engine;
         private readonly BankInboxService _inboxService;
+        private readonly TransferDetectionService _transferDetection;
         private readonly IMonoApiClient _mono;
         private readonly IPersonalFinanceSettingsRepository _settingsRepo;
         private readonly ILogger<BankSyncService> _logger;
@@ -29,6 +30,7 @@ namespace SmartFund.Application.Services.PersonalFinance
             IBankCategorizationRuleRepository ruleRepo,
             CategorizationEngine engine,
             BankInboxService inboxService,
+            TransferDetectionService transferDetection,
             IMonoApiClient mono,
             IPersonalFinanceSettingsRepository settingsRepo,
             ILogger<BankSyncService> logger)
@@ -38,6 +40,7 @@ namespace SmartFund.Application.Services.PersonalFinance
             _ruleRepo = ruleRepo;
             _engine = engine;
             _inboxService = inboxService;
+            _transferDetection = transferDetection;
             _mono = mono;
             _settingsRepo = settingsRepo;
             _logger = logger;
@@ -98,6 +101,7 @@ namespace SmartFund.Application.Services.PersonalFinance
 
             var rules = await _ruleRepo.ListActiveAsync(ct);
             int newCount = 0, dedupSkipped = 0, autoPosted = 0;
+            var newImportIds = new List<long>();
 
             foreach (var tx in transactions)
             {
@@ -141,6 +145,7 @@ namespace SmartFund.Application.Services.PersonalFinance
                 await _importRepo.AddAsync(import, ct);
                 await _importRepo.SaveChangesAsync(ct);
                 newCount++;
+                newImportIds.Add(import.Id);
 
                 // Try to auto-categorize if not pending
                 if (!tx.Pending)
@@ -161,6 +166,19 @@ namespace SmartFund.Application.Services.PersonalFinance
                             // Import stays as NeedsReview — safe to continue
                         }
                     }
+                }
+            }
+
+            // Detect inter-account transfers among newly imported transactions
+            if (newImportIds.Count > 0)
+            {
+                try
+                {
+                    await _transferDetection.DetectAndPairAsync(newImportIds, ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Transfer detection failed for account {AccountId} — imports remain as NeedsReview", account.Id);
                 }
             }
 

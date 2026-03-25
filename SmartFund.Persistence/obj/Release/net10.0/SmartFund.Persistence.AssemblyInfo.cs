@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SmartFund.Persistence")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2edf110d3ba82462e5fb4e34a125db34f71eaecb")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+20b0a1ab5c60a418806a5c1a1bbd37e36454647f")]
 [assembly: System.Reflection.AssemblyProductAttribute("SmartFund.Persistence")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SmartFund.Persistence")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

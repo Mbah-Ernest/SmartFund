@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,6 +11,8 @@ namespace SmartFund.Application.Interfaces
         Task<PersonalTransaction?> GetByIdAsync(long id, CancellationToken ct);
         Task<List<PersonalTransaction>> ListByWalletIdAsync(long walletId, CancellationToken ct);
         Task<List<PersonalTransaction>> ListAllAsync(CancellationToken ct);
+        Task<List<PersonalTransaction>> ListByDateRangeAsync(DateTime from, DateTime to, CancellationToken ct);
+        Task<List<PersonalTransaction>> ListRecentAsync(int take, CancellationToken ct);
         Task AddAsync(PersonalTransaction tx, CancellationToken ct);
         Task SaveChangesAsync(CancellationToken ct);
 

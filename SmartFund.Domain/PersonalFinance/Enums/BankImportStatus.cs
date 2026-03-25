@@ -7,6 +7,7 @@ namespace SmartFund.Domain.PersonalFinance.Enums
         ManuallyPosted = 3,  // User reviewed and categorized
         Excluded = 4,        // User excluded; not reflected in ledger
         Pending = 5,         // Bank flagged as pending; awaiting settlement
-        Reversed = 6         // Matched to a reversal entry; zeroed out
+        Reversed = 6,        // Matched to a reversal entry; zeroed out
+        PairedTransfer = 7   // Auto-detected or manually confirmed inter-account transfer; excluded from P&L
     }
 }

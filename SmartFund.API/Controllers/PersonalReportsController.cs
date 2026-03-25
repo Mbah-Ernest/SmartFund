@@ -44,5 +44,9 @@ namespace SmartFund.API.Controllers
         [HttpGet("wallet-balances")]
         public Task<List<WalletBalanceRow>> WalletBalances(CancellationToken ct) =>
             _reports.WalletBalanceReportAsync(ct);
+
+        [HttpGet("runway")]
+        public Task<CashRunwayDto> Runway(CancellationToken ct) =>
+            _dashboard.GetCashRunwayAsync(DateTime.UtcNow, ct);
     }
 }

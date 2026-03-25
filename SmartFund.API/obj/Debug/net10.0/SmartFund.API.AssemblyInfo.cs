@@ -10,10 +10,11 @@
 using System;
 using System.Reflection;
 
+[assembly: Microsoft.Extensions.Configuration.UserSecrets.UserSecretsIdAttribute("025b569e-c497-463f-b8d0-11a1a54dd6ea")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("SmartFund.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2edf110d3ba82462e5fb4e34a125db34f71eaecb")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+20b0a1ab5c60a418806a5c1a1bbd37e36454647f")]
 [assembly: System.Reflection.AssemblyProductAttribute("SmartFund.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SmartFund.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -15,11 +15,16 @@ namespace SmartFund.API.Controllers;
 public sealed class BankInboxController : ControllerBase
 {
     private readonly BankInboxService _inbox;
+    private readonly TransferDetectionService _transferDetection;
     private readonly IBankImportedTransactionRepository _importRepo;
 
-    public BankInboxController(BankInboxService inbox, IBankImportedTransactionRepository importRepo)
+    public BankInboxController(
+        BankInboxService inbox,
+        TransferDetectionService transferDetection,
+        IBankImportedTransactionRepository importRepo)
     {
         _inbox = inbox;
+        _transferDetection = transferDetection;
         _importRepo = importRepo;
     }
 
@@ -34,7 +39,7 @@ public sealed class BankInboxController : ControllerBase
         if (page < 1) page = 1;
         if (pageSize < 1 || pageSize > 100) pageSize = 50;
 
-        var items = await _importRepo.ListNeedsReviewAsync(page, pageSize, accountId, ct);
+        var items = await _importRepo.ListInboxAsync(page, pageSize, accountId, ct);
         var count = await _importRepo.CountNeedsReviewAsync(ct);
 
         return Ok(new
@@ -108,6 +113,22 @@ public sealed class BankInboxController : ControllerBase
         var posted = await _inbox.BulkCategorizeAsync(body.ImportIds, body.WalletId, body.CategoryId, txType, ct);
         return Ok(new { posted });
     }
+
+    /// <summary>Manually pairs two inbox imports as an inter-account transfer.</summary>
+    [HttpPost("inbox/pair")]
+    public async Task<IActionResult> PairTransfer([FromBody] PairTransferRequest body, CancellationToken ct)
+    {
+        await _transferDetection.ManuallyPairAsync(body.ImportIdA, body.ImportIdB, ct);
+        return NoContent();
+    }
+
+    /// <summary>Removes a transfer pairing, returning both sides to NeedsReview.</summary>
+    [HttpPost("inbox/{id:long}/unpair")]
+    public async Task<IActionResult> UnpairTransfer(long id, CancellationToken ct)
+    {
+        await _transferDetection.UnpairAsync(id, ct);
+        return NoContent();
+    }
 }
 
 public record CategorizeRequest(
@@ -125,3 +146,5 @@ public record BulkCategorizeRequest(
     long WalletId,
     long CategoryId,
     string TransactionType);
+
+public record PairTransferRequest(long ImportIdA, long ImportIdB);

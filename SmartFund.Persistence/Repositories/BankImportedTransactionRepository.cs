@@ -53,6 +53,42 @@ namespace SmartFund.Persistence.Repositories
         public Task<int> CountNeedsReviewAsync(CancellationToken ct) =>
             _db.BankImportedTransactions.CountAsync(x => x.Status == BankImportStatus.NeedsReview, ct);
 
+        public Task<List<BankImportedTransaction>> ListInboxAsync(
+            int page, int pageSize, long? accountId, CancellationToken ct)
+        {
+            var query = _db.BankImportedTransactions
+                .Where(x => x.Status == BankImportStatus.NeedsReview
+                         || x.Status == BankImportStatus.PairedTransfer);
+
+            if (accountId.HasValue)
+                query = query.Where(x => x.ConnectedBankAccountId == accountId.Value);
+
+            return query
+                .OrderByDescending(x => x.TransactionDateUtc)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(ct);
+        }
+
+        public Task<List<BankImportedTransaction>> FindPotentialPairsAsync(
+            long excludeAccountId, long amountKobo, string oppositeDirection,
+            DateTime transactionDateUtc, int windowDays, CancellationToken ct)
+        {
+            var from = transactionDateUtc.AddDays(-windowDays);
+            var to = transactionDateUtc.AddDays(windowDays);
+
+            return _db.BankImportedTransactions
+                .Where(x => x.ConnectedBankAccountId != excludeAccountId
+                         && x.AmountKobo == amountKobo
+                         && x.Direction == oppositeDirection
+                         && x.TransactionDateUtc >= from
+                         && x.TransactionDateUtc <= to
+                         && x.Status == BankImportStatus.NeedsReview
+                         && x.TransferPairImportId == null)
+                .OrderByDescending(x => x.TransactionDateUtc)
+                .ToListAsync(ct);
+        }
+
         public Task<List<BankImportedTransaction>> ListByAccountAsync(long accountId, CancellationToken ct) =>
             _db.BankImportedTransactions
                 .Where(x => x.ConnectedBankAccountId == accountId)

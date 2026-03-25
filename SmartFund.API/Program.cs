@@ -2,15 +2,19 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using SmartFund.API.Services;
 using SmartFund.Application.Interfaces;
+using SmartFund.Application.Services.Agent;
 using SmartFund.Application.Services.PersonalFinance;
 using SmartFund.Application.UseCases.Tranches;
 using SmartFund.Infrastructure.BankSync;
 using SmartFund.Persistence.DbContext;
 using SmartFund.Persistence.Repositories;
 using SmartFund.Persistence.Reporting;
+using System.Security.Authentication;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -56,7 +60,13 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddDbContext<SmartFundDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options
+        .UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+        .ConfigureWarnings(w =>
+        {
+            if (builder.Environment.IsDevelopment())
+                w.Log(RelationalEventId.PendingModelChangesWarning);
+        }));
 
 builder.Services.AddScoped<ILedgerTransactionRepository, LedgerTransactionRepository>();
 builder.Services.AddScoped<ILedgerSequenceGenerator, LedgerSequenceGenerator>();
@@ -80,6 +90,7 @@ builder.Services.AddScoped<IPersonalWalletRepository, PersonalWalletRepository>(
 builder.Services.AddScoped<IPersonalCategoryRepository, PersonalCategoryRepository>();
 builder.Services.AddScoped<IPersonalTransactionRepository, PersonalTransactionRepository>();
 builder.Services.AddScoped<IPersonalInvestmentContributionRepository, PersonalInvestmentContributionRepository>();
+builder.Services.AddScoped<IPersonalGoalRepository, PersonalGoalRepository>();
 builder.Services.AddScoped<IPersonalBudgetRepository, PersonalBudgetRepository>();
 builder.Services.AddScoped<IPersonalBudgetTrackingRepository, PersonalBudgetTrackingRepository>();
 builder.Services.AddScoped<IConnectedBankAccountRepository, ConnectedBankAccountRepository>();
@@ -96,13 +107,66 @@ builder.Services.AddScoped<IPersonalInvestmentContributionService, PersonalInves
 
 // Bank sync + categorization
 builder.Services.Configure<MonoOptions>(builder.Configuration.GetSection("Mono"));
-builder.Services.AddHttpClient<MonoApiClient>();
+builder.Services.AddHttpClient<MonoApiClient>()
+    .ConfigurePrimaryHttpMessageHandler(() =>
+    {
+        var handler = new HttpClientHandler
+        {
+            SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13
+        };
+
+        // Dev-only escape hatch for machines behind TLS-inspecting proxies with an untrusted root CA.
+        // Prefer installing/trusting the proxy root cert instead of enabling this.
+        var skipTls = builder.Configuration.GetValue<bool>("Mono:SkipTlsVerification");
+        if (builder.Environment.IsDevelopment() && skipTls)
+        {
+            handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+        }
+
+        return handler;
+    });
 builder.Services.AddScoped<SmartFund.Application.Interfaces.IMonoApiClient, MonoApiClient>();
 builder.Services.AddScoped<CategorizationEngine>();
 builder.Services.AddScoped<BankInboxService>();
+builder.Services.AddScoped<TransferDetectionService>();
 builder.Services.AddScoped<BankSyncService>();
 builder.Services.AddScoped<BankLinkingService>();
 builder.Services.AddHostedService<MonoSyncJob>();
+
+// Agent services
+builder.Services.AddScoped<IPendingAgentActionRepository, PendingAgentActionRepository>();
+builder.Services.AddScoped<AgentQueryService>();
+builder.Services.AddScoped<AgentActionService>();
+
+// Groq is OpenAI-compatible. Support the common env-var names used in Groq docs
+// (GROQ_API_KEY / GROQ_MODEL) in addition to our existing config keys.
+// Note: .NET config binding maps env var `Groq__ApiKey` -> config key `Groq:ApiKey`.
+var groqApiKey =
+    builder.Configuration["GROQ_API_KEY"] ??
+    builder.Configuration["Groq:ApiKey"] ??
+    "";
+
+ var groqModel =
+     builder.Configuration["GROQ_MODEL"] ??
+     builder.Configuration["Groq:Model"] ??
+     "llama-3.3-70b-versatile";
+
+ var groqBaseUrl =
+     builder.Configuration["GROQ_BASE_URL"] ??
+     builder.Configuration["Groq:BaseUrl"] ??
+     "https://api.groq.com/openai/v1";
+
+var missingGroqKeyInDev = builder.Environment.IsDevelopment() && string.IsNullOrWhiteSpace(groqApiKey);
+
+builder.Services.AddHttpClient<AgentChatService>();
+builder.Services.AddScoped<AgentChatService>(sp =>
+    new AgentChatService(
+        sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(AgentChatService)),
+        sp.GetRequiredService<AgentQueryService>(),
+        sp.GetRequiredService<AgentActionService>(),
+        groqApiKey,
+         groqModel,
+         groqBaseUrl));
 
 // Use case
 builder.Services.AddScoped<CreateTranche>();
@@ -127,6 +191,11 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+if (missingGroqKeyInDev)
+{
+    app.Logger.LogWarning("Groq API key is not configured. Set environment variable 'GROQ_API_KEY' (or 'Groq__ApiKey') or user-secrets key 'Groq:ApiKey' to enable AI features.");
+}
 
 // Ensure the database schema is up-to-date in development.
 // This prevents runtime errors like "Invalid object name" after introducing new migrations.

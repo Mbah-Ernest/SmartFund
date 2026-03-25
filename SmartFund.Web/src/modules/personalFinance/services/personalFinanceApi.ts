@@ -115,6 +115,24 @@ export async function getWalletBalances(): Promise<WalletBalanceRow[]> {
   }
 }
 
+export interface CashRunwayDto {
+  totalBalanceNaira: number;
+  avgMonthlyBurnNaira: number;
+  runwayMonths: number | null;
+  lastMonthBurnNaira: number;
+  /** Fractional change of last month vs 3-month avg. Positive = rising burn. */
+  burnTrend: number;
+}
+
+export async function getCashRunway(): Promise<CashRunwayDto> {
+  try {
+    const { data } = await api.get<CashRunwayDto>('/personal-reports/runway');
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
 /* ── Wallets ── */
 
 export async function getWallets(): Promise<PersonalWalletDto[]> {
@@ -394,6 +412,22 @@ export async function categorizeInboxItem(
 export async function excludeInboxItem(importId: number, note?: string): Promise<void> {
   try {
     await api.post(`/bank/inbox/${importId}/exclude`, { note: note ?? null });
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function pairTransfer(importIdA: number, importIdB: number): Promise<void> {
+  try {
+    await api.post('/bank/inbox/pair', { importIdA, importIdB });
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function unpairTransfer(importId: number): Promise<void> {
+  try {
+    await api.post(`/bank/inbox/${importId}/unpair`);
   } catch (error) {
     throw toApiClientError(error);
   }
