@@ -142,6 +142,7 @@ export type PersonalTransactionDto = {
   amount: number;
   wallet: string;
   walletId: number;
+  categoryId: number | null;
   category: string;
   type: string;
   date: string;

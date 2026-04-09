@@ -6,6 +6,7 @@ using SmartFund.API.Infrastructure;
 using SmartFund.Application.Services;
 using SmartFund.Application.Interfaces;
 using SmartFund.Application.UseCases.PersonalFinance;
+using SmartFund.Domain.Enums;
 using SmartFund.Persistence.DbContext;
 using System;
 using System.Collections.Generic;
@@ -25,14 +26,16 @@ namespace SmartFund.API.Controllers
         private readonly UserAuthService _auth;
         private readonly ReconcileWallet _reconcile;
         private readonly BulkReconcileWalletsUseCase _bulkReconcile;
+        private readonly IAuditService _auditService;
 
-        public PersonalWalletController(IPersonalWalletService wallets, SmartFundDbContext db, UserAuthService auth, ReconcileWallet reconcile, BulkReconcileWalletsUseCase bulkReconcile)
+        public PersonalWalletController(IPersonalWalletService wallets, SmartFundDbContext db, UserAuthService auth, ReconcileWallet reconcile, BulkReconcileWalletsUseCase bulkReconcile, IAuditService auditService)
         {
             _wallets = wallets;
             _db = db;
             _auth = auth;
             _reconcile = reconcile;
             _bulkReconcile = bulkReconcile;
+            _auditService = auditService;
         }
 
         [HttpPost]
@@ -52,6 +55,8 @@ namespace SmartFund.API.Controllers
                 OpeningBalance = wallet.OpeningBalance,
                 OpeningBalanceDate = wallet.OpeningBalanceDate
             };
+
+            await _auditService.RecordAsync(AuditCategory.PersonalFinance, "CreateWallet", $"Created wallet '{wallet.Name}' ({wallet.Currency})", null, ct);
 
             return CreatedAtAction(nameof(GetById), new { id = dto.Id }, dto);
         }
@@ -112,6 +117,8 @@ namespace SmartFund.API.Controllers
             if (wallet is null)
                 return NotFound();
 
+            await _auditService.RecordAsync(AuditCategory.PersonalFinance, "SetOpeningBalance", $"Set opening balance for wallet '{wallet.Name}' to ₦{body.Amount:N2} on {body.Date:dd MMM yyyy}", null, ct);
+
             return Ok(new PersonalWalletDto
             {
                 Id = wallet.Id,
@@ -129,6 +136,8 @@ namespace SmartFund.API.Controllers
         {
             var (diff, newBalance) = await _reconcile.ExecuteAsync(
                 GetCurrentUserId(), id, body.ActualBalance, body.Date, body.Note, ct);
+
+            await _auditService.RecordAsync(AuditCategory.PersonalFinance, "ReconcileWallet", $"Reconciled wallet #{id}: diff ₦{diff:N2}, new balance ₦{newBalance:N2}", null, ct);
 
             return Ok(new { diff, newBalance });
         }
@@ -192,6 +201,8 @@ namespace SmartFund.API.Controllers
             await _db.PersonalWallets
                 .Where(w => w.Id == id && w.UserId == userId)
                 .ExecuteDeleteAsync(ct);
+
+            await _auditService.RecordAsync(AuditCategory.PersonalFinance, "DeleteWallet", $"Deleted wallet '{wallet.Name}' (id: {id})", null, ct);
 
             return NoContent();
         }

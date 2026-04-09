@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using SmartFund.API.Contracts.PersonalBudget;
 using SmartFund.API.Infrastructure;
 using SmartFund.Application.Interfaces;
+using SmartFund.Domain.Enums;
 using SmartFund.Domain.PersonalBudget.Entities;
+using SmartFund.Domain.PersonalBudget.Enums;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,13 +19,16 @@ namespace SmartFund.API.Controllers
     {
         private readonly IPersonalBudgetRepository _budgets;
         private readonly IPersonalBudgetTrackingRepository _tracking;
+        private readonly IAuditService _auditService;
 
         public PersonalBudgetController(
             IPersonalBudgetRepository budgets,
-            IPersonalBudgetTrackingRepository tracking)
+            IPersonalBudgetTrackingRepository tracking,
+            IAuditService auditService)
         {
             _budgets = budgets;
             _tracking = tracking;
+            _auditService = auditService;
         }
 
         [HttpPost]
@@ -97,6 +102,38 @@ namespace SmartFund.API.Controllers
                 RemainingAmount = t.RemainingAmount,
                 IsOverBudget = t.RemainingAmount < 0m
             }).ToArray());
+        }
+
+        [HttpPut("{id:long}")]
+        public async Task<IActionResult> Update(long id, [FromBody] UpdatePersonalBudgetRequest request, CancellationToken ct)
+        {
+            var budget = await _budgets.GetByIdForUserAsync(id, GetCurrentUserId(), ct);
+            if (budget is null)
+                return NotFound();
+
+            budget.Update(request.CategoryId, request.Amount, (BudgetPeriod)request.Period);
+            await _budgets.SaveChangesAsync(ct);
+
+            await _auditService.RecordAsync(AuditCategory.PersonalFinance, "UpdateBudget",
+                $"Updated budget #{id}: category {request.CategoryId}, limit ₦{request.Amount:N2}, period {(BudgetPeriod)request.Period}", null, ct);
+
+            return Ok(new { id = budget.Id, categoryId = budget.CategoryId, amount = budget.Amount, period = (int)budget.Period });
+        }
+
+        [HttpDelete("{id:long}")]
+        public async Task<IActionResult> Delete(long id, CancellationToken ct)
+        {
+            var budget = await _budgets.GetByIdForUserAsync(id, GetCurrentUserId(), ct);
+            if (budget is null)
+                return NotFound();
+
+            await _budgets.RemoveAsync(budget, ct);
+            await _budgets.SaveChangesAsync(ct);
+
+            await _auditService.RecordAsync(AuditCategory.PersonalFinance, "DeleteBudget",
+                $"Deleted budget #{id} (category {budget.CategoryId}, limit ₦{budget.Amount:N2})", null, ct);
+
+            return NoContent();
         }
     }
 }

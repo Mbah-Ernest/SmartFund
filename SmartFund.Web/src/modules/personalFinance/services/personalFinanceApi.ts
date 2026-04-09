@@ -280,6 +280,25 @@ export async function updateTransactionDescription(
   }
 }
 
+export async function deleteTransaction(id: number): Promise<void> {
+  try {
+    await api.delete(`/personal-transactions/${id}`);
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function editTransaction(
+  id: number,
+  data: { categoryId: number; amount: number; date: string; description?: string | null }
+): Promise<void> {
+  try {
+    await api.put(`/personal-transactions/${id}`, data);
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
 export async function recordIncome(
   request: RecordIncomeRequest
 ): Promise<RecordTransactionResponse> {
@@ -637,6 +656,26 @@ export async function getBudgetTracking(
       `/personal-budgets/${budgetId}/tracking`
     );
     return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function updateBudget(
+  id: number,
+  request: { categoryId: number; amount: number; period: number }
+): Promise<BudgetDto> {
+  try {
+    const { data } = await api.put<BudgetDto>(`/personal-budgets/${id}`, request);
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function deleteBudget(id: number): Promise<void> {
+  try {
+    await api.delete(`/personal-budgets/${id}`);
   } catch (error) {
     throw toApiClientError(error);
   }

@@ -3,7 +3,16 @@ declare module 'react-router-dom' {
 
   export type NavigateProps = { to: string; replace?: boolean; state?: unknown };
 
-  export function BrowserRouter(props: React.PropsWithChildren): React.JSX.Element;
+  export type BrowserRouterFuture = {
+    v7_startTransition?: boolean;
+    v7_relativeSplatPath?: boolean;
+  };
+
+  export type BrowserRouterProps = React.PropsWithChildren<{
+    future?: BrowserRouterFuture;
+  }>;
+
+  export function BrowserRouter(props: BrowserRouterProps): React.JSX.Element;
   export function Routes(props: React.PropsWithChildren): React.JSX.Element;
   export function Route(props: any): React.JSX.Element;
   export function Navigate(props: NavigateProps): React.JSX.Element;

@@ -5,6 +5,7 @@ import {
   getTransactions,
   getCategories,
   getWallets,
+  getWalletBalance,
 } from '../services/personalFinanceApi';
 import { getTranches } from '../../../api/tranchesApi';
 import type { PersonalTransactionDto, PersonalCategoryDto, PersonalWalletDto } from '../types/financeTypes';
@@ -91,6 +92,7 @@ export default function TransactionsPage() {
   // Per-wallet cache: Map<walletId, { txs, loading }>
   const [walletTxCache, setWalletTxCache] = useState<Map<number, PersonalTransactionDto[]>>(new Map());
   const [walletLoadingSet, setWalletLoadingSet] = useState<Set<number>>(new Set());
+  const [walletBalanceMap, setWalletBalanceMap] = useState<Map<number, number>>(new Map());
 
   // Active tab
   const [activeTab, setActiveTab] = useState<string>('all');
@@ -105,6 +107,25 @@ export default function TransactionsPage() {
   // Bulk reconcile sheet
   const [bulkReconcileOpen, setBulkReconcileOpen] = useState(false);
 
+  const loadWalletBalances = useCallback(async (walletIds: number[]) => {
+    if (walletIds.length === 0) {
+      setWalletBalanceMap(new Map());
+      return;
+    }
+
+    try {
+      const balances = await Promise.all(
+        walletIds.map(async (walletId) => {
+          const row = await getWalletBalance(walletId);
+          return [walletId, row.balance] as const;
+        })
+      );
+      setWalletBalanceMap(new Map(balances));
+    } catch {
+      // Keep previous balances if fetch fails; per-wallet computed fallback still applies.
+    }
+  }, []);
+
   // ── Initial load ──────────────────────────────────────────────────────────
 
   const loadSharedData = useCallback(async () => {
@@ -117,10 +138,11 @@ export default function TransactionsPage() {
       setWallets(w);
       setCategories(cats);
       setTranches(t);
+      await loadWalletBalances(w.map((wallet) => wallet.id));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load data.');
     }
-  }, []);
+  }, [loadWalletBalances]);
 
   const loadAllTransactions = useCallback(async () => {
     setAllLoading(true);
@@ -183,6 +205,7 @@ export default function TransactionsPage() {
   function handleSheetSuccess() {
     // Refresh both all-tab and the active wallet tab
     loadAllTransactions();
+    loadWalletBalances(wallets.map((w) => w.id));
     if (activeTab !== 'all') {
       loadWalletTransactions(Number(activeTab), true);
     }
@@ -198,6 +221,9 @@ export default function TransactionsPage() {
   // ── Wallet balance helper ─────────────────────────────────────────────────
 
   function walletCurrentBalance(wallet: PersonalWalletDto): number | null {
+    const exactBalance = walletBalanceMap.get(wallet.id);
+    if (exactBalance !== undefined) return exactBalance;
+
     const txs = walletTxCache.get(wallet.id);
     if (!txs) return null;
     const rows = computeRunningBalance(txs, wallet.openingBalance ?? 0);
@@ -227,23 +253,24 @@ export default function TransactionsPage() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden p-4 pt-0 gap-4">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
-          <p className="text-muted-foreground text-sm">Your personal finance ledger</p>
+          <p className="text-muted-foreground text-sm">Your full transaction history</p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setBulkReconcileOpen(true)}
             disabled={wallets.length === 0}
+            className="h-10 px-4"
           >
             Correct Balances
           </Button>
-          <Button onClick={openSheet} className="gap-2">
+          <Button onClick={openSheet} className="h-10 gap-2 px-4">
             <Plus className="h-4 w-4" />
             Record Transaction
           </Button>
@@ -259,12 +286,13 @@ export default function TransactionsPage() {
       )}
 
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="flex-wrap h-auto gap-1">
+        <div className="overflow-x-auto pb-1 scrollbar-hide">
+          <TabsList className="h-auto min-w-max gap-1">
           <TabsTrigger value="all">All</TabsTrigger>
           {wallets.map((w) => {
             const bal = walletCurrentBalance(w);
             return (
-              <TabsTrigger key={w.id} value={String(w.id)} className="gap-1.5">
+              <TabsTrigger key={w.id} value={String(w.id)} className="h-9 gap-1.5 px-3">
                 {w.name}
                 {bal !== null && (
                   <span className={cn(
@@ -277,14 +305,16 @@ export default function TransactionsPage() {
               </TabsTrigger>
             );
           })}
-        </TabsList>
+          </TabsList>
+        </div>
 
         {/* ── All tab ─────────────────────────────────────────── */}
         <TabsContent value="all" className="mt-4 space-y-3">
           {/* Sort & filter bar */}
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="mb-2 rounded-2xl border bg-card p-4 shadow-sm">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortField)}>
-              <SelectTrigger className="w-auto min-w-[200px] h-9">
+              <SelectTrigger className="h-10 w-full min-w-[220px] lg:w-auto">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -302,20 +332,21 @@ export default function TransactionsPage() {
                   size="sm"
                   variant={filterType === t ? 'default' : 'outline'}
                   onClick={() => setFilterType(t)}
-                  className="capitalize h-8 rounded-full text-xs px-3"
+                  className="h-9 rounded-full px-3.5 text-xs capitalize"
                 >
                   {t === 'all' ? 'All' : t}
                 </Button>
               ))}
             </div>
 
-            <span className="ml-auto text-xs tabular-nums text-muted-foreground">
+            <span className="text-xs tabular-nums text-muted-foreground lg:ml-auto">
               {sorted.length} transaction(s)
             </span>
           </div>
+          </div>
 
           {/* List */}
-          <div className="space-y-2">
+          <div className="max-h-[65vh] space-y-2 overflow-auto pr-1">
             {allLoading ? (
               <Card className="rounded-xl">
                 <CardContent className="flex h-40 items-center justify-center">
@@ -335,7 +366,15 @@ export default function TransactionsPage() {
               sorted.map((tx) => (
                 <div
                   key={tx.id}
-                  className="flex items-center gap-4 rounded-xl border bg-card px-5 py-4 shadow-sm transition-all duration-200 hover:shadow-md"
+                  className={cn(
+                    'cursor-pointer rounded-r-xl border bg-card px-4 py-3 shadow-sm transition-colors duration-150 hover:bg-muted/50 sm:px-5 sm:py-4',
+                    'flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4',
+                    tx.type.toLowerCase() === 'income'
+                      ? 'border-l-2 border-l-emerald-400'
+                      : tx.type.toLowerCase() === 'expense' || tx.type.toLowerCase() === 'investment'
+                        ? 'border-l-2 border-l-rose-400'
+                        : 'border-l-2 border-l-blue-400'
+                  )}
                 >
                   <span className={cn(
                     'inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide',
@@ -345,7 +384,7 @@ export default function TransactionsPage() {
                   </span>
 
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="truncate text-sm font-semibold">
                         {tx.description || tx.category}
                       </span>
@@ -356,7 +395,7 @@ export default function TransactionsPage() {
                         </Badge>
                       )}
                     </div>
-                    <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                       <span>{tx.wallet}</span>
                       {tx.description && tx.category !== '—' && (
                         <>
@@ -372,7 +411,7 @@ export default function TransactionsPage() {
                   </div>
 
                   <span className={cn(
-                    'shrink-0 text-sm font-bold tabular-nums',
+                    'self-end text-sm font-bold tabular-nums sm:shrink-0 sm:self-auto',
                     tx.type.toLowerCase() === 'income'
                       ? 'text-emerald-600 dark:text-emerald-400'
                       : tx.type.toLowerCase() === 'expense' || tx.type.toLowerCase() === 'investment'
@@ -410,12 +449,14 @@ export default function TransactionsPage() {
                 </Button>
               </div>
 
-              <WalletLedgerTable
-                transactions={txs}
-                openingBalance={w.openingBalance ?? 0}
-                loading={isLoading}
-                onDescriptionUpdated={() => loadWalletTransactions(w.id, true)}
-              />
+              <div className="max-h-[calc(100vh-260px)] overflow-auto pr-1">
+                <WalletLedgerTable
+                  transactions={txs}
+                  openingBalance={w.openingBalance ?? 0}
+                  loading={isLoading}
+                  onDescriptionUpdated={() => loadWalletTransactions(w.id, true)}
+                />
+              </div>
               {reconcileWalletId === w.id && (
                 <ReconcileSheet
                   wallet={w}
@@ -426,6 +467,7 @@ export default function TransactionsPage() {
                     loadSharedData();
                     loadWalletTransactions(w.id, true);
                     loadAllTransactions();
+                    loadWalletBalances(wallets.map((wallet) => wallet.id));
                   }}
                 />
               )}
@@ -466,6 +508,7 @@ export default function TransactionsPage() {
             loadSharedData();
             loadAllTransactions();
             wallets.forEach((w) => loadWalletTransactions(w.id, true));
+            loadWalletBalances(wallets.map((wallet) => wallet.id));
           }}
         />
       )}

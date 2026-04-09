@@ -42,6 +42,12 @@ namespace SmartFund.Persistence.Repositories
         public Task AddAsync(Budget budget, CancellationToken ct) =>
             _db.Set<Budget>().AddAsync(budget, ct).AsTask();
 
+        public Task RemoveAsync(Budget budget, CancellationToken ct)
+        {
+            _db.Set<Budget>().Remove(budget);
+            return Task.CompletedTask;
+        }
+
         public Task SaveChangesAsync(CancellationToken ct) =>
             _db.SaveChangesAsync(ct);
     }

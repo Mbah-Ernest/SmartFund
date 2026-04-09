@@ -39,5 +39,17 @@ namespace SmartFund.Domain.PersonalBudget.Entities
 
             Amount = decimal.Round(amount, 2);
         }
+
+        public void Update(long categoryId, decimal amount, BudgetPeriod period)
+        {
+            if (categoryId <= 0)
+                throw new DomainException("CategoryId must be a positive value.");
+            if (amount <= 0)
+                throw new DomainException("Amount must be greater than zero.");
+
+            CategoryId = categoryId;
+            Amount = decimal.Round(amount, 2);
+            Period = period;
+        }
     }
 }

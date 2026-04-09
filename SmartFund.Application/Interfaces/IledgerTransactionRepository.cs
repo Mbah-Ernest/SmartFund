@@ -11,6 +11,7 @@ namespace SmartFund.Application.Interfaces
         Task<LedgerTransaction?> GetAsync(long id, CancellationToken ct);
         Task<List<LedgerTransaction>> ListAsync(CancellationToken ct);
         Task AddAsync(LedgerTransaction tx, CancellationToken ct);
+        Task RemoveAsync(LedgerTransaction tx, CancellationToken ct);
         Task SaveChangesAsync(CancellationToken ct);
 
         Task<decimal> GetPostedBalanceForAccountAsync(long accountId, CancellationToken ct);

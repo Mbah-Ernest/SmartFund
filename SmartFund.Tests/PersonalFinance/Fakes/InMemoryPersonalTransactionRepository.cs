@@ -42,6 +42,15 @@ internal sealed class InMemoryPersonalTransactionRepository : IPersonalTransacti
         return Task.CompletedTask;
     }
 
+    public Task RemoveAsync(PersonalTransaction tx, CancellationToken ct)
+    {
+        Transactions.Remove(tx);
+        return Task.CompletedTask;
+    }
+
+    public Task<List<PersonalTransaction>> ListByLedgerTransactionIdAsync(long ledgerTransactionId, CancellationToken ct) =>
+        Task.FromResult(Transactions.Where(t => t.LedgerTransactionId == ledgerTransactionId).ToList());
+
     public Task<List<PersonalTransaction>> ListByUserAsync(long userId, CancellationToken ct) =>
         Task.FromResult(Transactions.Where(x => x.UserId == userId).OrderByDescending(x => x.Date).ToList());
 

@@ -1,16 +1,28 @@
 import { useState } from 'react';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 import { cn, maskAmount, formatDate } from '@/lib/utils';
 import { usePrivacy } from '@/contexts/PrivacyContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { computeRunningBalance } from '../utils/ledgerUtils';
-import { updateTransactionDescription } from '../services/personalFinanceApi';
+import { updateTransactionDescription, deleteTransaction } from '../services/personalFinanceApi';
+import EditTransactionSheet from './EditTransactionSheet';
 import type { PersonalTransactionDto } from '../types/financeTypes';
 
 interface Props {
@@ -21,29 +33,32 @@ interface Props {
 }
 
 function RowMenu({
-  txId,
-  currentDescription,
-  onDescriptionUpdated,
+  tx,
+  onRefresh,
 }: {
-  txId: number;
-  currentDescription: string | null;
-  onDescriptionUpdated: () => void;
+  tx: PersonalTransactionDto;
+  onRefresh: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [value, setValue] = useState(currentDescription ?? '');
+  const [descValue, setDescValue] = useState(tx.description ?? '');
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [editTx, setEditTx] = useState<PersonalTransactionDto | null>(null);
+
+  const isManual = tx.source?.toLowerCase() === 'manual' || tx.source === '1';
+  const isTransfer = tx.type?.toLowerCase() === 'transfer';
 
   function handleOpenChange(o: boolean) {
-    if (o) setValue(currentDescription ?? '');
+    if (o) setDescValue(tx.description ?? '');
     setOpen(o);
   }
 
-  async function handleSave() {
+  async function handleSaveDescription() {
     setSaving(true);
     try {
-      await updateTransactionDescription(txId, value.trim() || null);
-      toast('Description updated');
-      onDescriptionUpdated();
+      await updateTransactionDescription(tx.id, descValue.trim() || null);
+      toast.success('Description updated');
+      onRefresh();
       setOpen(false);
     } catch {
       toast.error('Failed to update description');
@@ -52,36 +67,103 @@ function RowMenu({
     }
   }
 
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await deleteTransaction(tx.id);
+      toast.success('Transaction deleted');
+      onRefresh();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to delete transaction';
+      toast.error(msg);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
-    <Popover open={open} onOpenChange={handleOpenChange}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 p-0.5 rounded hover:bg-muted"
-          aria-label="Edit description"
-        >
-          <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-72 p-3" side="left" align="center">
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground">Edit description</p>
-          <Input
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
-            placeholder="Optional note"
-            autoFocus
-          />
-          <div className="flex gap-2 justify-end">
-            <Button size="sm" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button size="sm" onClick={handleSave} disabled={saving}>
-              {saving ? 'Saving…' : 'Save'}
-            </Button>
+    <>
+      <Popover open={open} onOpenChange={handleOpenChange}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 p-0.5 rounded hover:bg-muted"
+            aria-label="Transaction actions"
+          >
+            <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-72 p-3" side="left" align="center">
+          <div className="space-y-3">
+            {/* Description edit — always available */}
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground">Edit description</p>
+              <Input
+                value={descValue}
+                onChange={(e) => setDescValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSaveDescription(); }}
+                placeholder="Optional note"
+                autoFocus
+              />
+              <div className="flex gap-2 justify-end">
+                <Button size="sm" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                <Button size="sm" onClick={handleSaveDescription} disabled={saving}>
+                  {saving ? 'Saving…' : 'Save'}
+                </Button>
+              </div>
+            </div>
+
+            {/* Edit / Delete — Manual only */}
+            {isManual && (
+              <div className="border-t pt-2 flex flex-col gap-1">
+                {!isTransfer && (
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-muted w-full text-left"
+                    onClick={() => { setOpen(false); setEditTx(tx); }}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Edit transaction
+                  </button>
+                )}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-destructive/10 text-destructive w-full text-left"
+                      disabled={deleting}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      {deleting ? 'Deleting…' : 'Delete transaction'}
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete this transaction?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently remove the transaction and reverse any budget tracking. This cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => { setOpen(false); handleDelete(); }}>
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            )}
           </div>
-        </div>
-      </PopoverContent>
-    </Popover>
+        </PopoverContent>
+      </Popover>
+
+      <EditTransactionSheet
+        transaction={editTx}
+        onClose={() => setEditTx(null)}
+        onSaved={() => { setEditTx(null); onRefresh(); }}
+      />
+    </>
   );
 }
 
@@ -160,11 +242,7 @@ export default function WalletLedgerTable({ transactions, openingBalance, loadin
                       </span>
                       <SourceBadge source={tx.source} />
                       {onDescriptionUpdated && (
-                        <RowMenu
-                          txId={tx.id}
-                          currentDescription={tx.description}
-                          onDescriptionUpdated={onDescriptionUpdated}
-                        />
+                        <RowMenu tx={tx} onRefresh={onDescriptionUpdated} />
                       )}
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
@@ -272,11 +350,7 @@ export default function WalletLedgerTable({ transactions, openingBalance, loadin
                       </Badge>
                     )}
                     {onDescriptionUpdated && (
-                      <RowMenu
-                        txId={tx.id}
-                        currentDescription={tx.description}
-                        onDescriptionUpdated={onDescriptionUpdated}
-                      />
+                      <RowMenu tx={tx} onRefresh={onDescriptionUpdated} />
                     )}
                   </div>
                   {tx.description && tx.category && tx.category !== '—' && (

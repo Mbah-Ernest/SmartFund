@@ -19,6 +19,15 @@ namespace SmartFund.Persistence.Repositories
         public Task AddAsync(PersonalTransaction tx, CancellationToken ct) =>
             _db.PersonalTransactions.AddAsync(tx, ct).AsTask();
 
+        public Task RemoveAsync(PersonalTransaction tx, CancellationToken ct)
+        {
+            _db.PersonalTransactions.Remove(tx);
+            return Task.CompletedTask;
+        }
+
+        public Task<List<PersonalTransaction>> ListByLedgerTransactionIdAsync(long ledgerTransactionId, CancellationToken ct) =>
+            _db.PersonalTransactions.Where(t => t.LedgerTransactionId == ledgerTransactionId).ToListAsync(ct);
+
         public Task<PersonalTransaction?> GetByIdAsync(long id, CancellationToken ct) =>
             _db.PersonalTransactions.FirstOrDefaultAsync(x => x.Id == id, ct);
 

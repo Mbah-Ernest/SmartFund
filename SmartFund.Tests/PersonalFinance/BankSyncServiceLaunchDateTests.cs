@@ -154,6 +154,8 @@ public sealed class BankSyncServiceLaunchDateTests
         public Task<long> RecordIncomeAsync(long userId, long walletId, long categoryId, decimal amount, string? description, DateTime date, CancellationToken ct) => Task.FromResult(1L);
         public Task<long> RecordExpenseAsync(long userId, long walletId, long categoryId, decimal amount, string? description, DateTime date, CancellationToken ct) => Task.FromResult(1L);
         public Task<long> RecordTransferAsync(long userId, long sourceWalletId, long destinationWalletId, decimal amount, string? description, DateTime date, CancellationToken ct) => Task.FromResult(1L);
+        public Task DeleteTransactionAsync(long userId, long transactionId, CancellationToken ct) => Task.CompletedTask;
+        public Task<long> EditTransactionAsync(long userId, long transactionId, long categoryId, decimal amount, DateTime date, string? description, CancellationToken ct) => Task.FromResult(1L);
     }
 
     private sealed class FakePersonalTransactionRepository : IPersonalTransactionRepository
@@ -167,6 +169,8 @@ public sealed class BankSyncServiceLaunchDateTests
         public Task<List<PersonalTransaction>> ListRecentAsync(int take, CancellationToken ct) => Task.FromResult(new List<PersonalTransaction>());
         public Task<List<PersonalTransaction>> ListRecentByUserAsync(long userId, int take, CancellationToken ct) => Task.FromResult(new List<PersonalTransaction>());
         public Task AddAsync(PersonalTransaction tx, CancellationToken ct) => Task.CompletedTask;
+        public Task RemoveAsync(PersonalTransaction tx, CancellationToken ct) => Task.CompletedTask;
+        public Task<List<PersonalTransaction>> ListByLedgerTransactionIdAsync(long ledgerTransactionId, CancellationToken ct) => Task.FromResult(new List<PersonalTransaction>());
         public Task SaveChangesAsync(CancellationToken ct) => Task.CompletedTask;
         public Task<List<PersonalTransaction>> ListBankDerivedAsync(CancellationToken ct) => Task.FromResult(new List<PersonalTransaction>());
         public Task<List<PersonalTransaction>> ListBankDerivedByUserAsync(long userId, CancellationToken ct) => Task.FromResult(new List<PersonalTransaction>());

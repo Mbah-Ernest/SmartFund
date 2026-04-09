@@ -142,7 +142,9 @@ export default function DebtsPage() {
   const monthlyBurden = insights?.monthlyDebtBurden ?? 0;
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden p-4 pt-0 gap-4">
+      {/* Sticky zone: header + summary cards */}
+      <div className="shrink-0 space-y-4">
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
@@ -206,6 +208,11 @@ export default function DebtsPage() {
         )}
       </div>
 
+      </div>{/* end sticky zone */}
+
+      {/* Scrollable zone */}
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-4">
+
       {/* Overdue alert */}
       {!loading && overdueDebts.length > 0 && (
         <Alert variant="destructive">
@@ -219,7 +226,7 @@ export default function DebtsPage() {
 
       {/* Main tabs: Debts / Insights */}
       <Tabs defaultValue="debts">
-        <TabsList>
+        <TabsList className="sticky top-0 bg-background/95 backdrop-blur z-10 py-1">
           <TabsTrigger value="debts" className="flex items-center gap-1.5">
             <CreditCard className="h-3.5 w-3.5" /> Debts
           </TabsTrigger>
@@ -320,6 +327,8 @@ export default function DebtsPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      </div>{/* end scrollable zone */}
 
       {/* Sheets & dialogs */}
       <AddDebtSheet

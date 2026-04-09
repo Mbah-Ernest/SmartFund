@@ -44,6 +44,14 @@ namespace SmartFund.Domain.PersonalBudget.Entities
             RemainingAmount = decimal.Round(decimal.Round(budgetAmount, 2) - SpentAmount, 2);
         }
 
+        public void ReverseExpense(decimal amount, decimal budgetAmount)
+        {
+            if (amount <= 0)
+                throw new DomainException("Amount must be greater than zero.");
+            SpentAmount = decimal.Round(Math.Max(0m, SpentAmount - amount), 2);
+            RemainingAmount = decimal.Round(decimal.Round(budgetAmount, 2) - SpentAmount, 2);
+        }
+
         public bool IsOverBudget() => RemainingAmount < 0m;
     }
 }

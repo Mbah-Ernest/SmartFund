@@ -25,6 +25,12 @@ namespace SmartFund.Persistence.Repositories
         public Task AddAsync(LedgerTransaction tx, CancellationToken ct) =>
             _db.LedgerTransactions.AddAsync(tx, ct).AsTask();
 
+        public Task RemoveAsync(LedgerTransaction tx, CancellationToken ct)
+        {
+            _db.LedgerTransactions.Remove(tx);
+            return Task.CompletedTask;
+        }
+
         public Task SaveChangesAsync(CancellationToken ct) =>
             _db.SaveChangesAsync(ct);
 

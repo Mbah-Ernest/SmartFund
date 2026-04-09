@@ -137,7 +137,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground overflow-x-hidden;
   }
 }
 
@@ -149,4 +149,24 @@
   .glass-hover {
     @apply hover:bg-card/90 hover:border-border transition-all duration-200;
   }
+}
+
+/* ── Scrollbar hide utility ── */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Shimmer animation ── */
+@keyframes shimmer {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+/* ── Card entry animation helper (fallback if tw-animate-css doesn't cover these) ── */
+.animate-card-in {
+  animation: fade-in-0 0.3s ease-out, slide-in-from-bottom-2 0.3s ease-out;
 }

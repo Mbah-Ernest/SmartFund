@@ -49,7 +49,11 @@
       "Bash(node:*)",
       "Bash(echo \"EXIT: $?\")",
       "Bash(git add:*)",
-      "Bash(git commit -m ':*)"
+      "Bash(git commit -m ':*)",
+      "Bash(git push:*)",
+      "Bash(grep -l \"LineChart\\\\|BarChart\\\\|PieChart\" \"C:\\\\Users\\\\User\\\\Desktop\\\\Tech-ideas\\\\Personal\\\\SmartFund\\\\SmartFund.Web\\\\src\\\\modules\\\\personalFinance\\\\components\"/*.tsx)",
+      "Bash(xargs -I {} basename {})",
+      "Bash(grep -E \"\\\\.\\(cs|tsx|ts\\)$\")"
     ]
   }
 }

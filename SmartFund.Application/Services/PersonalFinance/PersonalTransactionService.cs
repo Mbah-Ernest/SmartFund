@@ -26,6 +26,7 @@ namespace SmartFund.Application.Services.PersonalFinance
         private readonly ILedgerTransactionRepository _ledgerTxRepo;
         private readonly IPersonalBudgetRepository _budgetRepo;
         private readonly IPersonalBudgetTrackingRepository _budgetTrackingRepo;
+        private readonly IAuditService _auditService;
 
         public PersonalTransactionService(
             IPersonalWalletRepository walletRepo,
@@ -34,7 +35,8 @@ namespace SmartFund.Application.Services.PersonalFinance
             IPersonalBudgetRepository budgetRepo,
             IPersonalBudgetTrackingRepository budgetTrackingRepo,
             ILedgerAccountRepository accountRepo,
-            ILedgerTransactionRepository ledgerTxRepo)
+            ILedgerTransactionRepository ledgerTxRepo,
+            IAuditService auditService)
         {
             _walletRepo = walletRepo;
             _categoryRepo = categoryRepo;
@@ -43,6 +45,7 @@ namespace SmartFund.Application.Services.PersonalFinance
             _budgetTrackingRepo = budgetTrackingRepo;
             _accountRepo = accountRepo;
             _ledgerTxRepo = ledgerTxRepo;
+            _auditService = auditService;
         }
 
         public async Task<long> RecordIncomeAsync(
@@ -93,6 +96,9 @@ namespace SmartFund.Application.Services.PersonalFinance
 
             await _personalTxRepo.AddAsync(personalTx, ct);
             await _personalTxRepo.SaveChangesAsync(ct);
+
+            var auditDescIncome = $"Recorded income of ₦{amount:N2} to wallet {wallet.Name}: {description}";
+            await _auditService.RecordAsync(AuditCategory.PersonalFinance, "RecordIncome", auditDescIncome, ledgerTx.Id, ct);
 
             return ledgerTx.Id;
         }
@@ -171,6 +177,9 @@ namespace SmartFund.Application.Services.PersonalFinance
             await _personalTxRepo.AddAsync(personalTx, ct);
             await _personalTxRepo.SaveChangesAsync(ct);
 
+            var auditDescExpense = $"Recorded expense of ₦{amount:N2} from wallet {wallet.Name}: {description}";
+            await _auditService.RecordAsync(AuditCategory.PersonalFinance, "RecordExpense", auditDescExpense, ledgerTx.Id, ct);
+
             return ledgerTx.Id;
         }
 
@@ -232,7 +241,124 @@ namespace SmartFund.Application.Services.PersonalFinance
             await _personalTxRepo.AddAsync(destinationPersonalTx, ct);
             await _personalTxRepo.SaveChangesAsync(ct);
 
+            var auditDescTransfer = $"Transferred ₦{amount:N2} from {sourceWallet.Name} to {destinationWallet.Name}: {description}";
+            await _auditService.RecordAsync(AuditCategory.PersonalFinance, "RecordTransfer", auditDescTransfer, ledgerTx.Id, ct);
+
             return ledgerTx.Id;
+        }
+
+        public async Task DeleteTransactionAsync(long userId, long transactionId, CancellationToken ct)
+        {
+            var tx = await _personalTxRepo.GetByIdAsync(transactionId, ct);
+            if (tx is null || tx.UserId != userId)
+                throw new DomainException("Transaction not found.");
+
+            if (tx.Source != TransactionSource.Manual)
+                throw new DomainException("Only manually entered transactions can be deleted.");
+
+            var type = tx.TransactionType;
+            var amount = tx.Amount;
+            var categoryId = tx.CategoryId;
+            var date = tx.Date;
+            var description = tx.Description;
+            var ledgerTxId = tx.LedgerTransactionId;
+
+            // Load all PersonalTransactions sharing this ledger (handles transfer pairs)
+            var siblings = await _personalTxRepo.ListByLedgerTransactionIdAsync(ledgerTxId, ct);
+
+            var ledgerTx = await _ledgerTxRepo.GetAsync(ledgerTxId, ct);
+            if (ledgerTx is null)
+                throw new DomainException("Ledger transaction not found.");
+
+            // Rollback budget tracking for expenses
+            if (type == PersonalTransactionType.Expense && categoryId.HasValue)
+            {
+                var budget = await _budgetRepo.GetByCategoryForUserAsync(userId, categoryId.Value, BudgetPeriod.Monthly, ct);
+                if (budget is not null)
+                {
+                    var tracking = await _budgetTrackingRepo.GetAsync(budget.Id, date.Year, date.Month, ct);
+                    if (tracking is not null)
+                    {
+                        tracking.ReverseExpense(amount, budget.Amount);
+                        await _budgetTrackingRepo.SaveChangesAsync(ct);
+                    }
+                }
+            }
+
+            foreach (var sibling in siblings)
+                await _personalTxRepo.RemoveAsync(sibling, ct);
+            await _personalTxRepo.SaveChangesAsync(ct);
+
+            await _ledgerTxRepo.RemoveAsync(ledgerTx, ct);
+            await _ledgerTxRepo.SaveChangesAsync(ct);
+
+            var auditDesc = $"Deleted {type} of ₦{amount:N2} on {date:dd MMM yyyy}"
+                + (description is not null ? $" – {description}" : "");
+            await _auditService.RecordAsync(AuditCategory.PersonalFinance, "Delete Transaction", auditDesc, null, ct);
+        }
+
+        public async Task<long> EditTransactionAsync(
+            long userId,
+            long transactionId,
+            long categoryId,
+            decimal amount,
+            DateTime date,
+            string? description,
+            CancellationToken ct)
+        {
+            var tx = await _personalTxRepo.GetByIdAsync(transactionId, ct);
+            if (tx is null || tx.UserId != userId)
+                throw new DomainException("Transaction not found.");
+
+            if (tx.Source != TransactionSource.Manual)
+                throw new DomainException("Only manually entered transactions can be edited.");
+
+            if (tx.TransactionType == PersonalTransactionType.Transfer)
+                throw new DomainException("Transfer transactions cannot be edited. Delete and re-enter instead.");
+
+            var oldType = tx.TransactionType;
+            var oldAmount = tx.Amount;
+            var oldCategoryId = tx.CategoryId;
+            var oldDate = tx.Date;
+            var oldDesc = tx.Description;
+            var walletId = tx.WalletId;
+            var ledgerTxId = tx.LedgerTransactionId;
+
+            var ledgerTx = await _ledgerTxRepo.GetAsync(ledgerTxId, ct);
+            if (ledgerTx is null)
+                throw new DomainException("Ledger transaction not found.");
+
+            // Rollback budget tracking for old expense
+            if (oldType == PersonalTransactionType.Expense && oldCategoryId.HasValue)
+            {
+                var budget = await _budgetRepo.GetByCategoryForUserAsync(userId, oldCategoryId.Value, BudgetPeriod.Monthly, ct);
+                if (budget is not null)
+                {
+                    var tracking = await _budgetTrackingRepo.GetAsync(budget.Id, oldDate.Year, oldDate.Month, ct);
+                    if (tracking is not null)
+                    {
+                        tracking.ReverseExpense(oldAmount, budget.Amount);
+                        await _budgetTrackingRepo.SaveChangesAsync(ct);
+                    }
+                }
+            }
+
+            await _personalTxRepo.RemoveAsync(tx, ct);
+            await _personalTxRepo.SaveChangesAsync(ct);
+
+            await _ledgerTxRepo.RemoveAsync(ledgerTx, ct);
+            await _ledgerTxRepo.SaveChangesAsync(ct);
+
+            long newLedgerTxId;
+            if (oldType == PersonalTransactionType.Income)
+                newLedgerTxId = await RecordIncomeAsync(userId, walletId, categoryId, amount, description, date, ct);
+            else
+                newLedgerTxId = await RecordExpenseAsync(userId, walletId, categoryId, amount, description, date, ct);
+
+            var auditDesc = $"Edited {oldType}: amount {oldAmount:N2}→{amount:N2}, date {oldDate:dd MMM yyyy}→{date:dd MMM yyyy}, desc '{oldDesc}'→'{description}'";
+            await _auditService.RecordAsync(AuditCategory.PersonalFinance, "Edit Transaction", auditDesc, newLedgerTxId, ct);
+
+            return newLedgerTxId;
         }
 
         private async Task<long> GetOrCreatePersonalAccountAsync(AccountType type, string name, CancellationToken ct)

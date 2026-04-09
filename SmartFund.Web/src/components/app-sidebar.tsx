@@ -50,6 +50,7 @@ import {
   SidebarMenuItem,
   SidebarMenuBadge,
   SidebarRail,
+  SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
 import { SmartFundLogo } from '@/components/smart-fund-logo';
@@ -103,7 +104,12 @@ interface NavItemProps {
 function NavItem({ item, isActive, badge }: NavItemProps) {
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
+      <SidebarMenuButton
+        asChild
+        isActive={isActive}
+        tooltip={item.title}
+        className={isActive ? 'border-l-2 border-primary font-semibold' : undefined}
+      >
         <Link to={item.href}>
           <item.icon className="h-4 w-4" />
           <span>{item.title}</span>
@@ -156,16 +162,19 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       {/* Header */}
-      <SidebarHeader className="border-b border-sidebar-border">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link to="/finance/dashboard" className="flex items-center gap-2">
-                <SmartFundLogo showText={!isCollapsed} />
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+      <SidebarHeader className="h-14 border-b border-sidebar-border px-2 py-0">
+        <div className="flex h-full items-center gap-1">
+          <SidebarMenu className="flex-1">
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg" asChild className="h-10">
+                <Link to="/finance/dashboard" className="flex items-center gap-2">
+                  <SmartFundLogo showText={!isCollapsed} />
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+          <SidebarTrigger className="size-8" />
+        </div>
       </SidebarHeader>
 
       <SidebarContent>

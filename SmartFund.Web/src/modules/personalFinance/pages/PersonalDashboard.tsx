@@ -2,16 +2,16 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import BalanceCard from '../components/BalanceCard';
 import CategoryPieChart from '../components/CategoryPieChart';
 import NetWorthChart from '../components/NetWorthChart';
-import CashFlowChart from '../components/CashFlowChart';
-import RecentTransactions from '../components/RecentTransactions';
 import FinancialInsights from '../components/FinancialInsights';
 import AIInsightsPanel from '../components/AIInsightsPanel';
 import InfoTooltip from '../components/InfoTooltip';
 import MonthOverMonthCard from '../components/MonthOverMonthCard';
+import KpiCarousel from '../components/KpiCarousel';
+import DailyBalanceChart from '../components/DailyBalanceChart';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Link } from 'react-router-dom';
 import {
   getDashboard,
-  getCashFlow,
   getCashRunway,
   getTransactions,
   getWalletBalances,
@@ -22,15 +22,15 @@ import {
   getConnectedAccounts,
   getDebts,
   getDebtInsights,
+  getWallets,
+  getCategories,
   type ConnectedBankAccountDto,
   type CashRunwayDto,
 } from '../services/personalFinanceApi';
 import type {
   PersonalFinanceDashboardDto,
-  CashFlowRow,
   MonthlyIncomeExpense,
   NetWorthPoint,
-  InvestmentContributionPoint,
   MonthlyCategoryAmountRow,
   PersonalTransactionDto,
   PersonalDebtDto,
@@ -40,7 +40,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, RefreshCw, Wallet, TrendingUp } from 'lucide-react';
+import { AlertCircle, ChevronDown } from 'lucide-react';
 import { maskAmount, maskName } from '@/lib/utils';
 import { usePrivacy } from '@/contexts/PrivacyContext';
 
@@ -121,7 +121,6 @@ export default function PersonalDashboard() {
 
   const [dashboard, setDashboard] = useState<PersonalFinanceDashboardDto | null>(null);
   const [runway, setRunway] = useState<CashRunwayDto | null>(null);
-  const [cashflow, setCashflow] = useState<CashFlowRow[]>([]);
   const [incomeRows, setIncomeRows] = useState<MonthlyCategoryAmountRow[]>([]);
   const [expenseRows, setExpenseRows] = useState<MonthlyCategoryAmountRow[]>([]);
   const [walletBalances, setWalletBalances] = useState<
@@ -131,7 +130,6 @@ export default function PersonalDashboard() {
   const [connectedAccounts, setConnectedAccounts] = useState<ConnectedBankAccountDto[]>([]);
   const [debts, setDebts] = useState<PersonalDebtDto[]>([]);
   const [debtInsights, setDebtInsights] = useState<DebtInsightsDto | null>(null);
-  const [showNetWorth, setShowNetWorth] = useState(false);
   const [bankTypeFilter, setBankTypeFilter] = useState<string>('all');
   const [budgetHealth, setBudgetHealth] = useState<
     | {
@@ -146,22 +144,20 @@ export default function PersonalDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [dash, rwy, cf, inc, exp, wb, budgets, txs, banks, debtList, debtIns] = await Promise.all([
+      const [dash, rwy, inc, exp, wb, budgets, txs, banks, debtList, debtIns] = await Promise.all([
         getDashboard(),
         getCashRunway().catch(() => null),
-        getCashFlow(),
         getMonthlyIncome(),
         getMonthlyExpenses(),
         getWalletBalances(),
         getBudgets(),
-        getTransactions({ orderBy: 'inputTime', direction: 'desc', take: 50 }),
+        getTransactions({ orderBy: 'inputTime', direction: 'desc', take: 2000 }),
         getConnectedAccounts().catch(() => [] as ConnectedBankAccountDto[]),
         getDebts().catch(() => [] as PersonalDebtDto[]),
         getDebtInsights().catch(() => null),
       ] as const);
       setDashboard(dash);
       setRunway(rwy);
-      setCashflow(cf);
       setIncomeRows(inc);
       setExpenseRows(exp);
       setWalletBalances(wb);
@@ -274,148 +270,130 @@ export default function PersonalDashboard() {
   })();
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      {/* Page heading */}
-      <div className="flex items-end justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Personal Finance</h1>
-          <p className="text-muted-foreground text-sm mt-1 max-w-md">
-            Your complete money dashboard — see what you earn, spend, save, and invest at a glance.
-            Hover the <span className="inline-flex translate-y-[1px]"><InfoTooltip text="Tooltips like this explain financial terms in plain language. Hover any ⓘ icon to learn more!" /></span> icons anywhere on this page for more info.
-          </p>
-        </div>
-        <Button
-          variant="default"
-          onClick={load}
-          disabled={loading}
-          className="gap-2"
-        >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          {loading ? 'Refreshing…' : 'Refresh'}
-        </Button>
-      </div>
-
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Something went wrong</AlertTitle>
-          <AlertDescription className="flex items-center gap-2">
-            {error}
-            <button
-              type="button"
-              onClick={load}
-              className="underline underline-offset-2 font-semibold ml-2"
-            >
-              Try again
-            </button>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Feature 3: Overdue debt alert banner */}
-      {!loading && overdueDebts.length > 0 && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Overdue debts</AlertTitle>
-          <AlertDescription className="flex flex-wrap items-center gap-1">
-            {overdueDebts.map((d, i) => (
-              <span key={d.id}>
-                {i > 0 && ', '}
-                <span className="font-semibold">{maskName(d.creditorName, isPrivate)}</span>
-                {' '}({Math.abs(d.daysUntilDue)}d overdue)
-              </span>
-            ))}
-            {' — '}
-            <Link to="/finance/debts" className="underline underline-offset-2 font-semibold">
-              Go to Debts →
-            </Link>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* KPI Cards */}
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        <BalanceCard
-          title={showNetWorth ? 'Net Worth' : 'Total Balance'}
-          value={
-            showNetWorth && totalBalanceValue !== null
-              ? maskAmount(totalBalanceValue - totalRemainingDebt, isPrivate)
-              : totalBalanceValue !== null
-                ? maskAmount(totalBalanceValue, isPrivate)
-                : '—'
-          }
-          subtitle={
-            showNetWorth && totalBalanceValue !== null
-              ? `${maskAmount(totalBalanceValue, isPrivate)} assets − ${maskAmount(totalRemainingDebt, isPrivate)} debts`
-              : dashboard
-                ? `Wallets ${maskAmount(dashboard.walletBalance, isPrivate)} · Banks (${bankTypeFilter === 'all' ? 'all' : bankTypeFilter}) ${maskAmount(filteredBankBalance, isPrivate)}`
-                : undefined
-          }
-          description="Combined balance across your app wallets and connected bank accounts."
-          icon={<WalletIcon />}
-          loading={loading}
-          action={
-            totalRemainingDebt > 0 ? (
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+      {/* Sticky top zone */}
+      <div className="shrink-0 px-4 pt-4 pb-3 bg-background/95 backdrop-blur border-b border-border/40 space-y-3">
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Something went wrong</AlertTitle>
+            <AlertDescription className="flex items-center gap-2">
+              {error}
               <button
                 type="button"
-                onClick={() => setShowNetWorth(v => !v)}
-                className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                title={showNetWorth ? 'Show total balance' : 'Show net worth (assets − debts)'}
+                onClick={load}
+                className="underline underline-offset-2 font-semibold ml-2"
               >
-                {showNetWorth
-                  ? <Wallet className="h-3.5 w-3.5" />
-                  : <TrendingUp className="h-3.5 w-3.5" />}
+                Try again
               </button>
-            ) : undefined
-          }
-        />
-        <BalanceCard
-          title="Monthly Income"
-          value={dashboard ? maskAmount(dashboard.monthlyIncome, isPrivate) : '—'}
-          description="All the money you received this month — salary, side income, gifts, refunds, etc."
-          icon={<ArrowUpIcon />}
-          trend={
-            dashboard && dashboard.monthlyIncome > 0
-              ? { value: 'income', positive: true }
-              : undefined
-          }
-          loading={loading}
-        />
-        <BalanceCard
-          title="Monthly Expenses"
-          value={dashboard ? maskAmount(dashboard.monthlyExpenses, isPrivate) : '—'}
-          description="Everything you spent money on this month — bills, food, transport, subscriptions, etc."
-          icon={<ArrowDownIcon />}
-          trend={
-            dashboard && savings < 0
-              ? { value: 'over budget', positive: false }
-              : undefined
-          }
-          loading={loading}
-        />
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Feature 3: Overdue debt alert banner */}
+        {!loading && overdueDebts.length > 0 && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Overdue debts</AlertTitle>
+            <AlertDescription className="flex flex-wrap items-center gap-1">
+              {overdueDebts.map((d, i) => (
+                <span key={d.id}>
+                  {i > 0 && ', '}
+                  <span className="font-semibold">{maskName(d.creditorName, isPrivate)}</span>
+                  {' '}({Math.abs(d.daysUntilDue)}d overdue)
+                </span>
+              ))}
+              {' — '}
+              <Link to="/finance/debts" className="underline underline-offset-2 font-semibold">
+                Go to Debts →
+              </Link>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* KPI Cards */}
+        <div>
+          <KpiCarousel>
+          <BalanceCard
+            title="Total Balance"
+            value={
+              totalBalanceValue !== null
+                ? maskAmount(totalBalanceValue, isPrivate)
+                : '—'
+            }
+            subtitle={dashboard
+              ? `Wallets ${maskAmount(dashboard.walletBalance, isPrivate)} · Banks (${bankTypeFilter === 'all' ? 'all' : bankTypeFilter}) ${maskAmount(filteredBankBalance, isPrivate)}`
+              : undefined}
+            description="Combined balance across your app wallets and connected bank accounts."
+            icon={<WalletIcon />}
+            loading={loading}
+            colorAccent="violet"
+          />
+          <BalanceCard
+            title="Monthly Income"
+            value={dashboard ? maskAmount(dashboard.monthlyIncome, isPrivate) : '—'}
+            description="All the money you received this month — salary, side income, gifts, refunds, etc."
+            icon={<ArrowUpIcon />}
+            trend={
+              dashboard && dashboard.monthlyIncome > 0
+                ? { value: 'income', positive: true }
+                : undefined
+            }
+            loading={loading}
+            colorAccent="emerald"
+          />
+          <BalanceCard
+            title="Monthly Expenses"
+            value={dashboard ? maskAmount(dashboard.monthlyExpenses, isPrivate) : '—'}
+            description="Everything you spent money on this month — bills, food, transport, subscriptions, etc."
+            icon={<ArrowDownIcon />}
+            trend={
+              dashboard && savings < 0
+                ? { value: 'over budget', positive: false }
+                : undefined
+            }
+            loading={loading}
+            colorAccent="rose"
+          />
+        </KpiCarousel>
+        </div>
+
+        {bankTypeOptions.length > 1 && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            <p className="text-xs text-muted-foreground">Bank balance type:</p>
+            {bankTypeOptions.map((type) => (
+              <Button
+                key={type}
+                type="button"
+                size="sm"
+                variant={bankTypeFilter === type ? 'default' : 'outline'}
+                onClick={() => setBankTypeFilter(type)}
+                className="h-8 shrink-0 px-3 text-xs"
+              >
+                {type === 'all' ? 'All' : type}
+              </Button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {bankTypeOptions.length > 1 && (
-        <div className="-mt-2 flex flex-wrap items-center gap-2">
-          <p className="text-xs text-muted-foreground">Bank balance type:</p>
-          {bankTypeOptions.map((type) => (
-            <Button
-              key={type}
-              type="button"
-              size="sm"
-              variant={bankTypeFilter === type ? 'default' : 'outline'}
-              onClick={() => setBankTypeFilter(type)}
-              className="h-7 px-2.5 text-xs"
-            >
-              {type === 'all' ? 'All' : type}
-            </Button>
-          ))}
-        </div>
-      )}
+      {/* Scrollable zone */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-6">
+
+      {/* Daily Balance Chart */}
+      <DailyBalanceChart
+        transactions={recentTransactions}
+        walletCurrentBalance={dashboard?.walletBalance ?? 0}
+        loading={loading}
+      />
 
       {/* Feature 2: Debt Health summary */}
       {!loading && activeDebts.length > 0 && (
-        <div className="rounded-xl border bg-card px-5 py-4 shadow-sm flex flex-wrap items-center gap-x-6 gap-y-2">
+        <div className={`rounded-xl border bg-card px-5 py-4 shadow-sm flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2 animate-in fade-in-0 duration-300 ${
+          debtHealthTone === 'red' ? 'border-l-4 border-l-destructive' :
+          debtHealthTone === 'yellow' ? 'border-l-4 border-l-yellow-400' :
+          'border-l-4 border-l-emerald-500'
+        }`}>
           <div className="flex items-center gap-2 shrink-0">
             <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${
               debtHealthTone === 'red' ? 'bg-destructive' :
@@ -456,7 +434,7 @@ export default function PersonalDashboard() {
           <h2 className="text-sm font-bold">Financial Health Check</h2>
           <InfoTooltip text="These four cards give you a quick snapshot of how your finances are doing. Green = great, blue = okay, red = needs attention." />
         </div>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard
             title="Savings rate"
             value={savingsRate === null ? '—' : formatPercent(Math.max(savingsRate, 0))}
@@ -511,72 +489,73 @@ export default function PersonalDashboard() {
       {/* Main + AI Sidebar */}
       <div className="grid gap-6 xl:grid-cols-[1fr_340px]">
         {/* Left: main content */}
-        <div className="space-y-8 min-w-0">
-          <ChartCard title="Insights" icon={<InsightIcon />} description="Personalised tips based on your financial activity — updated every time you record a transaction">
-            <FinancialInsights
-              dashboard={dashboard}
-              incomeExpense={incomeExpenseData}
-              loading={loading}
-            />
-          </ChartCard>
-
-          <ChartCard
-            title="This Month vs Last Month"
-            icon={<CompareSmallIcon />}
-            description="See how your income, expenses, and savings changed compared to last month. Green bars mean improvement."
-          >
-            <MonthOverMonthCard data={incomeExpenseData} loading={loading} />
-          </ChartCard>
-
-          <div className="grid gap-6 lg:grid-cols-2">
+        <div className="space-y-6 min-w-0">
+          {/* Net Worth + Month-over-Month */}
+          <div className="grid gap-6 2xl:grid-cols-2">
             <ChartCard
               title="Net Worth Growth"
               icon={<TrendUpSmallIcon />}
-              description="Your net worth is the total value of everything you own (across all wallets) over time. An upward trend means you're building wealth."
+              description="Your total wallet balance over time. An upward trend means you're building wealth."
             >
               <NetWorthChart data={netWorthData} loading={loading} />
             </ChartCard>
 
             <ChartCard
-              title="Monthly Cash Flow"
-              icon={<BarChartSmallIcon />}
-              description="Cash flow shows money coming in (income) vs money going out (expenses) each month. Taller blue bars and shorter expense bars = healthy finances."
+              title="This Month vs Last Month"
+              icon={<CompareSmallIcon />}
+              description="See how your income, expenses, and savings changed vs last month."
             >
-              <CashFlowChart data={incomeExpenseData} loading={loading} />
+              <MonthOverMonthCard data={incomeExpenseData} loading={loading} />
             </ChartCard>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            <ChartCard
-              title="Spending by Category"
-              icon={<PieSmallIcon />}
-              description="A breakdown of where your money went this month. Hover or tap a slice to see the exact amount and percentage."
-            >
-              <div className="space-y-4">
-                <CategoryPieChart
-                  data={dashboard?.topExpenseCategories ?? []}
-                  loading={loading}
-                />
-                <TopCategoryBreakdown
-                  rows={dashboard?.topExpenseCategories ?? []}
-                  total={dashboard?.monthlyExpenses ?? 0}
-                  loading={loading}
-                />
+          <ChartCard
+            title="Spending by Category"
+            icon={<PieSmallIcon />}
+            description="A breakdown of where your money went this month."
+          >
+            <CategoryPieChart
+              data={dashboard?.topExpenseCategories ?? []}
+              loading={loading}
+            />
+          </ChartCard>
+
+          {/* Insights — collapsible at bottom */}
+          <Collapsible>
+            <div className="rounded-2xl border bg-card p-5 shadow-sm animate-in fade-in-0 duration-300 border-t-2 border-t-primary/20">
+              <div className="flex items-center justify-between gap-2 mb-0">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <InsightIcon />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">Insights</p>
+                    <p className="text-xs text-muted-foreground">Personalised tips based on your financial activity</p>
+                  </div>
+                </div>
+                <CollapsibleTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs text-muted-foreground hover:bg-muted transition-colors"
+                  >
+                    <span>Tips</span>
+                    <ChevronDown className="h-3.5 w-3.5 transition-transform [[data-state=open]_&]:rotate-180" />
+                  </button>
+                </CollapsibleTrigger>
               </div>
-            </ChartCard>
-
-            <ChartCard
-              title="Recent Transactions"
-              icon={<ListSmallIcon />}
-              description="Your most recent transactions. Arrange by input time or transaction date."
-            >
-              <RecentTransactions data={recentTransactions} loading={loading} />
-            </ChartCard>
-          </div>
+              <CollapsibleContent className="mt-4">
+                <FinancialInsights
+                  dashboard={dashboard}
+                  incomeExpense={incomeExpenseData}
+                  loading={loading}
+                />
+              </CollapsibleContent>
+            </div>
+          </Collapsible>
         </div>
 
         {/* Right: AI Insights Panel */}
-        <div className="xl:sticky xl:top-6 xl:self-start">
+        <div className="xl:sticky xl:top-4 xl:self-start max-h-[65vh] overflow-auto pr-1">
           <AIInsightsPanel
             dashboard={dashboard}
             incomeExpense={incomeExpenseData}
@@ -584,66 +563,8 @@ export default function PersonalDashboard() {
           />
         </div>
       </div>
-    </div>
-  );
-}
 
-function TopCategoryBreakdown(props: {
-  rows: { categoryId: number; categoryName: string; amount: number }[];
-  total: number;
-  loading?: boolean;
-}) {
-  if (props.loading) {
-    return (
-      <div className="space-y-2">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-8 w-full rounded-xl" />
-        ))}
       </div>
-    );
-  }
-
-  const total = props.total > 0 ? props.total : props.rows.reduce((s, r) => s + r.amount, 0);
-
-  if (props.rows.length === 0 || total <= 0) return null;
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Top categories (this month)
-        </p>
-        <p className="text-xs text-muted-foreground">Total: {formatCurrency(total)}</p>
-      </div>
-
-      <ul className="space-y-2">
-        {props.rows.slice(0, 5).map((r) => {
-          const pct = total > 0 ? (r.amount / total) * 100 : 0;
-          return (
-            <li key={r.categoryId} className="rounded-xl bg-muted/40 px-3 py-2.5 ring-1 ring-border">
-              <div className="flex items-center justify-between gap-3">
-                <p className="min-w-0 truncate text-sm font-semibold">
-                  {r.categoryName}
-                </p>
-                <p className="shrink-0 text-sm font-bold tabular-nums">
-                  {formatCurrency(r.amount)}
-                </p>
-              </div>
-              <div className="mt-2 flex items-center gap-3">
-                <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full bg-primary"
-                    style={{ width: `${Math.min(pct, 100)}%` }}
-                  />
-                </div>
-                <p className="w-12 text-right text-xs font-semibold text-muted-foreground tabular-nums">
-                  {pct.toFixed(0)}%
-                </p>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
     </div>
   );
 }
@@ -656,43 +577,32 @@ function MetricCard(props: {
   tone: 'positive' | 'neutral' | 'negative';
   loading?: boolean;
 }) {
-  const toneVariant =
+  const borderClass =
     props.tone === 'positive'
-      ? 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-800'
+      ? 'border-l-4 border-l-emerald-500'
       : props.tone === 'negative'
-        ? 'bg-rose-50 text-rose-700 ring-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:ring-rose-800'
-        : 'bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-800';
-
-  const toneLabels: Record<string, string> = {
-    positive: '✓ good',
-    neutral: '~ okay',
-    negative: '! watch'
-  };
+        ? 'border-l-4 border-l-rose-500'
+        : 'border-l-4 border-l-blue-400';
 
   return (
-    <div className="rounded-xl border bg-card p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-              {props.title}
-            </p>
-            {props.tooltip && <InfoTooltip text={props.tooltip} />}
-          </div>
-          <p className="mt-2 text-2xl font-extrabold leading-none tracking-tight tabular-nums">
-            {props.loading ? (
-              <Skeleton className="h-8 w-28 rounded-lg" />
-            ) : (
-              props.value
-            )}
+    <div className={`rounded-2xl border bg-card p-5 shadow-sm animate-in fade-in-0 slide-in-from-bottom-2 duration-300 ${borderClass}`}>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+            {props.title}
           </p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {props.caption}
-          </p>
+          {props.tooltip && <InfoTooltip text={props.tooltip} />}
         </div>
-        <div className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${toneVariant}`}>
-          {toneLabels[props.tone] ?? props.tone}
+        <div className="mt-2 text-2xl sm:text-3xl font-extrabold leading-none tracking-tight tabular-nums">
+          {props.loading ? (
+            <Skeleton className="h-8 w-28 rounded-lg" />
+          ) : (
+            props.value
+          )}
         </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          {props.caption}
+        </p>
       </div>
     </div>
   );
@@ -705,15 +615,15 @@ function ChartCard(props: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border bg-card p-6 shadow-sm">
-      <div className="mb-5 flex items-center gap-2.5">
+    <div className="rounded-2xl border bg-card p-5 shadow-sm animate-in fade-in-0 duration-300 border-t-2 border-t-primary/20">
+      <div className="mb-4 flex items-center gap-2.5">
         {props.icon ? (
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
             {props.icon}
           </div>
         ) : null}
         <div>
-          <h2 className="text-sm font-bold">{props.title}</h2>
+          <h2 className="text-sm font-semibold">{props.title}</h2>
           {props.description ? (
             <p className="text-xs text-muted-foreground">{props.description}</p>
           ) : null}
@@ -740,27 +650,11 @@ function TrendUpSmallIcon() {
   );
 }
 
-function BarChartSmallIcon() {
-  return (
-    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-    </svg>
-  );
-}
-
 function PieSmallIcon() {
   return (
     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" />
-    </svg>
-  );
-}
-
-function ListSmallIcon() {
-  return (
-    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
     </svg>
   );
 }

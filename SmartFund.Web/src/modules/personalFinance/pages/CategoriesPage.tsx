@@ -128,8 +128,8 @@ export default function CategoriesPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden p-4 pt-0 gap-4">
+      <div className="shrink-0 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Categories</h1>
           <p className="text-muted-foreground text-sm">
@@ -187,8 +187,8 @@ export default function CategoriesPage() {
         </Card>
       )}
 
-      <Card className="rounded-xl">
-        <CardHeader>
+      <Card className="flex flex-col flex-1 min-h-0 rounded-xl">
+        <CardHeader className="shrink-0">
           <div className="flex items-center justify-between gap-3">
             <div>
               <CardTitle className="text-sm">Your categories</CardTitle>
@@ -212,7 +212,7 @@ export default function CategoriesPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 flex-1 min-h-0 overflow-y-auto">
           <Table>
             <TableHeader>
               <TableRow>

@@ -113,7 +113,7 @@ export default function Dashboard() {
   const upcomingPreview = useMemo(() => upcoming.slice(0, 5), [upcoming]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-y-auto px-4 pt-4 pb-4">
       <div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>

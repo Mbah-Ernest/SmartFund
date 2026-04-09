@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SmartFund.API.Contracts.PersonalFinance;
 using SmartFund.API.Infrastructure;
 using SmartFund.Application.Interfaces;
+using SmartFund.Domain.Enums;
 using SmartFund.Domain.PersonalFinance.Enums;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,21 +22,23 @@ namespace SmartFund.API.Controllers
         private readonly IPersonalTransactionRepository _txRepo;
         private readonly IPersonalWalletRepository _walletRepo;
         private readonly IPersonalCategoryRepository _categoryRepo;
-
         private readonly IConnectedBankAccountRepository _bankAccountRepo;
+        private readonly IAuditService _auditService;
 
         public PersonalTransactionController(
             IPersonalTransactionService tx,
             IPersonalTransactionRepository txRepo,
             IPersonalWalletRepository walletRepo,
             IPersonalCategoryRepository categoryRepo,
-            IConnectedBankAccountRepository bankAccountRepo)
+            IConnectedBankAccountRepository bankAccountRepo,
+            IAuditService auditService)
         {
             _tx = tx;
             _txRepo = txRepo;
             _walletRepo = walletRepo;
             _categoryRepo = categoryRepo;
             _bankAccountRepo = bankAccountRepo;
+            _auditService = auditService;
         }
 
         [HttpGet]
@@ -101,6 +104,7 @@ namespace SmartFund.API.Controllers
                 Id = t.Id,
                 WalletId = t.WalletId,
                 Amount = t.Amount,
+                CategoryId = t.CategoryId,
                 Wallet = t.WalletId > 0 && walletMap.TryGetValue(t.WalletId, out var wn) ? wn : $"Wallet #{t.WalletId}",
                 Category = t.CategoryId.HasValue && categoryMap.TryGetValue(t.CategoryId.Value, out var cn) ? cn : "—",
                 Type = TypeName(t.TransactionType),
@@ -167,6 +171,21 @@ namespace SmartFund.API.Controllers
             return Ok(new RecordTransactionResponse { LedgerTransactionId = ledgerTxId });
         }
 
+        [HttpDelete("{id:long}")]
+        public async Task<IActionResult> Delete(long id, CancellationToken ct)
+        {
+            await _tx.DeleteTransactionAsync(GetCurrentUserId(), id, ct);
+            return NoContent();
+        }
+
+        [HttpPut("{id:long}")]
+        public async Task<IActionResult> Edit(long id, [FromBody] EditTransactionRequest request, CancellationToken ct)
+        {
+            var newLedgerTxId = await _tx.EditTransactionAsync(
+                GetCurrentUserId(), id, request.CategoryId, request.Amount, request.Date, request.Description, ct);
+            return Ok(new { ledgerTransactionId = newLedgerTxId });
+        }
+
         [HttpPatch("{id:long}/description")]
         public async Task<IActionResult> UpdateDescription(
             long id,
@@ -180,6 +199,8 @@ namespace SmartFund.API.Controllers
 
             tx.UpdateDescription(request.Description);
             await _txRepo.SaveChangesAsync(ct);
+
+            await _auditService.RecordAsync(AuditCategory.PersonalFinance, "UpdateTransactionDescription", $"Updated description for transaction #{tx.Id} to '{tx.Description}'", null, ct);
 
             return Ok(new { id = tx.Id, description = tx.Description });
         }

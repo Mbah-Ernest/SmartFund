@@ -17,6 +17,8 @@ namespace SmartFund.Application.Interfaces
         Task<List<PersonalTransaction>> ListRecentAsync(int take, CancellationToken ct);
         Task<List<PersonalTransaction>> ListRecentByUserAsync(long userId, int take, CancellationToken ct);
         Task AddAsync(PersonalTransaction tx, CancellationToken ct);
+        Task RemoveAsync(PersonalTransaction tx, CancellationToken ct);
+        Task<List<PersonalTransaction>> ListByLedgerTransactionIdAsync(long ledgerTransactionId, CancellationToken ct);
         Task SaveChangesAsync(CancellationToken ct);
 
         /// <summary>Lists transactions that were created by posting a bank import (have provenance).</summary>

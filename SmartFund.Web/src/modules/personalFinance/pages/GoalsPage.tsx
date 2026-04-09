@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+
+const CARD_GRADIENTS = [
+  'from-violet-600 to-violet-400',
+  'from-emerald-600 to-emerald-400',
+  'from-rose-600 to-rose-400',
+  'from-blue-600 to-blue-400',
+  'from-amber-600 to-amber-400',
+];
 import {
   AreaChart,
   Area,
@@ -36,6 +45,7 @@ function formatCurrency(n: number) {
 type WalletWithBalance = PersonalWalletDto & { balance: number; isBankWallet: boolean };
 
 export default function GoalsPage() {
+  const carouselRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [walletData, setWalletData] = useState<WalletWithBalance[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -194,11 +204,11 @@ export default function GoalsPage() {
       )}
 
       {/* Total balance highlight */}
-      <div className="relative isolate overflow-hidden rounded-xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 p-7 text-primary-foreground shadow-lg">
+      <div className="relative isolate overflow-hidden rounded-xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 p-4 text-primary-foreground shadow-lg">
         <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
         <div className="pointer-events-none absolute -left-6 bottom-0 h-24 w-24 rounded-full bg-white/5 blur-xl" />
         <p className="relative text-sm font-semibold text-primary-foreground/80">Combined Wallet Balance</p>
-        <p className="relative mt-2 text-4xl font-extrabold tracking-tight leading-none tabular-nums">
+        <p className="relative mt-1 text-3xl font-extrabold tracking-tight leading-none tabular-nums">
           {loading ? (
             <span className="inline-block h-9 w-40 rounded-lg bg-white/20 animate-pulse" />
           ) : (
@@ -222,7 +232,7 @@ export default function GoalsPage() {
             <CardTitle className="text-sm">Balance per Wallet</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={200}>
               <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="goalGrad" x1="0" y1="0" x2="0" y2="1">
@@ -244,86 +254,108 @@ export default function GoalsPage() {
         </Card>
       )}
 
-      {/* Wallet cards */}
+      {/* Wallet cards carousel */}
       {loading ? (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="flex gap-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i} className="rounded-xl">
-              <CardContent className="p-5">
-                <div className="flex items-center gap-3">
-                  <Skeleton className="h-10 w-10 rounded-xl" />
-                  <div className="space-y-1.5">
-                    <Skeleton className="h-3 w-24" />
-                    <Skeleton className="h-2.5 w-10" />
-                  </div>
-                </div>
-                <Skeleton className="mt-4 h-6 w-28" />
-                <Skeleton className="mt-2 h-2.5 w-32" />
-              </CardContent>
-            </Card>
+            <Skeleton key={i} className="h-44 w-[min(280px,80vw)] shrink-0 rounded-2xl" />
           ))}
         </div>
       ) : walletData.length === 0 ? (
-        <Card className="rounded-xl">
+        <Card className="rounded-2xl">
           <CardContent className="flex h-44 flex-col items-center justify-center gap-3">
             <p className="text-sm font-medium text-muted-foreground">No wallets yet</p>
             <p className="text-xs text-muted-foreground">Create your first wallet or connect a bank account</p>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {walletData.map((w) => (
-            <Card key={w.id} className="rounded-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
-              <CardContent className="p-5">
-                <div className="flex items-center gap-3">
-                  <div className={`flex h-11 w-11 items-center justify-center rounded-xl text-lg font-bold shadow-sm ring-1 ${
-                    w.isBankWallet
-                      ? 'bg-emerald-50 text-emerald-600 ring-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:ring-emerald-800'
-                      : 'bg-primary/10 text-primary ring-primary/20'
-                  }`}>
-                    {w.isBankWallet ? (
-                      <Landmark className="h-5 w-5" />
-                    ) : (
-                      w.name.charAt(0).toUpperCase()
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold">{w.name}</p>
-                    <div className="mt-0.5 flex items-center gap-1.5">
-                      <p className="text-xs text-muted-foreground">{w.currency}</p>
+        <div className="relative">
+          <div
+            ref={carouselRef}
+            className="flex gap-3 overflow-x-auto scroll-smooth pb-3 scrollbar-hide [scroll-snap-type:x_mandatory]"
+          >
+            {walletData.map((w, idx) => {
+              const gradient = CARD_GRADIENTS[idx % CARD_GRADIENTS.length];
+              const idStr = String(w.id).slice(-4).padStart(4, '0');
+              return (
+                <div
+                  key={w.id}
+                  className={`shrink-0 w-[min(280px,80vw)] [scroll-snap-align:start] relative overflow-hidden rounded-2xl bg-gradient-to-br ${gradient} p-4 shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}
+                  style={{ aspectRatio: '1.6 / 1' }}
+                >
+                  {/* Decorative circles */}
+                  <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-white/10" />
+                  <div className="pointer-events-none absolute -bottom-4 -left-4 h-20 w-20 rounded-full bg-white/5" />
+
+                  {/* Top row: name + bank badge */}
+                  <div className="relative flex items-start justify-between gap-2">
+                    <p className="text-sm font-semibold text-white/80 truncate">{w.name}</p>
+                    <div className="flex items-center gap-1 shrink-0">
                       {w.isBankWallet && (
-                        <Badge className="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+                        <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold text-white">
                           Bank
-                        </Badge>
+                        </span>
                       )}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteWallet(w)}
+                        className="h-6 px-1.5 text-[10px] text-white/70 hover:bg-white/20 hover:text-white"
+                      >
+                        ×
+                      </Button>
                     </div>
                   </div>
-                  <div className="shrink-0">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleDeleteWallet(w)}
-                      className="h-7 px-2 text-xs"
-                    >
-                      Delete
-                    </Button>
+
+                  {/* Balance */}
+                  <div className="relative mt-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-white/60">Balance</p>
+                    <p className="mt-0.5 text-2xl font-bold text-white tabular-nums leading-none">
+                      {formatCurrency(w.balance)}
+                    </p>
+                  </div>
+
+                  {/* Bottom row */}
+                  <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between">
+                    <p className="text-[10px] text-white/50">
+                      {w.currency}
+                    </p>
+                    <p className="text-[11px] font-mono text-white/50">
+                      •••• {idStr}
+                    </p>
                   </div>
                 </div>
-                <p className="mt-4 text-2xl font-extrabold tracking-tight tabular-nums">
-                  {formatCurrency(w.balance)}
-                </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {w.isBankWallet ? 'Last synced balance' : 'Created'}{' '}
-                  {new Date(w.createdAt).toLocaleDateString('en-NG', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric'
-                  })}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
+              );
+            })}
+          </div>
+
+          {walletData.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={() => carouselRef.current?.scrollBy({ left: -300, behavior: 'smooth' })}
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 shadow-md border border-border backdrop-blur"
+                aria-label="Scroll left"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => carouselRef.current?.scrollBy({ left: 300, behavior: 'smooth' })}
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 shadow-md border border-border backdrop-blur"
+                aria-label="Scroll right"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </>
+          )}
+
+          <div className="flex justify-center gap-1.5 mt-2">
+            {walletData.map((_, i) => (
+              <span key={i} className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+            ))}
+          </div>
         </div>
       )}
     </div>

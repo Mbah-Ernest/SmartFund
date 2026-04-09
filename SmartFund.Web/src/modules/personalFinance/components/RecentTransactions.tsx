@@ -89,14 +89,14 @@ export default function RecentTransactions({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-end">
-        <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 shadow-sm ring-1 ring-slate-200/60 dark:bg-slate-900 dark:ring-slate-800">
+        <div className="flex w-full items-center gap-2 rounded-xl bg-white px-3 py-2 shadow-sm ring-1 ring-slate-200/60 sm:w-auto dark:bg-slate-900 dark:ring-slate-800">
           <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 7.5L7.5 3m0 0L12 7.5M7.5 3v13.5m13.5-3L16.5 18m0 0L12 13.5M16.5 18V4.5" />
           </svg>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortField)}
-            className="bg-transparent text-[11px] font-semibold text-slate-600 focus:outline-none dark:text-slate-300"
+            className="min-h-8 flex-1 bg-transparent text-xs font-semibold text-slate-600 focus:outline-none sm:flex-none dark:text-slate-300"
             aria-label="Arrange transactions"
           >
             {SORT_OPTIONS.map((o) => (
@@ -106,7 +106,7 @@ export default function RecentTransactions({
         </div>
       </div>
 
-      <ul className="-mx-2 space-y-0.5">
+      <ul className="-mx-2 max-h-[24rem] space-y-0.5 overflow-auto pr-1">
         {items.map((tx, idx) => {
           const t = tx.type.toLowerCase();
           const isInflow = t === 'income';
@@ -115,7 +115,13 @@ export default function RecentTransactions({
           return (
             <li
               key={tx.id}
-              className="animate-fade-in-up flex items-center gap-3 rounded-xl px-3 py-3 transition-all duration-200 hover:bg-slate-50/80 hover:shadow-sm dark:hover:bg-slate-800/40"
+              className={`animate-fade-in-up flex items-center gap-3 rounded-r-xl py-3 pl-3 pr-3 transition-colors duration-150 hover:bg-muted/60 ${
+                isInflow
+                  ? 'border-l-2 border-l-emerald-400'
+                  : isOutflow
+                    ? 'border-l-2 border-l-rose-400'
+                    : 'border-l-2 border-l-blue-400'
+              }`}
               style={{ animationDelay: `${idx * 60}ms` }}
             >
               <div

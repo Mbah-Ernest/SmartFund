@@ -16,6 +16,7 @@ internal sealed class NullPersonalBudgetRepository : IPersonalBudgetRepository
     public Task<Budget?> GetByCategoryAsync(long categoryId, BudgetPeriod period, CancellationToken ct) => Task.FromResult<Budget?>(null);
     public Task<Budget?> GetByCategoryForUserAsync(long userId, long categoryId, BudgetPeriod period, CancellationToken ct) => Task.FromResult<Budget?>(null);
     public Task AddAsync(Budget budget, CancellationToken ct) => Task.CompletedTask;
+    public Task RemoveAsync(Budget budget, CancellationToken ct) => Task.CompletedTask;
     public Task SaveChangesAsync(CancellationToken ct) => Task.CompletedTask;
 }
 

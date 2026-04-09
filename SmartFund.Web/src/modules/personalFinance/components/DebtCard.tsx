@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { ChevronDown, ChevronUp, CreditCard, Pencil, Trash2 } from 'lucide-react';
 import type { PersonalDebtDto, RankedDebt } from '../types/financeTypes';
 import { cn, maskAmount, maskName } from '@/lib/utils';
@@ -46,13 +45,32 @@ function statusColor(status: string) {
 export default function DebtCard({ debt, urgency, onRecordPayment, onEdit, onDelete, onForgive }: Props) {
   const [showPayments, setShowPayments] = useState(false);
   const { isPrivate } = usePrivacy();
+  const [displayPct, setDisplayPct] = useState(0);
+  const mounted = useRef(false);
+
+  useEffect(() => {
+    if (mounted.current) return;
+    mounted.current = true;
+    const timer = setTimeout(() => setDisplayPct(debt.progressPercent), 50);
+    return () => clearTimeout(timer);
+  }, [debt.progressPercent]);
 
   const isPaid = debt.status === 'PaidOff';
-  const isForgiven = debt.status === 'Forgiven';
   const isActive = debt.status === 'Active';
 
+  const isOverdue = isActive && debt.daysUntilDue < 0;
+  const isDueSoon = isActive && debt.daysUntilDue >= 0 && debt.daysUntilDue <= 7;
+
+  const borderClass = isOverdue
+    ? 'border-l-4 border-l-destructive'
+    : isDueSoon
+      ? 'border-l-4 border-l-yellow-400'
+      : 'border-l-4 border-l-emerald-500';
+
+  const bgClass = isOverdue ? 'bg-destructive/5' : '';
+
   return (
-    <Card className={cn('transition-all', isPaid && 'opacity-75')}>
+    <Card className={cn('transition-all', isPaid && 'opacity-75', borderClass, bgClass)}>
       <CardContent className="p-5">
         {/* Header */}
         <div className="flex items-start justify-between gap-2 mb-3">
@@ -78,8 +96,16 @@ export default function DebtCard({ debt, urgency, onRecordPayment, onEdit, onDel
           <span className="text-xs text-muted-foreground">of {maskAmount(debt.totalAmountDue, isPrivate)}</span>
         </div>
 
-        {/* Progress bar */}
-        <Progress value={debt.progressPercent} className="h-2 mb-3" />
+        {/* Animated progress bar */}
+        <div className="h-2 w-full overflow-hidden rounded-full bg-muted mb-3">
+          <div
+            className={cn(
+              'h-full rounded-full transition-all duration-700 ease-out',
+              isOverdue ? 'bg-destructive' : isDueSoon ? 'bg-yellow-400' : 'bg-emerald-500'
+            )}
+            style={{ width: `${Math.min(displayPct, 100)}%` }}
+          />
+        </div>
 
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground mb-4">
@@ -92,14 +118,16 @@ export default function DebtCard({ debt, urgency, onRecordPayment, onEdit, onDel
             <p>Interest</p>
           </div>
           <div>
-            <p className={cn('font-medium', debt.daysUntilDue < 0 ? 'text-destructive' : 'text-foreground')}>
-              {debt.daysUntilDue < 0
+            <p className={cn('font-medium', isOverdue ? 'text-destructive' : 'text-foreground')}>
+              {isOverdue
                 ? `${Math.abs(debt.daysUntilDue)}d overdue`
                 : debt.daysUntilDue === 0
                   ? 'Due today'
                   : `${debt.daysUntilDue}d left`}
             </p>
-            <p>Due {fmtDate(debt.dueDate)}</p>
+            <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs">
+              {fmtDate(debt.dueDate)}
+            </span>
           </div>
         </div>
 

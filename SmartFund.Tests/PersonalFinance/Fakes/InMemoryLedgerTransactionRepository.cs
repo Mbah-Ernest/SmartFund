@@ -27,6 +27,12 @@ internal sealed class InMemoryLedgerTransactionRepository : ILedgerTransactionRe
         return Task.CompletedTask;
     }
 
+    public Task RemoveAsync(LedgerTransaction tx, CancellationToken ct)
+    {
+        Transactions.Remove(tx);
+        return Task.CompletedTask;
+    }
+
     public Task SaveChangesAsync(CancellationToken ct) => Task.CompletedTask;
 
     public Task<decimal> GetPostedBalanceForAccountAsync(long accountId, CancellationToken ct)

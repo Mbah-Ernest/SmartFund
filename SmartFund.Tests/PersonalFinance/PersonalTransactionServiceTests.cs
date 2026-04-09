@@ -3,6 +3,7 @@ using SmartFund.Application.Services.PersonalFinance;
 using SmartFund.Domain.PersonalFinance.Entities;
 using SmartFund.Domain.PersonalFinance.Enums;
 using SmartFund.Tests.PersonalFinance.Fakes;
+using SmartFund.Application.Interfaces;
 
 namespace SmartFund.Tests.PersonalFinance;
 
@@ -29,7 +30,7 @@ public sealed class PersonalTransactionServiceTests
 
         var svc = new PersonalTransactionService(
             walletRepo, categoryRepo, personalTxRepo,
-            budgetRepo, budgetTrackingRepo, accountRepo, ledgerTxRepo);
+            budgetRepo, budgetTrackingRepo, accountRepo, ledgerTxRepo, new NullAuditService());
 
         var ledgerTxId = await svc.RecordIncomeAsync(
             UserId, wallet.Id, incomeCategory.Id,
@@ -63,7 +64,7 @@ public sealed class PersonalTransactionServiceTests
 
         var svc = new PersonalTransactionService(
             walletRepo, categoryRepo, personalTxRepo,
-            budgetRepo, budgetTrackingRepo, accountRepo, ledgerTxRepo);
+            budgetRepo, budgetTrackingRepo, accountRepo, ledgerTxRepo, new NullAuditService());
 
         var ledgerTxId = await svc.RecordExpenseAsync(
             UserId, wallet.Id, expenseCategory.Id,
@@ -93,7 +94,7 @@ public sealed class PersonalTransactionServiceTests
 
         var svc = new PersonalTransactionService(
             walletRepo, categoryRepo, personalTxRepo,
-            budgetRepo, budgetTrackingRepo, accountRepo, ledgerTxRepo);
+            budgetRepo, budgetTrackingRepo, accountRepo, ledgerTxRepo, new NullAuditService());
 
         var ledgerTxId = await svc.RecordTransferAsync(
             UserId, sourceWallet.Id, destWallet.Id,

@@ -32,5 +32,16 @@ namespace SmartFund.Application.Interfaces
             string? description,
             DateTime date,
             CancellationToken ct);
+
+        Task DeleteTransactionAsync(long userId, long transactionId, CancellationToken ct);
+
+        Task<long> EditTransactionAsync(
+            long userId,
+            long transactionId,
+            long categoryId,
+            decimal amount,
+            DateTime date,
+            string? description,
+            CancellationToken ct);
     }
 }

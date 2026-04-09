@@ -15,6 +15,7 @@ namespace SmartFund.Application.Interfaces
         Task<Budget?> GetByCategoryAsync(long categoryId, BudgetPeriod period, CancellationToken ct);
         Task<Budget?> GetByCategoryForUserAsync(long userId, long categoryId, BudgetPeriod period, CancellationToken ct);
         Task AddAsync(Budget budget, CancellationToken ct);
+        Task RemoveAsync(Budget budget, CancellationToken ct);
         Task SaveChangesAsync(CancellationToken ct);
     }
 }
