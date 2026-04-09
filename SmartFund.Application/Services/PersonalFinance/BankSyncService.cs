@@ -74,11 +74,10 @@ namespace SmartFund.Application.Services.PersonalFinance
             DateTime? since;
             if (account.TotalTransactionsSynced == 0)
             {
-                // On first sync respect the user's launch date so we don't pull too far back.
-                var settings = await _settingsRepo.GetAsync(ct);
-                var backfillFloor = DateTime.UtcNow.AddMonths(-DefaultBackfillMonths);
-                var launchDate = settings?.LaunchDateUtc ?? backfillFloor;
-                since = launchDate > backfillFloor ? launchDate : backfillFloor;
+                // On first sync, use the configured launch date if present.
+                // If no settings exist yet, fall back to a bounded default backfill window.
+                var settings = await _settingsRepo.GetByUserAsync(account.UserId, ct);
+                since = settings?.LaunchDateUtc ?? DateTime.UtcNow.AddMonths(-DefaultBackfillMonths);
             }
             else
             {
@@ -99,7 +98,7 @@ namespace SmartFund.Application.Services.PersonalFinance
                 return;
             }
 
-            var rules = await _ruleRepo.ListActiveAsync(ct);
+            var rules = await _ruleRepo.ListActiveByUserAsync(account.UserId, ct);
             int newCount = 0, dedupSkipped = 0, autoPosted = 0;
             var newImportIds = new List<long>();
 
@@ -155,7 +154,7 @@ namespace SmartFund.Application.Services.PersonalFinance
                     {
                         try
                         {
-                            await _inboxService.AutoPostAsync(import, matchedRule, ct);
+                            await _inboxService.AutoPostAsync(account.UserId, import, matchedRule, ct);
                             matchedRule.RecordMatch(DateTime.UtcNow);
                             await _ruleRepo.SaveChangesAsync(ct);
                             autoPosted++;

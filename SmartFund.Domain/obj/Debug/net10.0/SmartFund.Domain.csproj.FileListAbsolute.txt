@@ -19,3 +19,9 @@ C:\Users\User\AppData\Local\Temp\build_check\SmartFund.Domain.pdb
 C:\Users\User\AppData\Local\Temp\sfbuild_check\SmartFund.Domain.deps.json
 C:\Users\User\AppData\Local\Temp\sfbuild_check\SmartFund.Domain.dll
 C:\Users\User\AppData\Local\Temp\sfbuild_check\SmartFund.Domain.pdb
+C:\Users\User\AppData\Local\Temp\sf-build-check\SmartFund.Domain.deps.json
+C:\Users\User\AppData\Local\Temp\sf-build-check\SmartFund.Domain.dll
+C:\Users\User\AppData\Local\Temp\sf-build-check\SmartFund.Domain.pdb
+C:\Users\User\AppData\Local\Temp\sf-final-build\SmartFund.Domain.deps.json
+C:\Users\User\AppData\Local\Temp\sf-final-build\SmartFund.Domain.dll
+C:\Users\User\AppData\Local\Temp\sf-final-build\SmartFund.Domain.pdb

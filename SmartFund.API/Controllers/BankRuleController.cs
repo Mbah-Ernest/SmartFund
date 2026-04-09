@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SmartFund.API.Infrastructure;
 using SmartFund.Application.Interfaces;
 using SmartFund.Domain.PersonalFinance.Entities;
 using SmartFund.Domain.PersonalFinance.Enums;
@@ -13,7 +14,7 @@ namespace SmartFund.API.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/bank/rules")]
-public sealed class BankRuleController : ControllerBase
+public sealed class BankRuleController : SmartFundControllerBase
 {
     private readonly IBankCategorizationRuleRepository _ruleRepo;
     private readonly CategorizationEngine _engine;
@@ -28,7 +29,7 @@ public sealed class BankRuleController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> List(CancellationToken ct)
     {
-        var rules = await _ruleRepo.ListAllAsync(ct);
+        var rules = await _ruleRepo.ListAllByUserAsync(GetCurrentUserId(), ct);
         return Ok(rules.Select(r => new
         {
             r.Id,
@@ -55,6 +56,7 @@ public sealed class BankRuleController : ControllerBase
             return BadRequest(new { error = "Invalid transactionType." });
 
         var rule = BankCategorizationRule.Create(
+            GetCurrentUserId(),
             body.MatchText,
             body.IsRegex,
             body.CaseSensitive,
@@ -75,7 +77,7 @@ public sealed class BankRuleController : ControllerBase
     [HttpPut("{id:long}")]
     public async Task<IActionResult> Update(long id, [FromBody] UpdateRuleRequest body, CancellationToken ct)
     {
-        var rule = await _ruleRepo.GetByIdAsync(id, ct);
+        var rule = await _ruleRepo.GetByIdForUserAsync(id, GetCurrentUserId(), ct);
         if (rule is null) return NotFound();
 
         if (!Enum.TryParse<PersonalTransactionType>(body.TransactionType, ignoreCase: true, out var txType))
@@ -95,7 +97,7 @@ public sealed class BankRuleController : ControllerBase
     [HttpDelete("{id:long}")]
     public async Task<IActionResult> Deactivate(long id, CancellationToken ct)
     {
-        var rule = await _ruleRepo.GetByIdAsync(id, ct);
+        var rule = await _ruleRepo.GetByIdForUserAsync(id, GetCurrentUserId(), ct);
         if (rule is null) return NotFound();
 
         rule.Deactivate();

@@ -40,6 +40,7 @@ namespace SmartFund.Application.Services.PersonalFinance
         /// If createRule is true, also persists a new categorization rule.
         /// </summary>
         public async Task<long> CategorizeAsync(
+            long userId,
             long importId,
             long walletId,
             long categoryId,
@@ -52,8 +53,12 @@ namespace SmartFund.Application.Services.PersonalFinance
             var import = await _importRepo.GetByIdAsync(importId, ct)
                 ?? throw new DomainException("Bank import not found.");
 
+            await EnsureImportBelongsToUserAsync(import, userId, ct);
+
             if (import.Status != BankImportStatus.NeedsReview)
                 throw new DomainException("This transaction has already been reviewed.");
+
+            EnsureDirectionMatchesType(import.Direction, transactionType);
 
             var amountNaira = import.AmountKobo / 100m;
             var resolvedDescription = string.IsNullOrWhiteSpace(description)
@@ -63,9 +68,9 @@ namespace SmartFund.Application.Services.PersonalFinance
             long ledgerTxId = transactionType switch
             {
                 PersonalTransactionType.Income =>
-                    await _txService.RecordIncomeAsync(walletId, categoryId, amountNaira, resolvedDescription, import.TransactionDateUtc, ct),
+                    await _txService.RecordIncomeAsync(userId, walletId, categoryId, amountNaira, resolvedDescription, import.TransactionDateUtc, ct),
                 PersonalTransactionType.Expense =>
-                    await _txService.RecordExpenseAsync(walletId, categoryId, amountNaira, resolvedDescription, import.TransactionDateUtc, ct),
+                    await _txService.RecordExpenseAsync(userId, walletId, categoryId, amountNaira, resolvedDescription, import.TransactionDateUtc, ct),
                 _ => throw new DomainException("Only Income or Expense can be applied to bank inbox items directly.")
             };
 
@@ -82,6 +87,7 @@ namespace SmartFund.Application.Services.PersonalFinance
             if (createRule && !string.IsNullOrWhiteSpace(ruleMatchText))
             {
                 var rule = BankCategorizationRule.Create(
+                    userId,
                     ruleMatchText.Trim(),
                     isRegex: false,
                     caseSensitive: false,
@@ -101,10 +107,14 @@ namespace SmartFund.Application.Services.PersonalFinance
 
         /// <summary>Called by the sync pipeline when a rule matches — no user interaction required.</summary>
         public async Task AutoPostAsync(
+            long userId,
             BankImportedTransaction import,
             BankCategorizationRule rule,
             CancellationToken ct)
         {
+            if (!DirectionMatchesType(import.Direction, rule.TransactionType))
+                return;
+
             var walletId = await GetBankWalletIdAsync(import.ConnectedBankAccountId, ct);
             if (walletId <= 0) return; // No wallet configured; leave as NeedsReview
 
@@ -114,9 +124,9 @@ namespace SmartFund.Application.Services.PersonalFinance
             long ledgerTxId = rule.TransactionType switch
             {
                 PersonalTransactionType.Income =>
-                    await _txService.RecordIncomeAsync(walletId, rule.CategoryId, amountNaira, description, import.TransactionDateUtc, ct),
+                    await _txService.RecordIncomeAsync(userId, walletId, rule.CategoryId, amountNaira, description, import.TransactionDateUtc, ct),
                 PersonalTransactionType.Expense =>
-                    await _txService.RecordExpenseAsync(walletId, rule.CategoryId, amountNaira, description, import.TransactionDateUtc, ct),
+                    await _txService.RecordExpenseAsync(userId, walletId, rule.CategoryId, amountNaira, description, import.TransactionDateUtc, ct),
                 _ => 0
             };
 
@@ -133,10 +143,12 @@ namespace SmartFund.Application.Services.PersonalFinance
             await _importRepo.SaveChangesAsync(ct);
         }
 
-        public async Task ExcludeAsync(long importId, string? note, CancellationToken ct)
+        public async Task ExcludeAsync(long userId, long importId, string? note, CancellationToken ct)
         {
             var import = await _importRepo.GetByIdAsync(importId, ct)
                 ?? throw new DomainException("Bank import not found.");
+
+            await EnsureImportBelongsToUserAsync(import, userId, ct);
 
             if (import.Status != BankImportStatus.NeedsReview)
                 throw new DomainException("Only NeedsReview items can be excluded.");
@@ -147,6 +159,7 @@ namespace SmartFund.Application.Services.PersonalFinance
 
         /// <summary>Bulk categorize: apply the same category to a list of inbox items.</summary>
         public async Task<int> BulkCategorizeAsync(
+            long userId,
             IReadOnlyList<long> importIds,
             long walletId,
             long categoryId,
@@ -158,8 +171,8 @@ namespace SmartFund.Application.Services.PersonalFinance
             {
                 try
                 {
-                    await CategorizeAsync(id, walletId, categoryId, transactionType,
-                        description: null, createRule: false, ruleMatchText: null, ct);
+                    await CategorizeAsync(userId, id, walletId, categoryId, transactionType,
+                        null, createRule: false, ruleMatchText: null, ct);
                     posted++;
                 }
                 catch (DomainException)
@@ -176,6 +189,13 @@ namespace SmartFund.Application.Services.PersonalFinance
             return all.FirstOrDefault(t => t.LedgerTransactionId == ledgerTxId);
         }
 
+        private async Task EnsureImportBelongsToUserAsync(BankImportedTransaction import, long userId, CancellationToken ct)
+        {
+            var account = await _bankAccountRepo.GetByIdForUserAsync(import.ConnectedBankAccountId, userId, ct);
+            if (account is null)
+                throw new DomainException("Bank import not found.");
+        }
+
         /// <summary>Returns the linked bank wallet, falling back to the first available wallet.</summary>
         private async Task<long> GetBankWalletIdAsync(long connectedBankAccountId, CancellationToken ct)
         {
@@ -186,6 +206,31 @@ namespace SmartFund.Application.Services.PersonalFinance
             // Fallback: first wallet in the system
             var wallets = await _walletRepo.ListAsync(ct);
             return wallets.Count > 0 ? wallets[0].Id : 0;
+        }
+
+        private static void EnsureDirectionMatchesType(string direction, PersonalTransactionType type)
+        {
+            if (!DirectionMatchesType(direction, type))
+            {
+                var normalized = (direction ?? string.Empty).Trim().ToLowerInvariant();
+                if (normalized == "credit")
+                    throw new DomainException("Credit bank transactions can only be categorized as Income.");
+                if (normalized == "debit")
+                    throw new DomainException("Debit bank transactions can only be categorized as Expense.");
+
+                throw new DomainException("Unknown bank transaction direction. Please review this transaction.");
+            }
+        }
+
+        private static bool DirectionMatchesType(string direction, PersonalTransactionType type)
+        {
+            var normalized = (direction ?? string.Empty).Trim().ToLowerInvariant();
+            if (normalized == "credit")
+                return type == PersonalTransactionType.Income;
+            if (normalized == "debit")
+                return type == PersonalTransactionType.Expense;
+
+            return false;
         }
     }
 }

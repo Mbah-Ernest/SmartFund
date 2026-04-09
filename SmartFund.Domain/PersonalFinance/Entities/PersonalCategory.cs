@@ -7,22 +7,26 @@ namespace SmartFund.Domain.PersonalFinance.Entities
     {
         public long Id { get; private set; } // EF
 
+        public long UserId { get; private set; }
         public string Name { get; private set; } = default!;
         public PersonalCategoryType Type { get; private set; }
 
         private PersonalCategory() { } // EF
 
-        private PersonalCategory(string name, PersonalCategoryType type)
+        private PersonalCategory(long userId, string name, PersonalCategoryType type)
         {
+            if (userId <= 0)
+                throw new DomainException("UserId must be a positive value.");
             if (string.IsNullOrWhiteSpace(name))
                 throw new DomainException("Category name is required.");
 
+            UserId = userId;
             Name = name.Trim();
             Type = type;
         }
 
-        public static PersonalCategory Create(string name, PersonalCategoryType type) =>
-            new PersonalCategory(name, type);
+        public static PersonalCategory Create(long userId, string name, PersonalCategoryType type) =>
+            new PersonalCategory(userId, name, type);
 
         public void Rename(string name)
         {

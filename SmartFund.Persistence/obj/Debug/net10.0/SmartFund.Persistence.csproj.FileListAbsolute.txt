@@ -30,3 +30,11 @@ C:\Users\User\AppData\Local\Temp\sfbuild_check\SmartFund.Persistence.deps.json
 C:\Users\User\AppData\Local\Temp\sfbuild_check\SmartFund.Persistence.runtimeconfig.json
 C:\Users\User\AppData\Local\Temp\sfbuild_check\SmartFund.Persistence.dll
 C:\Users\User\AppData\Local\Temp\sfbuild_check\SmartFund.Persistence.pdb
+C:\Users\User\AppData\Local\Temp\sf-build-check\SmartFund.Persistence.deps.json
+C:\Users\User\AppData\Local\Temp\sf-build-check\SmartFund.Persistence.runtimeconfig.json
+C:\Users\User\AppData\Local\Temp\sf-build-check\SmartFund.Persistence.dll
+C:\Users\User\AppData\Local\Temp\sf-build-check\SmartFund.Persistence.pdb
+C:\Users\User\AppData\Local\Temp\sf-final-build\SmartFund.Persistence.deps.json
+C:\Users\User\AppData\Local\Temp\sf-final-build\SmartFund.Persistence.runtimeconfig.json
+C:\Users\User\AppData\Local\Temp\sf-final-build\SmartFund.Persistence.dll
+C:\Users\User\AppData\Local\Temp\sf-final-build\SmartFund.Persistence.pdb

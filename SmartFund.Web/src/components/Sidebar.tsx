@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { getBankInboxCount } from '../modules/personalFinance/services/personalFinanceApi';
+import { getUserRole } from '../auth/authStorage';
 
 const SIDEBAR_COLLAPSED_KEY = 'smartfund.sidebar.collapsed';
 
@@ -52,9 +53,8 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(() =>
     localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1'
   );
-  const [investmentOpen, setInvestmentOpen] = useState(true);
-  const [personalFinanceOpen, setPersonalFinanceOpen] = useState(true);
   const [inboxCount, setInboxCount] = useState(0);
+  const role = getUserRole();
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0');
@@ -70,17 +70,8 @@ export default function Sidebar() {
 
   type NavItem = { to: string; label: string; icon: ReactNode; end?: boolean; badge?: number };
 
-  const mainItems: NavItem[] = [
-    { to: '/', label: 'Dashboard', icon: <HomeIcon />, end: true },
-    { to: '/investors', label: 'Investors', icon: <UsersIcon /> },
-    { to: '/deals', label: 'Deals', icon: <BriefcaseIcon /> },
-    { to: '/tranches', label: 'Tranches', icon: <LayersIcon /> },
-    { to: '/insurance', label: 'Insurance', icon: <ShieldIcon /> },
-    { to: '/ledger', label: 'Ledger', icon: <BookIcon /> }
-  ];
-
   const personalItems: NavItem[] = [
-    { to: '/finance/dashboard', label: 'My Dashboard', icon: <SparkIcon /> },
+    { to: '/', label: 'My Dashboard', icon: <SparkIcon />, end: true },
     { to: '/finance/transactions', label: 'Transactions', icon: <ArrowsIcon /> },
     { to: '/finance/budgets', label: 'Budgets', icon: <TargetIcon /> },
     { to: '/finance/goals', label: 'Goals & Wallets', icon: <WalletIcon /> },
@@ -89,6 +80,16 @@ export default function Sidebar() {
     { to: '/finance/bank/inbox', label: 'Bank Inbox', icon: <InboxIcon />, badge: inboxCount },
     { to: '/finance/bank/rules', label: 'Bank Rules', icon: <RulesIcon /> },
     { to: '/finance/ai-chat', label: 'AI Assistant', icon: <AiIcon /> },
+  ];
+
+  const memberItems: NavItem[] = [
+    { to: '/loans/apply', label: 'Apply for Loan', icon: <LoanIcon /> },
+    { to: '/loans/my', label: 'My Loans', icon: <ListIcon /> },
+  ];
+
+  const adminItems: NavItem[] = [
+    { to: '/admin/loans', label: 'Loan Applications', icon: <LoanIcon /> },
+    { to: '/admin/users', label: 'Members', icon: <UsersIcon /> },
   ];
 
   return (
@@ -112,61 +113,45 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {collapsed ? (
-        <div className="mt-2 h-px bg-slate-800" />
-      ) : (
-        <button
-          type="button"
-          onClick={() => setInvestmentOpen(v => !v)}
-          className="flex items-center justify-between text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-300"
-        >
-          <span>Investment Management</span>
-          <span className="text-slate-400">{investmentOpen ? '▾' : '▸'}</span>
-        </button>
-      )}
+      <nav className="flex flex-col gap-1 mt-4">
+        {personalItems.map(i => (
+          <SideLink
+            key={i.to}
+            to={i.to}
+            label={i.label}
+            icon={i.icon}
+            end={i.end}
+            collapsed={collapsed}
+            badge={i.badge}
+          />
+        ))}
 
-      {collapsed || investmentOpen ? (
-        <nav className="flex flex-col gap-1">
-          {mainItems.map(i => (
-            <SideLink
-              key={i.to}
-              to={i.to}
-              label={i.label}
-              icon={i.icon}
-              end={i.end}
-              collapsed={collapsed}
-            />
-          ))}
-        </nav>
-      ) : null}
+        {role === 'Member' && memberItems.length > 0 && (
+          <>
+            {!collapsed && (
+              <div className="mt-3 mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                Loans
+              </div>
+            )}
+            {memberItems.map(i => (
+              <SideLink key={i.to} to={i.to} label={i.label} icon={i.icon} collapsed={collapsed} />
+            ))}
+          </>
+        )}
 
-      {collapsed ? (
-        <div className="mt-2 h-px bg-slate-800" />
-      ) : (
-        <button
-          type="button"
-          onClick={() => setPersonalFinanceOpen(v => !v)}
-          className="mt-2 flex items-center justify-between text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-300"
-        >
-          <span>Personal Finance</span>
-          <span className="text-slate-400">{personalFinanceOpen ? '▾' : '▸'}</span>
-        </button>
-      )}
-
-      {collapsed || personalFinanceOpen ? (
-        <nav className="flex flex-col gap-1">
-          {personalItems.map(i => (
-            <SideLink
-              key={i.to}
-              to={i.to}
-              label={i.label}
-              icon={i.icon}
-              collapsed={collapsed}
-              badge={i.badge}
-            />
-          ))}
-        </nav>
-      ) : null}
+        {role === 'Admin' && (
+          <>
+            {!collapsed && (
+              <div className="mt-3 mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                Admin
+              </div>
+            )}
+            {adminItems.map(i => (
+              <SideLink key={i.to} to={i.to} label={i.label} icon={i.icon} collapsed={collapsed} />
+            ))}
+          </>
+        )}
+      </nav>
 
       <div className="mt-auto space-y-3">
         <nav className="flex flex-col gap-1">
@@ -188,63 +173,6 @@ export default function Sidebar() {
         )}
       </div>
     </aside>
-  );
-}
-
-function HomeIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 10.5L12 3l9 7.5V21a.75.75 0 01-.75.75H3.75A.75.75 0 013 21V10.5z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 21V12h6v9" />
-    </svg>
-  );
-}
-
-function UsersIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16 21v-1a4 4 0 00-4-4H6a4 4 0 00-4 4v1" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 7a4 4 0 11-8 0 4 4 0 018 0z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M22 21v-1a4 4 0 00-3-3.87" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16 3.13a4 4 0 010 7.75" />
-    </svg>
-  );
-}
-
-function BriefcaseIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M10 6V5a2 2 0 012-2h0a2 2 0 012 2v1" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16v14H4V7z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 12h16" />
-    </svg>
-  );
-}
-
-function LayersIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 2l9 5-9 5-9-5 9-5z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l9 5 9-5" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 17l9 5 9-5" />
-    </svg>
-  );
-}
-
-function ShieldIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 2l8 4v6c0 5-3.5 9.5-8 10-4.5-.5-8-5-8-10V6l8-4z" />
-    </svg>
-  );
-}
-
-function BookIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 19a2 2 0 002 2h14" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a2 2 0 012-2h14v18H6a2 2 0 01-2-2V5z" />
-    </svg>
   );
 }
 
@@ -346,6 +274,35 @@ function AiIcon() {
     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
+    </svg>
+  );
+}
+
+function LoanIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+      <circle cx="12" cy="12" r="9" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ListIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6M9 16h4" />
+    </svg>
+  );
+}
+
+function UsersIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
     </svg>
   );
 }

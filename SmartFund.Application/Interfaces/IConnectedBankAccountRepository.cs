@@ -8,7 +8,9 @@ namespace SmartFund.Application.Interfaces
     public interface IConnectedBankAccountRepository
     {
         Task<List<ConnectedBankAccount>> ListAsync(CancellationToken ct);
+        Task<List<ConnectedBankAccount>> ListByUserAsync(long userId, CancellationToken ct);
         Task<ConnectedBankAccount?> GetByIdAsync(long id, CancellationToken ct);
+        Task<ConnectedBankAccount?> GetByIdForUserAsync(long id, long userId, CancellationToken ct);
         Task<ConnectedBankAccount?> GetByMonoAccountIdAsync(string monoAccountId, CancellationToken ct);
         Task<int> CountAsync(CancellationToken ct);
         Task AddAsync(ConnectedBankAccount account, CancellationToken ct);

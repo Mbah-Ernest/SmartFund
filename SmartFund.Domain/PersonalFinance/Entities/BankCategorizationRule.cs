@@ -8,6 +8,8 @@ namespace SmartFund.Domain.PersonalFinance.Entities
     {
         public long Id { get; private set; }
 
+        public long UserId { get; private set; }
+
         /// <summary>Keyword or regex pattern matched against NormalizedNarration.</summary>
         public string MatchText { get; private set; } = default!;
 
@@ -35,6 +37,7 @@ namespace SmartFund.Domain.PersonalFinance.Entities
         private BankCategorizationRule() { } // EF
 
         public static BankCategorizationRule Create(
+            long userId,
             string matchText,
             bool isRegex,
             bool caseSensitive,
@@ -45,6 +48,8 @@ namespace SmartFund.Domain.PersonalFinance.Entities
             bool autoPostCredits,
             DateTime utcNow)
         {
+            if (userId <= 0)
+                throw new DomainException("UserId must be a positive value.");
             if (string.IsNullOrWhiteSpace(matchText))
                 throw new DomainException("MatchText is required.");
             if (categoryId <= 0)
@@ -54,6 +59,7 @@ namespace SmartFund.Domain.PersonalFinance.Entities
 
             return new BankCategorizationRule
             {
+                UserId = userId,
                 MatchText = matchText.Trim(),
                 IsRegex = isRegex,
                 CaseSensitive = caseSensitive,

@@ -16,8 +16,8 @@ namespace SmartFund.Application.Services.PersonalFinance
 {
     public sealed class PersonalTransactionService : IPersonalTransactionService
     {
-        private const string PersonalIncomeAccountName = "Personal Finance Income";
-        private const string PersonalExpenseAccountName = "Personal Finance Expenses";
+        private static string PersonalIncomeAccountName(long userId) => $"Personal Finance Income [u:{userId}]";
+        private static string PersonalExpenseAccountName(long userId) => $"Personal Finance Expenses [u:{userId}]";
 
         private readonly IPersonalWalletRepository _walletRepo;
         private readonly IPersonalCategoryRepository _categoryRepo;
@@ -46,6 +46,7 @@ namespace SmartFund.Application.Services.PersonalFinance
         }
 
         public async Task<long> RecordIncomeAsync(
+            long userId,
             long walletId,
             long categoryId,
             decimal amount,
@@ -53,19 +54,20 @@ namespace SmartFund.Application.Services.PersonalFinance
             DateTime date,
             CancellationToken ct)
         {
+            if (userId <= 0) throw new DomainException("UserId must be valid.");
             if (walletId <= 0) throw new DomainException("WalletId must be valid.");
             if (categoryId <= 0) throw new DomainException("CategoryId must be valid.");
             if (amount <= 0) throw new DomainException("Amount must be greater than zero.");
 
-            var wallet = await _walletRepo.GetByIdAsync(walletId, ct);
+            var wallet = await _walletRepo.GetByIdForUserAsync(walletId, userId, ct);
             if (wallet is null) throw new DomainException("Wallet not found.");
 
-            var category = await _categoryRepo.GetByIdAsync(categoryId, ct);
+            var category = await _categoryRepo.GetByIdForUserAsync(categoryId, userId, ct);
             if (category is null) throw new DomainException("Category not found.");
             if (category.Type != PersonalCategoryType.Income)
                 throw new DomainException("Category must be an Income category.");
 
-            var incomeAccountId = await GetOrCreatePersonalAccountAsync(AccountType.Revenue, PersonalIncomeAccountName, ct);
+            var incomeAccountId = await GetOrCreatePersonalAccountAsync(AccountType.Revenue, PersonalIncomeAccountName(userId), ct);
 
             var narration = string.IsNullOrWhiteSpace(description)
                 ? $"Personal income ({category.Name})"
@@ -79,6 +81,7 @@ namespace SmartFund.Application.Services.PersonalFinance
             await _ledgerTxRepo.SaveChangesAsync(ct);
 
             var personalTx = PersonalTransaction.Create(
+                userId,
                 walletId,
                 categoryId,
                 amount,
@@ -95,6 +98,7 @@ namespace SmartFund.Application.Services.PersonalFinance
         }
 
         public async Task<long> RecordExpenseAsync(
+            long userId,
             long walletId,
             long categoryId,
             decimal amount,
@@ -102,22 +106,23 @@ namespace SmartFund.Application.Services.PersonalFinance
             DateTime date,
             CancellationToken ct)
         {
+            if (userId <= 0) throw new DomainException("UserId must be valid.");
             if (walletId <= 0) throw new DomainException("WalletId must be valid.");
             if (categoryId <= 0) throw new DomainException("CategoryId must be valid.");
             if (amount <= 0) throw new DomainException("Amount must be greater than zero.");
 
-            var wallet = await _walletRepo.GetByIdAsync(walletId, ct);
+            var wallet = await _walletRepo.GetByIdForUserAsync(walletId, userId, ct);
             if (wallet is null) throw new DomainException("Wallet not found.");
 
-            var category = await _categoryRepo.GetByIdAsync(categoryId, ct);
+            var category = await _categoryRepo.GetByIdForUserAsync(categoryId, userId, ct);
             if (category is null) throw new DomainException("Category not found.");
             if (category.Type != PersonalCategoryType.Expense)
                 throw new DomainException("Category must be an Expense category.");
 
-            var expenseAccountId = await GetOrCreatePersonalAccountAsync(AccountType.Expense, PersonalExpenseAccountName, ct);
+            var expenseAccountId = await GetOrCreatePersonalAccountAsync(AccountType.Expense, PersonalExpenseAccountName(userId), ct);
 
             string? budgetWarning = null;
-            var budget = await _budgetRepo.GetByCategoryAsync(categoryId, BudgetPeriod.Monthly, ct);
+            var budget = await _budgetRepo.GetByCategoryForUserAsync(userId, categoryId, BudgetPeriod.Monthly, ct);
 
             if (budget is not null)
             {
@@ -153,6 +158,7 @@ namespace SmartFund.Application.Services.PersonalFinance
             await _ledgerTxRepo.SaveChangesAsync(ct);
 
             var personalTx = PersonalTransaction.Create(
+                userId,
                 walletId,
                 categoryId,
                 amount,
@@ -169,6 +175,7 @@ namespace SmartFund.Application.Services.PersonalFinance
         }
 
         public async Task<long> RecordTransferAsync(
+            long userId,
             long sourceWalletId,
             long destinationWalletId,
             decimal amount,
@@ -176,15 +183,16 @@ namespace SmartFund.Application.Services.PersonalFinance
             DateTime date,
             CancellationToken ct)
         {
+            if (userId <= 0) throw new DomainException("UserId must be valid.");
             if (sourceWalletId <= 0) throw new DomainException("SourceWalletId must be valid.");
             if (destinationWalletId <= 0) throw new DomainException("DestinationWalletId must be valid.");
             if (sourceWalletId == destinationWalletId) throw new DomainException("Source and destination wallets must be different.");
             if (amount <= 0) throw new DomainException("Amount must be greater than zero.");
 
-            var sourceWallet = await _walletRepo.GetByIdAsync(sourceWalletId, ct);
+            var sourceWallet = await _walletRepo.GetByIdForUserAsync(sourceWalletId, userId, ct);
             if (sourceWallet is null) throw new DomainException("Source wallet not found.");
 
-            var destinationWallet = await _walletRepo.GetByIdAsync(destinationWalletId, ct);
+            var destinationWallet = await _walletRepo.GetByIdForUserAsync(destinationWalletId, userId, ct);
             if (destinationWallet is null) throw new DomainException("Destination wallet not found.");
 
             var narration = string.IsNullOrWhiteSpace(description)
@@ -199,6 +207,7 @@ namespace SmartFund.Application.Services.PersonalFinance
             await _ledgerTxRepo.SaveChangesAsync(ct);
 
             var sourcePersonalTx = PersonalTransaction.Create(
+                userId,
                 sourceWalletId,
                 null,
                 amount,
@@ -209,6 +218,7 @@ namespace SmartFund.Application.Services.PersonalFinance
             sourcePersonalTx.AttachLedgerTransaction(ledgerTx.Id);
 
             var destinationPersonalTx = PersonalTransaction.Create(
+                userId,
                 destinationWalletId,
                 null,
                 amount,

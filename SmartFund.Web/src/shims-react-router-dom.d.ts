@@ -1,7 +1,7 @@
 declare module 'react-router-dom' {
   import type * as React from 'react';
 
-  export type NavigateProps = { to: string; replace?: boolean };
+  export type NavigateProps = { to: string; replace?: boolean; state?: unknown };
 
   export function BrowserRouter(props: React.PropsWithChildren): React.JSX.Element;
   export function Routes(props: React.PropsWithChildren): React.JSX.Element;
@@ -10,4 +10,8 @@ declare module 'react-router-dom' {
   export function Outlet(props: Record<string, never>): React.JSX.Element;
   export function NavLink(props: any): React.JSX.Element;
   export function Link(props: any): React.JSX.Element;
+
+  export function useNavigate(): (to: string, opts?: { replace?: boolean; state?: unknown }) => void;
+  export function useLocation(): { pathname: string; search: string; hash: string; state: unknown };
+  export function useParams<T extends Record<string, string | undefined> = Record<string, string | undefined>>(): T;
 }

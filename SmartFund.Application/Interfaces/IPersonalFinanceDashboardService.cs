@@ -7,7 +7,7 @@ namespace SmartFund.Application.Interfaces
 {
     public interface IPersonalFinanceDashboardService
     {
-        Task<PersonalFinanceDashboardDto> GetAsync(DateTime utcNow, CancellationToken ct);
-        Task<CashRunwayDto> GetCashRunwayAsync(DateTime utcNow, CancellationToken ct);
+        Task<PersonalFinanceDashboardDto> GetAsync(long userId, DateTime utcNow, CancellationToken ct);
+        Task<CashRunwayDto> GetCashRunwayAsync(long userId, DateTime utcNow, CancellationToken ct);
     }
 }

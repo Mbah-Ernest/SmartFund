@@ -18,6 +18,12 @@ export function toApiClientError(error: unknown): ApiClientError {
     const data = error.response?.data;
 
     const message =
+      (typeof data === 'object' && data !== null && typeof (data as Record<string, unknown>).detail === 'string'
+        ? (data as Record<string, unknown>).detail as string
+        : undefined) ||
+      (typeof data === 'object' && data !== null && typeof (data as Record<string, unknown>).error === 'string'
+        ? (data as Record<string, unknown>).error as string
+        : undefined) ||
       (typeof data === 'string' && data.trim().length > 0 ? data : undefined) ||
       error.message ||
       'Request failed.';

@@ -49,6 +49,33 @@ namespace SmartFund.Persistence.Repositories
                 .Take(take <= 0 ? 20 : take)
                 .ToListAsync(ct);
 
+        public Task<List<PersonalTransaction>> ListByUserAsync(long userId, CancellationToken ct) =>
+            _db.PersonalTransactions
+                .Where(t => t.UserId == userId)
+                .OrderByDescending(t => t.Date)
+                .ThenByDescending(t => t.Id)
+                .ToListAsync(ct);
+
+        public Task<List<PersonalTransaction>> ListByUserAndDateRangeAsync(long userId, DateTime from, DateTime to, CancellationToken ct) =>
+            _db.PersonalTransactions
+                .Where(t => t.UserId == userId && t.Date >= from.Date && t.Date <= to.Date)
+                .OrderByDescending(t => t.Date)
+                .ThenByDescending(t => t.Id)
+                .ToListAsync(ct);
+
+        public Task<List<PersonalTransaction>> ListRecentByUserAsync(long userId, int take, CancellationToken ct) =>
+            _db.PersonalTransactions
+                .Where(t => t.UserId == userId)
+                .OrderByDescending(t => t.Date)
+                .ThenByDescending(t => t.Id)
+                .Take(take <= 0 ? 20 : take)
+                .ToListAsync(ct);
+
+        public Task<List<PersonalTransaction>> ListBankDerivedByUserAsync(long userId, CancellationToken ct) =>
+            _db.PersonalTransactions
+                .Where(t => t.UserId == userId && t.SourceBankImportedTransactionId != null)
+                .ToListAsync(ct);
+
         public Task SaveChangesAsync(CancellationToken ct) =>
             _db.SaveChangesAsync(ct);
 

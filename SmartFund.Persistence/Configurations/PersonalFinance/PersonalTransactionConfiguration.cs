@@ -11,6 +11,13 @@ namespace SmartFund.Persistence.Configurations.PersonalFinance
             builder.ToTable("PersonalTransactions");
             builder.HasKey(x => x.Id);
 
+            builder.Property(x => x.UserId).IsRequired();
+            builder.HasIndex(x => x.UserId);
+            builder.HasOne<SmartFund.Domain.Entities.User>()
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             builder.Property(x => x.WalletId).IsRequired();
             builder.HasIndex(x => x.WalletId);
 

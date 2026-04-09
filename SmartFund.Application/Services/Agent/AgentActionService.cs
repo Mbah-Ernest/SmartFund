@@ -9,6 +9,7 @@ using SmartFund.Domain.Enums;
 using SmartFund.Domain.Exceptions;
 using SmartFund.Domain.PersonalBudget.Entities;
 using SmartFund.Domain.PersonalBudget.Enums;
+using SmartFund.Domain.PersonalFinance.Enums;
 
 namespace SmartFund.Application.Services.Agent
 {
@@ -19,6 +20,23 @@ namespace SmartFund.Application.Services.Agent
 
     public sealed record CreateBudgetPayload(
         long CategoryId, decimal AmountNaira, string Period);
+
+    public sealed record LogExpensePayload(
+        decimal AmountNaira, long CategoryId, long WalletId, string? Description, DateTime Date);
+
+    public sealed record LogIncomePayload(
+        decimal AmountNaira, long CategoryId, long WalletId, string? Description, DateTime Date);
+
+    public sealed record UpdateBudgetPayload(long BudgetId, decimal NewAmountNaira);
+
+    public sealed record UpdateGoalPayload(long GoalId, decimal NewTargetNaira, DateTime? NewDeadline);
+
+    public sealed record RecordDebtPaymentPayload(
+        long DebtId, decimal AmountNaira, string? Note, DateTime PaidOn);
+
+    public sealed record CreateDebtPayload(
+        string CreditorName, decimal PrincipalAmount, decimal TotalAmountDue,
+        DateTime DueDate, string? Description);
 
     // ── Result returned to the controller / LLM ───────────────────────────────
 
@@ -35,6 +53,8 @@ namespace SmartFund.Application.Services.Agent
         private readonly IAuditService _audit;
         private readonly IPersonalCategoryRepository _categoryRepo;
         private readonly IPersonalWalletService _walletService;
+        private readonly IPersonalGoalRepository _goalRepo;
+        private readonly IPersonalDebtRepository _debtRepo;
 
         public AgentActionService(
             IPendingAgentActionRepository pendingRepo,
@@ -42,7 +62,9 @@ namespace SmartFund.Application.Services.Agent
             IPersonalBudgetRepository budgetRepo,
             IAuditService audit,
             IPersonalCategoryRepository categoryRepo,
-            IPersonalWalletService walletService)
+            IPersonalWalletService walletService,
+            IPersonalGoalRepository goalRepo,
+            IPersonalDebtRepository debtRepo)
         {
             _pendingRepo = pendingRepo;
             _txService = txService;
@@ -50,6 +72,8 @@ namespace SmartFund.Application.Services.Agent
             _audit = audit;
             _categoryRepo = categoryRepo;
             _walletService = walletService;
+            _goalRepo = goalRepo;
+            _debtRepo = debtRepo;
         }
 
         // ── Tier 3: Action Tools ─────────────────────────────────────────────
@@ -104,6 +128,102 @@ namespace SmartFund.Application.Services.Agent
             return new PendingActionSummary(action.Id, summary, 300);
         }
 
+        public async Task<PendingActionSummary> InitiateLogExpenseAsync(
+            string userId, decimal amountNaira, long categoryId, long walletId,
+            string? description, DateTime date, CancellationToken ct)
+        {
+            var payload = new LogExpensePayload(amountNaira, categoryId, walletId, description, date);
+            var cat = await _categoryRepo.GetByIdAsync(categoryId, ct);
+            var wallet = await _walletService.GetWalletAsync(walletId, ct);
+            var catName = cat?.Name ?? $"category #{categoryId}";
+            var walletName = wallet?.Name ?? $"wallet #{walletId}";
+            var summary = $"Log ₦{amountNaira:N0} expense in {catName} from {walletName}";
+
+            var action = PendingAgentAction.Create(userId, "LogExpense", JsonSerializer.Serialize(payload), summary, DateTime.UtcNow);
+            await _pendingRepo.AddAsync(action, ct);
+            await _pendingRepo.SaveChangesAsync(ct);
+            return new PendingActionSummary(action.Id, summary, 300);
+        }
+
+        public async Task<PendingActionSummary> InitiateLogIncomeAsync(
+            string userId, decimal amountNaira, long categoryId, long walletId,
+            string? description, DateTime date, CancellationToken ct)
+        {
+            var payload = new LogIncomePayload(amountNaira, categoryId, walletId, description, date);
+            var cat = await _categoryRepo.GetByIdAsync(categoryId, ct);
+            var wallet = await _walletService.GetWalletAsync(walletId, ct);
+            var catName = cat?.Name ?? $"category #{categoryId}";
+            var walletName = wallet?.Name ?? $"wallet #{walletId}";
+            var summary = $"Log ₦{amountNaira:N0} income in {catName} to {walletName}";
+
+            var action = PendingAgentAction.Create(userId, "LogIncome", JsonSerializer.Serialize(payload), summary, DateTime.UtcNow);
+            await _pendingRepo.AddAsync(action, ct);
+            await _pendingRepo.SaveChangesAsync(ct);
+            return new PendingActionSummary(action.Id, summary, 300);
+        }
+
+        public async Task<PendingActionSummary> InitiateUpdateBudgetAsync(
+            string userId, long budgetId, decimal newAmountNaira, CancellationToken ct)
+        {
+            var longUserId = long.TryParse(userId, out var uid) ? uid : 1L;
+            var budget = await _budgetRepo.GetByIdForUserAsync(budgetId, longUserId, ct)
+                ?? throw new DomainException($"Budget #{budgetId} not found.");
+            var cat = await _categoryRepo.GetByIdAsync(budget.CategoryId, ct);
+            var catName = cat?.Name ?? $"category #{budget.CategoryId}";
+            var summary = $"Update {catName} budget from ₦{budget.Amount:N0} to ₦{newAmountNaira:N0}/month";
+
+            var payload = new UpdateBudgetPayload(budgetId, newAmountNaira);
+            var action = PendingAgentAction.Create(userId, "UpdateBudget", JsonSerializer.Serialize(payload), summary, DateTime.UtcNow);
+            await _pendingRepo.AddAsync(action, ct);
+            await _pendingRepo.SaveChangesAsync(ct);
+            return new PendingActionSummary(action.Id, summary, 300);
+        }
+
+        public async Task<PendingActionSummary> InitiateUpdateGoalTargetAsync(
+            string userId, long goalId, decimal newTargetNaira, DateTime? newDeadline, CancellationToken ct)
+        {
+            var longUserId = long.TryParse(userId, out var uid) ? uid : 1L;
+            var goal = await _goalRepo.GetByIdForUserAsync(goalId, longUserId, ct)
+                ?? throw new DomainException($"Goal #{goalId} not found.");
+            var summary = $"Update goal '{goal.Name}' target to ₦{newTargetNaira:N0}" +
+                          (newDeadline.HasValue ? $" (deadline: {newDeadline.Value:yyyy-MM-dd})" : "");
+
+            var payload = new UpdateGoalPayload(goalId, newTargetNaira, newDeadline);
+            var action = PendingAgentAction.Create(userId, "UpdateGoal", JsonSerializer.Serialize(payload), summary, DateTime.UtcNow);
+            await _pendingRepo.AddAsync(action, ct);
+            await _pendingRepo.SaveChangesAsync(ct);
+            return new PendingActionSummary(action.Id, summary, 300);
+        }
+
+        public async Task<PendingActionSummary> InitiateRecordDebtPaymentAsync(
+            string userId, long debtId, decimal amountNaira, string? note, DateTime paidOn, CancellationToken ct)
+        {
+            var longUserId = long.TryParse(userId, out var uid) ? uid : 1L;
+            var debt = await _debtRepo.GetByIdForUserAsync(debtId, longUserId, ct)
+                ?? throw new DomainException($"Debt #{debtId} not found.");
+
+            var summary = $"Record ₦{amountNaira:N0} payment on debt '{debt.CreditorName}' (remaining: ₦{debt.RemainingBalance:N0})";
+            var payload = new RecordDebtPaymentPayload(debtId, amountNaira, note, paidOn);
+
+            var action = PendingAgentAction.Create(userId, "RecordDebtPayment", JsonSerializer.Serialize(payload), summary, DateTime.UtcNow);
+            await _pendingRepo.AddAsync(action, ct);
+            await _pendingRepo.SaveChangesAsync(ct);
+            return new PendingActionSummary(action.Id, summary, 300);
+        }
+
+        public async Task<PendingActionSummary> InitiateCreateDebtAsync(
+            string userId, string creditorName, decimal principalAmount, decimal totalAmountDue,
+            DateTime dueDate, string? description, CancellationToken ct)
+        {
+            var summary = $"Track new debt: ₦{totalAmountDue:N0} owed to {creditorName} (due {dueDate:yyyy-MM-dd})";
+            var payload = new CreateDebtPayload(creditorName, principalAmount, totalAmountDue, dueDate, description);
+
+            var action = PendingAgentAction.Create(userId, "CreateDebt", JsonSerializer.Serialize(payload), summary, DateTime.UtcNow);
+            await _pendingRepo.AddAsync(action, ct);
+            await _pendingRepo.SaveChangesAsync(ct);
+            return new PendingActionSummary(action.Id, summary, 300);
+        }
+
         // ── Confirmation ─────────────────────────────────────────────────────
 
         public async Task<string> ConfirmActionAsync(string userId, Guid pendingActionId, CancellationToken ct)
@@ -124,7 +244,9 @@ namespace SmartFund.Application.Services.Agent
                 case "Transfer":
                 {
                     var payload = JsonSerializer.Deserialize<TransferPayload>(action.PayloadJson)!;
+                    var longUserId = long.TryParse(userId, out var uid) ? uid : 1L;
                     var txId = await _txService.RecordTransferAsync(
+                        longUserId,
                         payload.FromWalletId,
                         payload.ToWalletId,
                         payload.AmountNaira,
@@ -150,14 +272,15 @@ namespace SmartFund.Application.Services.Agent
                         ? p
                         : BudgetPeriod.Monthly;
 
-                    var existing = await _budgetRepo.GetByCategoryAsync(payload.CategoryId, period, ct);
+                    var budgetUserId = long.TryParse(userId, out var buid) ? buid : 1L;
+                    var existing = await _budgetRepo.GetByCategoryForUserAsync(budgetUserId, payload.CategoryId, period, ct);
                     if (existing is not null)
                     {
                         existing.UpdateAmount(payload.AmountNaira);
                     }
                     else
                     {
-                        var budget = Budget.Create(payload.CategoryId, payload.AmountNaira, period);
+                        var budget = Budget.Create(budgetUserId, payload.CategoryId, payload.AmountNaira, period);
                         await _budgetRepo.AddAsync(budget, ct);
                     }
 
@@ -171,6 +294,108 @@ namespace SmartFund.Application.Services.Agent
                         ct);
 
                     result = $"Budget created successfully. ₦{payload.AmountNaira:N0}/{payload.Period.ToLower()} for category #{payload.CategoryId}.";
+                    break;
+                }
+
+                case "LogExpense":
+                {
+                    var payload = JsonSerializer.Deserialize<LogExpensePayload>(action.PayloadJson)!;
+                    var longUserId = long.TryParse(userId, out var uid) ? uid : 1L;
+                    var txId = await _txService.RecordExpenseAsync(
+                        longUserId, payload.WalletId, payload.CategoryId,
+                        payload.AmountNaira, payload.Description, payload.Date, ct);
+                    await _audit.RecordAsync(AuditCategory.PersonalFinance, "[AI] LogExpense",
+                        $"AI-initiated expense confirmed. {action.Summary} (pendingActionId={pendingActionId})", null, ct);
+                    result = $"Expense logged successfully. Transaction ID: {txId}.";
+                    break;
+                }
+
+                case "LogIncome":
+                {
+                    var payload = JsonSerializer.Deserialize<LogIncomePayload>(action.PayloadJson)!;
+                    var longUserId = long.TryParse(userId, out var uid) ? uid : 1L;
+                    var txId = await _txService.RecordIncomeAsync(
+                        longUserId, payload.WalletId, payload.CategoryId,
+                        payload.AmountNaira, payload.Description, payload.Date, ct);
+                    await _audit.RecordAsync(AuditCategory.PersonalFinance, "[AI] LogIncome",
+                        $"AI-initiated income confirmed. {action.Summary} (pendingActionId={pendingActionId})", null, ct);
+                    result = $"Income logged successfully. Transaction ID: {txId}.";
+                    break;
+                }
+
+                case "UpdateBudget":
+                {
+                    var payload = JsonSerializer.Deserialize<UpdateBudgetPayload>(action.PayloadJson)!;
+                    var longUserId = long.TryParse(userId, out var uid) ? uid : 1L;
+                    var budget = await _budgetRepo.GetByIdForUserAsync(payload.BudgetId, longUserId, ct)
+                        ?? throw new DomainException($"Budget #{payload.BudgetId} not found.");
+                    budget.UpdateAmount(payload.NewAmountNaira);
+                    await _budgetRepo.SaveChangesAsync(ct);
+                    await _audit.RecordAsync(AuditCategory.PersonalFinance, "[AI] UpdateBudget",
+                        $"AI-initiated budget update confirmed. {action.Summary} (pendingActionId={pendingActionId})", null, ct);
+                    result = $"Budget updated successfully to ₦{payload.NewAmountNaira:N0}/month.";
+                    break;
+                }
+
+                case "UpdateGoal":
+                {
+                    var payload = JsonSerializer.Deserialize<UpdateGoalPayload>(action.PayloadJson)!;
+                    var longUserId = long.TryParse(userId, out var uid) ? uid : 1L;
+                    var goal = await _goalRepo.GetByIdForUserAsync(payload.GoalId, longUserId, ct)
+                        ?? throw new DomainException($"Goal #{payload.GoalId} not found.");
+                    goal.UpdateTarget(payload.NewTargetNaira);
+                    if (payload.NewDeadline.HasValue)
+                        goal.UpdateDeadline(payload.NewDeadline.Value);
+                    await _goalRepo.SaveChangesAsync(ct);
+                    await _audit.RecordAsync(AuditCategory.PersonalFinance, "[AI] UpdateGoal",
+                        $"AI-initiated goal update confirmed. {action.Summary} (pendingActionId={pendingActionId})", null, ct);
+                    result = $"Goal updated successfully.";
+                    break;
+                }
+
+                case "RecordDebtPayment":
+                {
+                    var payload = JsonSerializer.Deserialize<RecordDebtPaymentPayload>(action.PayloadJson)!;
+                    var longUserId = long.TryParse(userId, out var uid) ? uid : 1L;
+                    var debt = await _debtRepo.GetByIdForUserAsync(payload.DebtId, longUserId, ct)
+                        ?? throw new DomainException($"Debt #{payload.DebtId} not found.");
+
+                    debt.RecordPayment(payload.AmountNaira, payload.PaidOn, payload.Note);
+                    await _debtRepo.SaveChangesAsync(ct);
+
+                    await _audit.RecordAsync(
+                        AuditCategory.PersonalFinance,
+                        "[AI] RecordDebtPayment",
+                        $"AI-initiated debt payment confirmed. {action.Summary} (pendingActionId={pendingActionId})",
+                        null, ct);
+
+                    result = $"Payment of ₦{payload.AmountNaira:N0} recorded on debt '{debt.CreditorName}'. Remaining balance: ₦{debt.RemainingBalance:N0}.";
+                    break;
+                }
+
+                case "CreateDebt":
+                {
+                    var payload = JsonSerializer.Deserialize<CreateDebtPayload>(action.PayloadJson)!;
+                    var longUserId = long.TryParse(userId, out var uid) ? uid : 1L;
+
+                    var debt = SmartFund.Domain.PersonalFinance.Entities.PersonalDebt.Create(
+                        longUserId,
+                        payload.CreditorName,
+                        payload.PrincipalAmount,
+                        payload.TotalAmountDue,
+                        payload.DueDate,
+                        payload.Description);
+
+                    await _debtRepo.AddAsync(debt, ct);
+                    await _debtRepo.SaveChangesAsync(ct);
+
+                    await _audit.RecordAsync(
+                        AuditCategory.PersonalFinance,
+                        "[AI] CreateDebt",
+                        $"AI-initiated debt creation confirmed. {action.Summary} (pendingActionId={pendingActionId})",
+                        null, ct);
+
+                    result = $"Debt tracked successfully. ₦{payload.TotalAmountDue:N0} owed to {payload.CreditorName}, due {payload.DueDate:yyyy-MM-dd}.";
                     break;
                 }
 

@@ -11,12 +11,16 @@ namespace SmartFund.Application.Interfaces
         Task<PersonalTransaction?> GetByIdAsync(long id, CancellationToken ct);
         Task<List<PersonalTransaction>> ListByWalletIdAsync(long walletId, CancellationToken ct);
         Task<List<PersonalTransaction>> ListAllAsync(CancellationToken ct);
+        Task<List<PersonalTransaction>> ListByUserAsync(long userId, CancellationToken ct);
         Task<List<PersonalTransaction>> ListByDateRangeAsync(DateTime from, DateTime to, CancellationToken ct);
+        Task<List<PersonalTransaction>> ListByUserAndDateRangeAsync(long userId, DateTime from, DateTime to, CancellationToken ct);
         Task<List<PersonalTransaction>> ListRecentAsync(int take, CancellationToken ct);
+        Task<List<PersonalTransaction>> ListRecentByUserAsync(long userId, int take, CancellationToken ct);
         Task AddAsync(PersonalTransaction tx, CancellationToken ct);
         Task SaveChangesAsync(CancellationToken ct);
 
         /// <summary>Lists transactions that were created by posting a bank import (have provenance).</summary>
         Task<List<PersonalTransaction>> ListBankDerivedAsync(CancellationToken ct);
+        Task<List<PersonalTransaction>> ListBankDerivedByUserAsync(long userId, CancellationToken ct);
     }
 }

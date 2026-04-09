@@ -42,6 +42,27 @@ internal sealed class InMemoryPersonalTransactionRepository : IPersonalTransacti
         return Task.CompletedTask;
     }
 
+    public Task<List<PersonalTransaction>> ListByUserAsync(long userId, CancellationToken ct) =>
+        Task.FromResult(Transactions.Where(x => x.UserId == userId).OrderByDescending(x => x.Date).ToList());
+
+    public Task<List<PersonalTransaction>> ListByUserAndDateRangeAsync(long userId, DateTime from, DateTime to, CancellationToken ct) =>
+        Task.FromResult(Transactions
+            .Where(t => t.UserId == userId && t.Date.Date >= from.Date && t.Date.Date <= to.Date)
+            .OrderByDescending(t => t.Date)
+            .ToList());
+
+    public Task<List<PersonalTransaction>> ListRecentByUserAsync(long userId, int take, CancellationToken ct) =>
+        Task.FromResult(Transactions
+            .Where(t => t.UserId == userId)
+            .OrderByDescending(t => t.Date)
+            .Take(take <= 0 ? 20 : take)
+            .ToList());
+
+    public Task<List<PersonalTransaction>> ListBankDerivedByUserAsync(long userId, CancellationToken ct) =>
+        Task.FromResult(Transactions
+            .Where(x => x.UserId == userId && x.SourceBankImportedTransactionId != null)
+            .ToList());
+
     public Task SaveChangesAsync(CancellationToken ct) => Task.CompletedTask;
 
     public Task<List<PersonalTransaction>> ListBankDerivedAsync(CancellationToken ct) =>

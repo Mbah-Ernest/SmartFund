@@ -7,9 +7,9 @@ namespace SmartFund.Application.Interfaces
 {
     public interface IPersonalFinanceReportService
     {
-        Task<List<MonthlyCategoryAmountRow>> MonthlyIncomeReportAsync(CancellationToken ct);
-        Task<List<MonthlyCategoryAmountRow>> MonthlyExpenseReportAsync(CancellationToken ct);
-        Task<List<CashFlowRow>> CashFlowReportAsync(CancellationToken ct);
-        Task<List<WalletBalanceRow>> WalletBalanceReportAsync(CancellationToken ct);
+        Task<List<MonthlyCategoryAmountRow>> MonthlyIncomeReportAsync(long userId, CancellationToken ct);
+        Task<List<MonthlyCategoryAmountRow>> MonthlyExpenseReportAsync(long userId, CancellationToken ct);
+        Task<List<CashFlowRow>> CashFlowReportAsync(long userId, CancellationToken ct);
+        Task<List<WalletBalanceRow>> WalletBalanceReportAsync(long userId, CancellationToken ct);
     }
 }

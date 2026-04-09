@@ -8,6 +8,7 @@ type BalanceCardProps = {
   icon: React.ReactNode;
   trend?: { value: string; positive: boolean };
   loading?: boolean;
+  action?: React.ReactNode;
 };
 
 export default function BalanceCard({
@@ -17,7 +18,8 @@ export default function BalanceCard({
   description,
   icon,
   trend,
-  loading
+  loading,
+  action,
 }: BalanceCardProps) {
   return (
     <div className="group relative isolate overflow-hidden rounded-2xl bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(59,130,246,0.04)] ring-1 ring-slate-200/60 transition-all duration-300 hover:shadow-[0_4px_20px_rgba(59,130,246,0.10)] hover:-translate-y-0.5 dark:bg-slate-900 dark:ring-slate-800">
@@ -32,6 +34,7 @@ export default function BalanceCard({
         </div>
 
         <div className="flex items-center gap-1.5">
+          {action}
           {description && <InfoTooltip text={description} />}
           {trend ? (
             <span

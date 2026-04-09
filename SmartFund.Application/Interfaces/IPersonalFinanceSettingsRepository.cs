@@ -7,6 +7,7 @@ namespace SmartFund.Application.Interfaces
     public interface IPersonalFinanceSettingsRepository
     {
         Task<PersonalFinanceSettings?> GetAsync(CancellationToken ct);
+        Task<PersonalFinanceSettings?> GetByUserAsync(long userId, CancellationToken ct);
         Task AddAsync(PersonalFinanceSettings settings, CancellationToken ct);
         Task SaveChangesAsync(CancellationToken ct);
     }

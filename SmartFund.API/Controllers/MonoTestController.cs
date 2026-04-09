@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text;
 using System.Text.Json;
+using SmartFund.API.Infrastructure;
 using SmartFund.Application.Interfaces;
 using SmartFund.Domain.PersonalFinance.Entities;
 
@@ -15,7 +16,7 @@ namespace SmartFund.API.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/mono-test")]
-public sealed class MonoTestController : ControllerBase
+public sealed class MonoTestController : SmartFundControllerBase
 {
     private const string MonoBaseUrl = "https://api.withmono.com";
     private const string SecretKeyHeader = "X-Mono-Secret-Key";
@@ -267,6 +268,7 @@ public sealed class MonoTestController : ControllerBase
             return BadRequest(new { error = $"You can connect a maximum of {MaxConnectedAccounts} bank accounts." });
 
         var account = ConnectedBankAccount.Create(
+            GetCurrentUserId(),
             body.MonoAccountId,
             bankName,
             accountNumber,

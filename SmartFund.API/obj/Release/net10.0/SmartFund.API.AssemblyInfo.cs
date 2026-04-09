@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SmartFund.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+20b0a1ab5c60a418806a5c1a1bbd37e36454647f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+00a7a318e8bd43f4d6562d7f4e3c6ff6023f3a8e")]
 [assembly: System.Reflection.AssemblyProductAttribute("SmartFund.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SmartFund.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -21,8 +21,17 @@ namespace SmartFund.Persistence.Repositories
         public Task<PersonalWallet?> GetByIdAsync(long id, CancellationToken ct) =>
             _db.PersonalWallets.FirstOrDefaultAsync(x => x.Id == id, ct);
 
+        public Task<PersonalWallet?> GetByIdForUserAsync(long id, long userId, CancellationToken ct) =>
+            _db.PersonalWallets.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
+
         public Task<List<PersonalWallet>> ListAsync(CancellationToken ct) =>
             _db.PersonalWallets
+                .OrderByDescending(x => x.Id)
+                .ToListAsync(ct);
+
+        public Task<List<PersonalWallet>> ListByUserAsync(long userId, CancellationToken ct) =>
+            _db.PersonalWallets
+                .Where(x => x.UserId == userId)
                 .OrderByDescending(x => x.Id)
                 .ToListAsync(ct);
 

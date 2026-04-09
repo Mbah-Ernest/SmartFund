@@ -338,7 +338,7 @@ static async Task<(int Wallets, int Categories, int Transactions, int Contributi
         db.LedgerAccounts.Add(acct);
         await db.SaveChangesAsync();
 
-        var wallet = PersonalWallet.Create(name, "NGN", acct.Id, nowUtc);
+        var wallet = PersonalWallet.Create(1L, name, "NGN", acct.Id);
         db.PersonalWallets.Add(wallet);
         await db.SaveChangesAsync();
         return wallet;
@@ -349,7 +349,7 @@ static async Task<(int Wallets, int Categories, int Transactions, int Contributi
         var existing = await db.PersonalCategories.FirstOrDefaultAsync(c => c.Name == name && c.Type == type);
         if (existing is not null) return existing;
 
-        var cat = PersonalCategory.Create(name, type);
+        var cat = PersonalCategory.Create(1L, name, type);
         db.PersonalCategories.Add(cat);
         await db.SaveChangesAsync();
         return cat;
@@ -368,7 +368,7 @@ static async Task<(int Wallets, int Categories, int Transactions, int Contributi
         db.LedgerTransactions.Add(tx);
         await db.SaveChangesAsync();
 
-        var personalTx = PersonalTransaction.Create(wallet.Id, category.Id, amount, PersonalTransactionType.Income, date, description);
+        var personalTx = PersonalTransaction.Create(1L, wallet.Id, category.Id, amount, PersonalTransactionType.Income, date, description);
         personalTx.AttachLedgerTransaction(tx.Id);
         db.PersonalTransactions.Add(personalTx);
         await db.SaveChangesAsync();
@@ -388,7 +388,7 @@ static async Task<(int Wallets, int Categories, int Transactions, int Contributi
         db.LedgerTransactions.Add(tx);
         await db.SaveChangesAsync();
 
-        var personalTx = PersonalTransaction.Create(wallet.Id, category.Id, amount, PersonalTransactionType.Expense, date, description);
+        var personalTx = PersonalTransaction.Create(1L, wallet.Id, category.Id, amount, PersonalTransactionType.Expense, date, description);
         personalTx.AttachLedgerTransaction(tx.Id);
         db.PersonalTransactions.Add(personalTx);
         await db.SaveChangesAsync();
@@ -407,11 +407,11 @@ static async Task<(int Wallets, int Categories, int Transactions, int Contributi
         db.LedgerTransactions.Add(tx);
         await db.SaveChangesAsync();
 
-        var srcTx = PersonalTransaction.Create(source.Id, null, amount, PersonalTransactionType.Transfer, date,
+        var srcTx = PersonalTransaction.Create(1L, source.Id, null, amount, PersonalTransactionType.Transfer, date,
             string.IsNullOrWhiteSpace(description) ? $"Transfer to {destination.Name}" : description);
         srcTx.AttachLedgerTransaction(tx.Id);
 
-        var dstTx = PersonalTransaction.Create(destination.Id, null, amount, PersonalTransactionType.Transfer, date,
+        var dstTx = PersonalTransaction.Create(1L, destination.Id, null, amount, PersonalTransactionType.Transfer, date,
             string.IsNullOrWhiteSpace(description) ? $"Transfer from {source.Name}" : description);
         dstTx.AttachLedgerTransaction(tx.Id);
 
@@ -420,25 +420,6 @@ static async Task<(int Wallets, int Categories, int Transactions, int Contributi
         return tx.Id;
     }
 
-    async Task<long?> SeedInvestmentContributionAsync(PersonalWallet wallet, Tranche tranche, decimal amount, DateTime date, string? description)
-    {
-        if (tranche.LiabilityAccountId <= 0)
-            return null;
-
-        var narration = string.IsNullOrWhiteSpace(description)
-            ? $"Personal investment contribution to {tranche.TrancheCode}"
-            : $"Personal investment contribution to {tranche.TrancheCode}: {description.Trim()}";
-
-        var tx = LedgerTransaction.CreateDraft(narration, ReferenceType.Tranche, tranche.Id);
-        tx.AddEntry(tranche.LiabilityAccountId, debit: amount, credit: 0m);
-        tx.AddEntry(wallet.LedgerAccountId, debit: 0m, credit: amount);
-
-        var record = PersonalInvestmentContribution.Create(wallet.Id, tranche.Id, amount, date, description, tx);
-        db.LedgerTransactions.Add(tx);
-        db.PersonalInvestmentContributions.Add(record);
-        await db.SaveChangesAsync();
-        return tx.Id;
-    }
 
     // Wallets
     var bank = await CreateWalletAsync("GTBank Salary Account");
@@ -488,7 +469,7 @@ static async Task<(int Wallets, int Categories, int Transactions, int Contributi
             continue;
         }
 
-        var b = Budget.Create(cat.Id, amt, BudgetPeriod.Monthly);
+        var b = Budget.Create(1L, cat.Id, amt, BudgetPeriod.Monthly);
         db.PersonalBudgets.Add(b);
         budgets.Add(b);
     }
@@ -497,10 +478,10 @@ static async Task<(int Wallets, int Categories, int Transactions, int Contributi
     // Goals
     if (!await db.PersonalGoals.AnyAsync())
     {
-        var emergency = PersonalGoal.Create("Build Emergency Fund", 1_500_000m, nowUtc.AddMonths(10));
+        var emergency = PersonalGoal.Create(1L, "Build Emergency Fund", 1_500_000m, nowUtc.AddMonths(10));
         emergency.Contribute(250_000m);
 
-        var vacation = PersonalGoal.Create("Vacation Trip", 600_000m, nowUtc.AddMonths(7));
+        var vacation = PersonalGoal.Create(1L, "Vacation Trip", 600_000m, nowUtc.AddMonths(7));
         vacation.Contribute(90_000m);
 
         db.PersonalGoals.AddRange(emergency, vacation);
@@ -682,15 +663,7 @@ static async Task<(int Wallets, int Categories, int Transactions, int Contributi
             transactionCount++;
         }
 
-        // Investment contributions (monthly)
-        var tranche = tranches.Count > 0 ? tranches[rng.Next(0, tranches.Count)] : null;
-        if (tranche is not null)
-        {
-            var invAmt = 35_000m + rng.Next(0, 65_000);
-            var id = await SeedInvestmentContributionAsync(bank, tranche, invAmt, DayInMonth(m, 27), "Monthly investment");
-            if (id.HasValue)
-                contributionCount++;
-        }
+        // (Investment contributions removed — personal investment contribution module retired)
     }
 
     // Budget tracking (based on seeded expenses)
@@ -724,7 +697,7 @@ static async Task<(int Wallets, int Categories, int Transactions, int Contributi
         Wallets: wallets.Length,
         Categories: await db.PersonalCategories.CountAsync(),
         Transactions: await db.PersonalTransactions.CountAsync(),
-        Contributions: await db.PersonalInvestmentContributions.CountAsync(),
+        Contributions: 0,
         Budgets: budgets.Count,
         BudgetTrackingRows: trackingRows,
         Goals: goalsAfter,

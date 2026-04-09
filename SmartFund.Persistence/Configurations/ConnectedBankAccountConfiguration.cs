@@ -11,6 +11,13 @@ namespace SmartFund.Persistence.Configurations
             builder.ToTable("ConnectedBankAccounts");
             builder.HasKey(x => x.Id);
 
+            builder.Property(x => x.UserId).IsRequired();
+            builder.HasIndex(x => x.UserId);
+            builder.HasOne<SmartFund.Domain.Entities.User>()
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             builder.Property(x => x.MonoAccountId)
                 .HasMaxLength(100)
                 .IsRequired();

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SmartFund.API.Infrastructure;
 using SmartFund.Application.Interfaces;
 using SmartFund.Domain.PersonalFinance.Entities;
 using SmartFund.Domain.PersonalFinance.Enums;
@@ -16,7 +17,7 @@ namespace SmartFund.API.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/personal-finance")]
-public sealed class PersonalFinanceSettingsController : ControllerBase
+public sealed class PersonalFinanceSettingsController : SmartFundControllerBase
 {
     private readonly IPersonalFinanceSettingsRepository _settingsRepo;
     private readonly IConnectedBankAccountRepository _bankAccountRepo;
@@ -36,7 +37,7 @@ public sealed class PersonalFinanceSettingsController : ControllerBase
     [HttpGet("settings")]
     public async Task<IActionResult> GetSettings(CancellationToken ct)
     {
-        var settings = await _settingsRepo.GetAsync(ct);
+        var settings = await _settingsRepo.GetByUserAsync(GetCurrentUserId(), ct);
         if (settings is null)
         {
             return Ok(new
@@ -66,10 +67,11 @@ public sealed class PersonalFinanceSettingsController : ControllerBase
         if (!DateTime.TryParse(body.LaunchDate, out var launchDate))
             return BadRequest(new { error = "Invalid launchDate. Expected ISO 8601 date string." });
 
-        var settings = await _settingsRepo.GetAsync(ct);
+        var userId = GetCurrentUserId();
+        var settings = await _settingsRepo.GetByUserAsync(userId, ct);
         if (settings is null)
         {
-            settings = PersonalFinanceSettings.Create(launchDate, DateTime.UtcNow);
+            settings = PersonalFinanceSettings.Create(userId, launchDate, DateTime.UtcNow);
             await _settingsRepo.AddAsync(settings, ct);
         }
         else
@@ -138,7 +140,7 @@ public sealed class PersonalFinanceSettingsController : ControllerBase
                 .SetProperty(a => a.SyncStatus, BankAccountSyncStatus.Active), ct);
 
         // Step 7: Record reset timestamp in settings
-        var settings = await _settingsRepo.GetAsync(ct);
+        var settings = await _settingsRepo.GetByUserAsync(GetCurrentUserId(), ct);
         if (settings is not null)
         {
             settings.RecordReset(DateTime.UtcNow);

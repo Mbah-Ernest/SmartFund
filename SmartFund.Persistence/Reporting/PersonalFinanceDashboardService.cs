@@ -18,21 +18,28 @@ namespace SmartFund.Persistence.Reporting
 
         public PersonalFinanceDashboardService(SmartFundDbContext db) => _db = db;
 
-        public async Task<PersonalFinanceDashboardDto> GetAsync(DateTime utcNow, CancellationToken ct)
+        public async Task<PersonalFinanceDashboardDto> GetAsync(long userId, DateTime utcNow, CancellationToken ct)
         {
             var year = utcNow.Year;
             var month = utcNow.Month;
 
+            var linkedBankWalletIds = await _db.ConnectedBankAccounts
+                .AsNoTracking()
+                .Where(a => a.UserId == userId && a.PersonalWalletId != null)
+                .Select(a => a.PersonalWalletId!.Value)
+                .ToListAsync(ct);
+
             var walletAccountIds = await _db.PersonalWallets
                 .AsNoTracking()
+                .Where(w => w.UserId == userId && !linkedBankWalletIds.Contains(w.Id))
                 .Select(w => w.LedgerAccountId)
                 .ToListAsync(ct);
 
-            decimal totalBalance = 0m;
+            decimal walletBalance = 0m;
 
             if (walletAccountIds.Count > 0)
             {
-                totalBalance = await (
+                walletBalance = await (
                     from lt in _db.LedgerTransactions.AsNoTracking()
                     from e in lt.Entries
                     where (lt.Status == TransactionStatus.Draft || lt.Status == TransactionStatus.Posted)
@@ -42,12 +49,29 @@ namespace SmartFund.Persistence.Reporting
                 ).SumAsync(ct) ?? 0m;
             }
 
+            // Opening balances are stored on the wallet entity, not in the ledger — add them
+            var openingBalanceSum = await _db.PersonalWallets
+                .AsNoTracking()
+                .Where(w => w.UserId == userId && !linkedBankWalletIds.Contains(w.Id))
+                .SumAsync(w => (decimal?)w.OpeningBalance, ct) ?? 0m;
+
+            walletBalance += openingBalanceSum;
+
+            var connectedBankBalance = (await _db.ConnectedBankAccounts
+                .AsNoTracking()
+                .Where(a => a.UserId == userId)
+                .Select(a => (decimal?)a.LastKnownBalanceKobo)
+                .SumAsync(ct) ?? 0m) / 100m;
+
+            var totalBalance = walletBalance + connectedBankBalance;
+
             var monthlyIncome = await (
                 from p in _db.PersonalTransactions.AsNoTracking()
                 join w in _db.PersonalWallets.AsNoTracking() on p.WalletId equals w.Id
                 join lt in _db.LedgerTransactions.AsNoTracking() on p.LedgerTransactionId equals lt.Id
                 from e in lt.Entries
                 where p.TransactionType == PersonalTransactionType.Income
+                      && w.UserId == userId
                       && p.Date.Year == year
                       && p.Date.Month == month
                       && lt.Status != TransactionStatus.Reversed
@@ -61,6 +85,7 @@ namespace SmartFund.Persistence.Reporting
                 join lt in _db.LedgerTransactions.AsNoTracking() on p.LedgerTransactionId equals lt.Id
                 from e in lt.Entries
                 where p.TransactionType == PersonalTransactionType.Expense
+                      && w.UserId == userId
                       && p.Date.Year == year
                       && p.Date.Month == month
                       && lt.Status != TransactionStatus.Reversed
@@ -77,6 +102,7 @@ namespace SmartFund.Persistence.Reporting
                 join lt in _db.LedgerTransactions.AsNoTracking() on p.LedgerTransactionId equals lt.Id
                 from e in lt.Entries
                 where p.TransactionType == PersonalTransactionType.Expense
+                      && w.UserId == userId
                       && p.Date.Year == year
                       && p.Date.Month == month
                       && lt.Status != TransactionStatus.Reversed
@@ -96,31 +122,22 @@ namespace SmartFund.Persistence.Reporting
                 .Take(5)
                 .ToList();
 
-            var investmentContributions = await (
-                from c in _db.PersonalInvestmentContributions.AsNoTracking()
-                join w in _db.PersonalWallets.AsNoTracking() on c.WalletId equals w.Id
-                join lt in _db.LedgerTransactions.AsNoTracking() on c.LedgerTransactionId equals lt.Id
-                from e in lt.Entries
-                where c.Date.Year == year
-                      && c.Date.Month == month
-                      && lt.Status != TransactionStatus.Reversed
-                      && e.AccountId == w.LedgerAccountId
-                select (decimal?)e.Credit.Amount
-            ).SumAsync(ct) ?? 0m;
-
             return new PersonalFinanceDashboardDto(
                 totalBalance,
+                walletBalance,
+                connectedBankBalance,
                 monthlyIncome,
                 monthlyExpenses,
                 topExpenseCategories,
-                investmentContributions);
+                0m);
         }
 
-        public async Task<CashRunwayDto> GetCashRunwayAsync(DateTime utcNow, CancellationToken ct)
+        public async Task<CashRunwayDto> GetCashRunwayAsync(long userId, DateTime utcNow, CancellationToken ct)
         {
             // ── Total balance (same logic as GetAsync) ────────────────────────────
             var walletAccountIds = await _db.PersonalWallets
                 .AsNoTracking()
+                .Where(w => w.UserId == userId)
                 .Select(w => w.LedgerAccountId)
                 .ToListAsync(ct);
 
@@ -137,6 +154,13 @@ namespace SmartFund.Persistence.Reporting
                 ).SumAsync(ct) ?? 0m;
             }
 
+            // Opening balances are stored on the wallet entity, not in the ledger — add them
+            var openingBalanceSum = await _db.PersonalWallets
+                .AsNoTracking()
+                .Where(w => w.UserId == userId)
+                .SumAsync(w => (decimal?)w.OpeningBalance, ct) ?? 0m;
+            totalBalance += openingBalanceSum;
+
             // ── Expenses over last 3 complete calendar months ─────────────────────
             // e.g. if today is 25 Mar 2026, the window is Dec 2025, Jan 2026, Feb 2026
             var currentMonthStart = new DateTime(utcNow.Year, utcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -148,6 +172,7 @@ namespace SmartFund.Persistence.Reporting
                 join lt in _db.LedgerTransactions.AsNoTracking() on p.LedgerTransactionId equals lt.Id
                 from e in lt.Entries
                 where p.TransactionType == PersonalTransactionType.Expense
+                      && w.UserId == userId
                       && lt.Status != TransactionStatus.Reversed
                       && e.AccountId == w.LedgerAccountId
                       && p.Date >= windowStart

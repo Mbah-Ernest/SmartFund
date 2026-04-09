@@ -14,6 +14,7 @@ using SmartFund.Infrastructure.BankSync;
 using SmartFund.Persistence.DbContext;
 using SmartFund.Persistence.Repositories;
 using SmartFund.Persistence.Reporting;
+using SmartFund.Application.Services;
 using System.Security.Authentication;
 using System.Text;
 
@@ -89,7 +90,6 @@ builder.Services.AddScoped<ITrancheCodeGenerator, TrancheCodeGenerator>();
 builder.Services.AddScoped<IPersonalWalletRepository, PersonalWalletRepository>();
 builder.Services.AddScoped<IPersonalCategoryRepository, PersonalCategoryRepository>();
 builder.Services.AddScoped<IPersonalTransactionRepository, PersonalTransactionRepository>();
-builder.Services.AddScoped<IPersonalInvestmentContributionRepository, PersonalInvestmentContributionRepository>();
 builder.Services.AddScoped<IPersonalGoalRepository, PersonalGoalRepository>();
 builder.Services.AddScoped<IPersonalBudgetRepository, PersonalBudgetRepository>();
 builder.Services.AddScoped<IPersonalBudgetTrackingRepository, PersonalBudgetTrackingRepository>();
@@ -103,7 +103,34 @@ builder.Services.AddScoped<IAuditService, SmartFund.Application.Services.AuditSe
 
 builder.Services.AddScoped<IPersonalWalletService, PersonalWalletService>();
 builder.Services.AddScoped<IPersonalTransactionService, PersonalTransactionService>();
-builder.Services.AddScoped<IPersonalInvestmentContributionService, PersonalInvestmentContributionService>();
+
+// User / auth
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<ILoanApplicationRepository, LoanApplicationRepository>();
+builder.Services.AddScoped<ILoanApplicantProfileRepository, LoanApplicantProfileRepository>();
+builder.Services.AddScoped<SmartFund.Application.Interfaces.IPasswordHasher, SmartFund.API.Services.BcryptPasswordHasher>();
+builder.Services.AddScoped<SmartFund.Application.Services.UserAuthService>();
+builder.Services.AddScoped<SmartFund.Application.Interfaces.IUserCreditInsightsService, SmartFund.Application.Services.UserCreditInsightsService>();
+
+// Loan use cases
+builder.Services.AddScoped<SmartFund.Application.UseCases.Loans.SubmitLoanApplicantProfile>();
+builder.Services.AddScoped<SmartFund.Application.UseCases.Loans.ReviewLoanApplicantProfile>();
+builder.Services.AddScoped<SmartFund.Application.UseCases.Loans.SubmitLoanApplication>();
+builder.Services.AddScoped<SmartFund.Application.UseCases.Loans.ReviewLoanApplication>();
+builder.Services.AddScoped<SmartFund.Application.UseCases.Loans.DisburseLoanApplication>();
+
+// Personal Finance use cases
+builder.Services.AddScoped<SmartFund.Application.UseCases.PersonalFinance.ReconcileWallet>();
+builder.Services.AddScoped<SmartFund.Application.UseCases.PersonalFinance.BulkReconcileWalletsUseCase>();
+
+// Personal Debt use cases
+builder.Services.AddScoped<SmartFund.Application.Interfaces.IPersonalDebtRepository, SmartFund.Persistence.Repositories.PersonalDebtRepository>();
+builder.Services.AddScoped<SmartFund.Application.UseCases.PersonalFinance.CreatePersonalDebt>();
+builder.Services.AddScoped<SmartFund.Application.UseCases.PersonalFinance.RecordDebtPayment>();
+builder.Services.AddScoped<SmartFund.Application.UseCases.PersonalFinance.UpdatePersonalDebt>();
+builder.Services.AddScoped<SmartFund.Application.UseCases.PersonalFinance.MarkDebtForgiven>();
+builder.Services.AddScoped<SmartFund.Application.UseCases.PersonalFinance.DeletePersonalDebt>();
+builder.Services.AddScoped<SmartFund.Application.UseCases.PersonalFinance.GetDebtInsights>();
 
 // Bank sync + categorization
 builder.Services.Configure<MonoOptions>(builder.Configuration.GetSection("Mono"));
@@ -254,11 +281,14 @@ if (app.Environment.IsDevelopment())
             var allMigrations = db.Database.GetMigrations().ToList();
             var auditTableExists = TableExists(db, "AuditEntries");
 
-            // If the audit table doesn't exist yet, leave the corresponding migration unapplied
+            var usersTableExists = TableExists(db, "Users");
+
+            // If a table doesn't exist yet, leave the corresponding migration unapplied
             // so that `Migrate()` will create it.
-            var toMarkApplied = auditTableExists
-                ? allMigrations
-                : allMigrations.Where(m => !m.Contains("AddAuditEntries", StringComparison.OrdinalIgnoreCase)).ToList();
+            var toMarkApplied = allMigrations
+                .Where(m => auditTableExists || !m.Contains("AddAuditEntries", StringComparison.OrdinalIgnoreCase))
+                .Where(m => usersTableExists || !m.Contains("AddMultiUserSupport", StringComparison.OrdinalIgnoreCase))
+                .ToList();
 
             foreach (var migrationId in toMarkApplied)
             {

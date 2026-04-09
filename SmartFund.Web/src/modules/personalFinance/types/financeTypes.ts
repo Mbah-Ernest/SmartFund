@@ -1,5 +1,7 @@
 export type PersonalFinanceDashboardDto = {
   totalBalance: number;
+  walletBalance: number;
+  connectedBankBalance: number;
   monthlyIncome: number;
   monthlyExpenses: number;
   topExpenseCategories: CategoryAmountRow[];
@@ -48,6 +50,18 @@ export type PersonalWalletDto = {
   currency: string;
   ledgerAccountId: number;
   createdAt: string;
+  openingBalance: number;
+  openingBalanceDate: string | null;
+};
+
+export type SetOpeningBalanceRequest = {
+  amount: number;
+  date: string;
+};
+
+export type ReconcileResponse = {
+  diff: number;
+  newBalance: number;
 };
 
 export type WalletBalanceDto = {
@@ -127,10 +141,12 @@ export type PersonalTransactionDto = {
   id: number;
   amount: number;
   wallet: string;
+  walletId: number;
   category: string;
   type: string;
   date: string;
   description: string | null;
+  source: string;
   sourceConnectedBankAccountId: number | null;
   sourceBankImportedTransactionId: number | null;
   sourceBankLabel: string | null;
@@ -187,4 +203,102 @@ export type ResetResultDto = {
   deletedPersonalTransactions: number;
   deletedLedgerTransactions: number;
   message: string;
+};
+
+/* ── Personal Debts ── */
+
+export type DebtStatus = 'Active' | 'PaidOff' | 'Forgiven';
+
+export type DebtPaymentDto = {
+  id: number;
+  amount: number;
+  paidOn: string;
+  note: string | null;
+  recordedAt: string;
+};
+
+export type PersonalDebtDto = {
+  id: number;
+  userId: number;
+  creditorName: string;
+  principalAmount: number;
+  totalAmountDue: number;
+  totalPaid: number;
+  remainingBalance: number;
+  interestAmount: number;
+  progressPercent: number;
+  dueDate: string;
+  daysUntilDue: number;
+  description: string | null;
+  status: DebtStatus;
+  createdAt: string;
+  updatedAt: string | null;
+  payments: DebtPaymentDto[];
+};
+
+export type CreatePersonalDebtRequest = {
+  creditorName: string;
+  principalAmount: number;
+  totalAmountDue: number;
+  dueDate: string;
+  description?: string;
+};
+
+export type UpdatePersonalDebtRequest = {
+  creditorName: string;
+  totalAmountDue: number;
+  dueDate: string;
+  description?: string;
+};
+
+export type RecordDebtPaymentRequest = {
+  amount: number;
+  paidOn: string;
+  note?: string;
+};
+
+export type RecordDebtPaymentResponse = {
+  payment: DebtPaymentDto;
+  updatedDebt: PersonalDebtDto;
+};
+
+export type DebtSavingsTarget = {
+  debtId: number;
+  creditorName: string;
+  dailySavingsTarget: number;
+  weeklySavingsTarget: number;
+};
+
+export type DebtCoverageItem = {
+  debtId: number;
+  creditorName: string;
+  remainingBalance: number;
+  daysUntilDue: number;
+  projectedSavingsByDue: number;
+  canCover: boolean;
+};
+
+export type RankedDebt = {
+  debtId: number;
+  creditorName: string;
+  remainingBalance: number;
+  daysUntilDue: number;
+  urgencyBadge: 'Overdue' | 'Critical' | 'Soon' | 'Upcoming' | 'Future';
+};
+
+export type DebtInsightsDto = {
+  totalOwed: number;
+  totalInterest: number;
+  totalPaid: number;
+  percentPaid: number;
+  avgMonthlyIncome: number;
+  avgMonthlyExpenses: number;
+  avgMonthlySavings: number;
+  savingsInsufficient: boolean;
+  monthlyDebtBurden: number;
+  burdenPercent: number;
+  debtFreeDate: string | null;
+  savingsTargets: DebtSavingsTarget[];
+  coverageItems: DebtCoverageItem[];
+  urgencyRanking: RankedDebt[];
 };

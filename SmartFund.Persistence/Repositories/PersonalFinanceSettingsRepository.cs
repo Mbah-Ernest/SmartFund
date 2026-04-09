@@ -16,6 +16,9 @@ namespace SmartFund.Persistence.Repositories
         public Task<PersonalFinanceSettings?> GetAsync(CancellationToken ct) =>
             _db.PersonalFinanceSettings.FirstOrDefaultAsync(ct);
 
+        public Task<PersonalFinanceSettings?> GetByUserAsync(long userId, CancellationToken ct) =>
+            _db.PersonalFinanceSettings.FirstOrDefaultAsync(x => x.UserId == userId, ct);
+
         public Task AddAsync(PersonalFinanceSettings settings, CancellationToken ct) =>
             _db.PersonalFinanceSettings.AddAsync(settings, ct).AsTask();
 

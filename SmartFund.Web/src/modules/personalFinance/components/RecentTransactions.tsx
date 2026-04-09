@@ -1,18 +1,12 @@
 import { useState } from 'react';
 import type { PersonalTransactionDto } from '../types/financeTypes';
+import { maskAmount } from '@/lib/utils';
+import { usePrivacy } from '@/contexts/PrivacyContext';
 
 type RecentTransactionsProps = {
   data: PersonalTransactionDto[];
   loading?: boolean;
 };
-
-function formatCurrency(n: number) {
-  return new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency: 'NGN',
-    maximumFractionDigits: 2
-  }).format(n);
-}
 
 type SortField = 'input-desc' | 'input-asc' | 'date-desc' | 'date-asc';
 
@@ -33,6 +27,7 @@ export default function RecentTransactions({
   loading
 }: RecentTransactionsProps) {
   const [sortBy, setSortBy] = useState<SortField>('input-desc');
+  const { isPrivate } = usePrivacy();
 
   if (loading) {
     return (
@@ -161,7 +156,7 @@ export default function RecentTransactions({
                 }`}
               >
                 {isInflow ? '+' : isOutflow ? '−' : ''}
-                {formatCurrency(tx.amount)}
+                {maskAmount(tx.amount, isPrivate)}
               </span>
             </li>
           );

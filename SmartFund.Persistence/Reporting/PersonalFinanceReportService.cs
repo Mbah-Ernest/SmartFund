@@ -18,7 +18,7 @@ namespace SmartFund.Persistence.Reporting
 
         public PersonalFinanceReportService(SmartFundDbContext db) => _db = db;
 
-        public async Task<List<MonthlyCategoryAmountRow>> MonthlyIncomeReportAsync(CancellationToken ct)
+        public async Task<List<MonthlyCategoryAmountRow>> MonthlyIncomeReportAsync(long userId, CancellationToken ct)
         {
             // Materialize before grouping: EF can translate the joins/projection,
             // but may fail translating GroupBy/Sum over value objects.
@@ -29,6 +29,7 @@ namespace SmartFund.Persistence.Reporting
                 join lt in _db.LedgerTransactions.AsNoTracking() on p.LedgerTransactionId equals lt.Id
                 from e in lt.Entries
                 where p.TransactionType == PersonalTransactionType.Income
+                      && w.UserId == userId
                       && c.Type == PersonalCategoryType.Income
                       && lt.Status != TransactionStatus.Reversed
                       && e.AccountId == w.LedgerAccountId
@@ -61,7 +62,7 @@ namespace SmartFund.Persistence.Reporting
                 .ToList();
         }
 
-        public async Task<List<MonthlyCategoryAmountRow>> MonthlyExpenseReportAsync(CancellationToken ct)
+        public async Task<List<MonthlyCategoryAmountRow>> MonthlyExpenseReportAsync(long userId, CancellationToken ct)
         {
             // Materialize before grouping: EF can translate the joins/projection,
             // but may fail translating GroupBy/Sum over value objects.
@@ -72,6 +73,7 @@ namespace SmartFund.Persistence.Reporting
                 join lt in _db.LedgerTransactions.AsNoTracking() on p.LedgerTransactionId equals lt.Id
                 from e in lt.Entries
                 where p.TransactionType == PersonalTransactionType.Expense
+                      && w.UserId == userId
                       && c.Type == PersonalCategoryType.Expense
                       && lt.Status != TransactionStatus.Reversed
                       && e.AccountId == w.LedgerAccountId
@@ -104,7 +106,7 @@ namespace SmartFund.Persistence.Reporting
                 .ToList();
         }
 
-        public async Task<List<CashFlowRow>> CashFlowReportAsync(CancellationToken ct)
+        public async Task<List<CashFlowRow>> CashFlowReportAsync(long userId, CancellationToken ct)
         {
             var incomeExpense = await (
                 from p in _db.PersonalTransactions.AsNoTracking()
@@ -114,6 +116,7 @@ namespace SmartFund.Persistence.Reporting
                 where (p.TransactionType == PersonalTransactionType.Income
                        || p.TransactionType == PersonalTransactionType.Expense
                        || p.TransactionType == PersonalTransactionType.Transfer)
+                      && w.UserId == userId
                       && lt.Status != TransactionStatus.Reversed
                       && e.AccountId == w.LedgerAccountId
                 select new
@@ -132,6 +135,7 @@ namespace SmartFund.Persistence.Reporting
 
             // Fill category names for income/expense in-memory (avoids extra joins in SQL for transfer rows)
             var categoryNames = await _db.PersonalCategories.AsNoTracking()
+                .Where(x => x.UserId == userId)
                 .ToDictionaryAsync(x => x.Id, x => x.Name, ct);
 
             var normalized = incomeExpense.Select(x => new
@@ -146,29 +150,8 @@ namespace SmartFund.Persistence.Reporting
                 Outflow = x.Credit
             });
 
-            var contributions = await (
-                from c in _db.PersonalInvestmentContributions.AsNoTracking()
-                join w in _db.PersonalWallets.AsNoTracking() on c.WalletId equals w.Id
-                join lt in _db.LedgerTransactions.AsNoTracking() on c.LedgerTransactionId equals lt.Id
-                from e in lt.Entries
-                where lt.Status != TransactionStatus.Reversed
-                      && e.AccountId == w.LedgerAccountId
-                select new
-                {
-                    WalletId = w.Id,
-                    WalletName = w.Name,
-                    Year = c.Date.Year,
-                    Month = c.Date.Month,
-                    CategoryId = -1L,
-                    CategoryName = "InvestmentContribution",
-                    Inflow = 0m,
-                    Outflow = e.Credit.Amount
-                })
-                .ToListAsync(ct);
-
             var all = normalized
-                .Select(x => new { x.WalletId, x.WalletName, x.Year, x.Month, x.CategoryId, x.CategoryName, x.Inflow, x.Outflow })
-                .Concat(contributions.Select(x => new { x.WalletId, x.WalletName, x.Year, x.Month, x.CategoryId, x.CategoryName, x.Inflow, x.Outflow }));
+                .Select(x => new { x.WalletId, x.WalletName, x.Year, x.Month, x.CategoryId, x.CategoryName, x.Inflow, x.Outflow });
 
             var rows = all
                 .GroupBy(x => new { x.WalletId, x.WalletName, x.Year, x.Month, x.CategoryId, x.CategoryName })
@@ -196,7 +179,7 @@ namespace SmartFund.Persistence.Reporting
             return rows;
         }
 
-        public async Task<List<WalletBalanceRow>> WalletBalanceReportAsync(CancellationToken ct)
+        public async Task<List<WalletBalanceRow>> WalletBalanceReportAsync(long userId, CancellationToken ct)
         {
             // Monthly movement per wallet derived from ledger entries (wallet entry only), then cumulatively summed.
             var movements = await (
@@ -205,6 +188,7 @@ namespace SmartFund.Persistence.Reporting
                 join lt in _db.LedgerTransactions.AsNoTracking() on p.LedgerTransactionId equals lt.Id
                 from e in lt.Entries
                 where lt.Status != TransactionStatus.Reversed
+                      && w.UserId == userId
                       && e.AccountId == w.LedgerAccountId
                 select new
                 {
@@ -216,25 +200,7 @@ namespace SmartFund.Persistence.Reporting
                 })
                 .ToListAsync(ct);
 
-            var contributionMovements = await (
-                from c in _db.PersonalInvestmentContributions.AsNoTracking()
-                join w in _db.PersonalWallets.AsNoTracking() on c.WalletId equals w.Id
-                join lt in _db.LedgerTransactions.AsNoTracking() on c.LedgerTransactionId equals lt.Id
-                from e in lt.Entries
-                where lt.Status != TransactionStatus.Reversed
-                      && e.AccountId == w.LedgerAccountId
-                select new
-                {
-                    WalletId = w.Id,
-                    WalletName = w.Name,
-                    Year = c.Date.Year,
-                    Month = c.Date.Month,
-                    Delta = e.Debit.Amount - e.Credit.Amount
-                })
-                .ToListAsync(ct);
-
             var monthly = movements
-                .Concat(contributionMovements)
                 .GroupBy(x => new { x.WalletId, x.WalletName, x.Year, x.Month })
                 .Select(g => new
                 {

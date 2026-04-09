@@ -3,13 +3,12 @@ import BalanceCard from '../components/BalanceCard';
 import CategoryPieChart from '../components/CategoryPieChart';
 import NetWorthChart from '../components/NetWorthChart';
 import CashFlowChart from '../components/CashFlowChart';
-import InvestmentContributionChart from '../components/InvestmentContributionChart';
 import RecentTransactions from '../components/RecentTransactions';
 import FinancialInsights from '../components/FinancialInsights';
 import AIInsightsPanel from '../components/AIInsightsPanel';
-import InvestFromPersonalFundsModal from '../components/InvestFromPersonalFundsModal';
 import InfoTooltip from '../components/InfoTooltip';
 import MonthOverMonthCard from '../components/MonthOverMonthCard';
+import { Link } from 'react-router-dom';
 import {
   getDashboard,
   getCashFlow,
@@ -20,6 +19,10 @@ import {
   getMonthlyExpenses,
   getBudgets,
   getBudgetTracking,
+  getConnectedAccounts,
+  getDebts,
+  getDebtInsights,
+  type ConnectedBankAccountDto,
   type CashRunwayDto,
 } from '../services/personalFinanceApi';
 import type {
@@ -29,8 +32,17 @@ import type {
   NetWorthPoint,
   InvestmentContributionPoint,
   MonthlyCategoryAmountRow,
-  PersonalTransactionDto
+  PersonalTransactionDto,
+  PersonalDebtDto,
+  DebtInsightsDto,
 } from '../types/financeTypes';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AlertCircle, RefreshCw, Wallet, TrendingUp } from 'lucide-react';
+import { maskAmount, maskName } from '@/lib/utils';
+import { usePrivacy } from '@/contexts/PrivacyContext';
 
 const MONTH_LABELS = [
   '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -102,26 +114,10 @@ function buildNetWorth(
     .map(([key, balance]) => ({ month: monthLabel(key), balance }));
 }
 
-function buildInvestmentContributions(
-  cashflow: CashFlowRow[]
-): InvestmentContributionPoint[] {
-  /* Outflows are expenses / contributions. Group by month. */
-  const map = new Map<string, number>();
-  for (const row of cashflow) {
-    if (row.outflow > 0) {
-      const key = monthKey(row.year, row.month);
-      map.set(key, (map.get(key) ?? 0) + row.outflow);
-    }
-  }
-  return Array.from(map.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, amount]) => ({ month: monthLabel(key), amount }));
-}
-
 export default function PersonalDashboard() {
+  const { isPrivate } = usePrivacy();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [investModalOpen, setInvestModalOpen] = useState(false);
 
   const [dashboard, setDashboard] = useState<PersonalFinanceDashboardDto | null>(null);
   const [runway, setRunway] = useState<CashRunwayDto | null>(null);
@@ -132,6 +128,11 @@ export default function PersonalDashboard() {
     { year: number; month: number; balance: number }[]
   >([]);
   const [recentTransactions, setRecentTransactions] = useState<PersonalTransactionDto[]>([]);
+  const [connectedAccounts, setConnectedAccounts] = useState<ConnectedBankAccountDto[]>([]);
+  const [debts, setDebts] = useState<PersonalDebtDto[]>([]);
+  const [debtInsights, setDebtInsights] = useState<DebtInsightsDto | null>(null);
+  const [showNetWorth, setShowNetWorth] = useState(false);
+  const [bankTypeFilter, setBankTypeFilter] = useState<string>('all');
   const [budgetHealth, setBudgetHealth] = useState<
     | {
         totalBudgets: number;
@@ -145,7 +146,7 @@ export default function PersonalDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [dash, rwy, cf, inc, exp, wb, budgets, txs] = await Promise.all([
+      const [dash, rwy, cf, inc, exp, wb, budgets, txs, banks, debtList, debtIns] = await Promise.all([
         getDashboard(),
         getCashRunway().catch(() => null),
         getCashFlow(),
@@ -153,7 +154,10 @@ export default function PersonalDashboard() {
         getMonthlyExpenses(),
         getWalletBalances(),
         getBudgets(),
-        getTransactions({ orderBy: 'inputTime', direction: 'desc', take: 50 })
+        getTransactions({ orderBy: 'inputTime', direction: 'desc', take: 50 }),
+        getConnectedAccounts().catch(() => [] as ConnectedBankAccountDto[]),
+        getDebts().catch(() => [] as PersonalDebtDto[]),
+        getDebtInsights().catch(() => null),
       ] as const);
       setDashboard(dash);
       setRunway(rwy);
@@ -162,6 +166,9 @@ export default function PersonalDashboard() {
       setExpenseRows(exp);
       setWalletBalances(wb);
       setRecentTransactions(txs);
+      setConnectedAccounts(banks);
+      setDebts(debtList);
+      setDebtInsights(debtIns);
 
       try {
         const now = new Date();
@@ -211,11 +218,6 @@ export default function PersonalDashboard() {
     [walletBalances]
   );
 
-  const investData = useMemo(
-    () => buildInvestmentContributions(cashflow),
-    [cashflow]
-  );
-
   const savings =
     dashboard ? dashboard.monthlyIncome - dashboard.monthlyExpenses : 0;
 
@@ -231,6 +233,37 @@ export default function PersonalDashboard() {
 
   const runwayMonths = runway?.runwayMonths ?? null;
 
+  const bankTypeOptions = useMemo(() => {
+    const types = Array.from(new Set(connectedAccounts
+      .map(a => (a.accountType || '').trim().toLowerCase())
+      .filter(Boolean)));
+    return ['all', ...types];
+  }, [connectedAccounts]);
+
+  const filteredBankBalance = useMemo(() => {
+    const rows = bankTypeFilter === 'all'
+      ? connectedAccounts
+      : connectedAccounts.filter(a => (a.accountType || '').trim().toLowerCase() === bankTypeFilter);
+    return rows.reduce((sum, a) => sum + a.balanceNaira, 0);
+  }, [connectedAccounts, bankTypeFilter]);
+
+  const totalBalanceValue = dashboard
+    ? dashboard.walletBalance + filteredBankBalance
+    : null;
+
+  const activeDebts = debts.filter(d => d.status === 'Active');
+  const totalRemainingDebt = activeDebts.reduce((sum, d) => sum + d.remainingBalance, 0);
+  const overdueDebts = activeDebts.filter(d => d.daysUntilDue < 0);
+  const nextDueDebt = activeDebts
+    .filter(d => d.daysUntilDue >= 0)
+    .sort((a, b) => a.daysUntilDue - b.daysUntilDue)[0] ?? null;
+
+  const debtHealthTone: 'red' | 'yellow' | 'green' = (() => {
+    if (overdueDebts.length > 0 || (debtInsights && debtInsights.burdenPercent > 40)) return 'red';
+    if ((debtInsights && debtInsights.burdenPercent > 20) || activeDebts.some(d => d.daysUntilDue >= 0 && d.daysUntilDue <= 7)) return 'yellow';
+    return 'green';
+  })();
+
   const burnTrendCaption = (() => {
     if (!runway || runway.avgMonthlyBurnNaira === 0) return 'Not enough data yet';
     const pct = Math.abs(runway.burnTrend * 100).toFixed(0);
@@ -241,75 +274,104 @@ export default function PersonalDashboard() {
   })();
 
   return (
-    <div className="space-y-8">
-      {/* ── Page heading ── */}
-      <div className="animate-fade-in-up flex items-end justify-between">
+    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+      {/* Page heading */}
+      <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-[26px] font-extrabold tracking-tight text-slate-900 dark:text-slate-50">
-            Personal Finance
-          </h1>
-          <p className="mt-1 max-w-md text-sm text-slate-500 dark:text-slate-400">
+          <h1 className="text-2xl font-bold tracking-tight">Personal Finance</h1>
+          <p className="text-muted-foreground text-sm mt-1 max-w-md">
             Your complete money dashboard — see what you earn, spend, save, and invest at a glance.
             Hover the <span className="inline-flex translate-y-[1px]"><InfoTooltip text="Tooltips like this explain financial terms in plain language. Hover any ⓘ icon to learn more!" /></span> icons anywhere on this page for more info.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="group relative">
-            <button
-              type="button"
-              onClick={() => setInvestModalOpen(true)}
-              className="rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-emerald-500/20 transition-all duration-200 hover:shadow-lg hover:shadow-emerald-500/30 hover:-translate-y-0.5 active:scale-[0.97]"
-            >
-              💰 Invest
-            </button>
-            <span className="pointer-events-none absolute -bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-800 px-2.5 py-1.5 text-[11px] font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
-              Move money into an investment tranche
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={load}
-            disabled={loading}
-            className="rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5 active:scale-[0.97] disabled:opacity-50 disabled:shadow-none"
-          >
-            {loading ? 'Refreshing…' : '↻ Refresh'}
-          </button>
-        </div>
+        <Button
+          variant="default"
+          onClick={load}
+          disabled={loading}
+          className="gap-2"
+        >
+          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          {loading ? 'Refreshing…' : 'Refresh'}
+        </Button>
       </div>
 
-      {error ? (
-        <div className="animate-fade-in-up flex items-start gap-3 rounded-2xl border border-rose-200 bg-gradient-to-r from-rose-50 to-rose-50/60 px-5 py-4 shadow-sm dark:border-rose-900/50 dark:from-rose-950/30 dark:to-rose-950/20">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-500 dark:bg-rose-950/50 dark:text-rose-400">
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-rose-800 dark:text-rose-200">Something went wrong</p>
-            <p className="mt-0.5 text-sm text-rose-700 dark:text-rose-300">{error}</p>
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Something went wrong</AlertTitle>
+          <AlertDescription className="flex items-center gap-2">
+            {error}
             <button
               type="button"
               onClick={load}
-              className="mt-2 text-xs font-bold text-rose-600 underline underline-offset-2 transition-colors hover:text-rose-800"
+              className="underline underline-offset-2 font-semibold ml-2"
             >
               Try again
             </button>
-          </div>
-        </div>
-      ) : null}
+          </AlertDescription>
+        </Alert>
+      )}
 
-      {/* ════════════════════  TOP ROW: KPI Cards  ════════════════════ */}
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Feature 3: Overdue debt alert banner */}
+      {!loading && overdueDebts.length > 0 && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Overdue debts</AlertTitle>
+          <AlertDescription className="flex flex-wrap items-center gap-1">
+            {overdueDebts.map((d, i) => (
+              <span key={d.id}>
+                {i > 0 && ', '}
+                <span className="font-semibold">{maskName(d.creditorName, isPrivate)}</span>
+                {' '}({Math.abs(d.daysUntilDue)}d overdue)
+              </span>
+            ))}
+            {' — '}
+            <Link to="/finance/debts" className="underline underline-offset-2 font-semibold">
+              Go to Debts →
+            </Link>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* KPI Cards */}
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         <BalanceCard
-          title="Total Balance"
-          value={dashboard ? formatCurrency(dashboard.totalBalance) : '—'}
-          description="The combined amount across all your wallets right now. Think of it as your total available cash."
+          title={showNetWorth ? 'Net Worth' : 'Total Balance'}
+          value={
+            showNetWorth && totalBalanceValue !== null
+              ? maskAmount(totalBalanceValue - totalRemainingDebt, isPrivate)
+              : totalBalanceValue !== null
+                ? maskAmount(totalBalanceValue, isPrivate)
+                : '—'
+          }
+          subtitle={
+            showNetWorth && totalBalanceValue !== null
+              ? `${maskAmount(totalBalanceValue, isPrivate)} assets − ${maskAmount(totalRemainingDebt, isPrivate)} debts`
+              : dashboard
+                ? `Wallets ${maskAmount(dashboard.walletBalance, isPrivate)} · Banks (${bankTypeFilter === 'all' ? 'all' : bankTypeFilter}) ${maskAmount(filteredBankBalance, isPrivate)}`
+                : undefined
+          }
+          description="Combined balance across your app wallets and connected bank accounts."
           icon={<WalletIcon />}
           loading={loading}
+          action={
+            totalRemainingDebt > 0 ? (
+              <button
+                type="button"
+                onClick={() => setShowNetWorth(v => !v)}
+                className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                title={showNetWorth ? 'Show total balance' : 'Show net worth (assets − debts)'}
+              >
+                {showNetWorth
+                  ? <Wallet className="h-3.5 w-3.5" />
+                  : <TrendingUp className="h-3.5 w-3.5" />}
+              </button>
+            ) : undefined
+          }
         />
         <BalanceCard
           title="Monthly Income"
-          value={dashboard ? formatCurrency(dashboard.monthlyIncome) : '—'}
+          value={dashboard ? maskAmount(dashboard.monthlyIncome, isPrivate) : '—'}
           description="All the money you received this month — salary, side income, gifts, refunds, etc."
           icon={<ArrowUpIcon />}
           trend={
@@ -321,7 +383,7 @@ export default function PersonalDashboard() {
         />
         <BalanceCard
           title="Monthly Expenses"
-          value={dashboard ? formatCurrency(dashboard.monthlyExpenses) : '—'}
+          value={dashboard ? maskAmount(dashboard.monthlyExpenses, isPrivate) : '—'}
           description="Everything you spent money on this month — bills, food, transport, subscriptions, etc."
           icon={<ArrowDownIcon />}
           trend={
@@ -331,88 +393,125 @@ export default function PersonalDashboard() {
           }
           loading={loading}
         />
-        <BalanceCard
-          title="Investments"
-          value={
-            dashboard
-              ? formatCurrency(dashboard.investmentContributions)
-              : '—'
-          }
-          description="Money you've put into investment tranches this month. Investing grows your wealth over time."
-          subtitle={
-            savings >= 0
-              ? `${formatCurrency(savings)} saved this month`
-              : `${formatCurrency(Math.abs(savings))} over budget`
-          }
-          icon={<ChartIcon />}
-          loading={loading}
-        />
       </div>
 
-      {/* ════════════════════  HEALTH SNAPSHOT  ════════════════════ */}
+      {bankTypeOptions.length > 1 && (
+        <div className="-mt-2 flex flex-wrap items-center gap-2">
+          <p className="text-xs text-muted-foreground">Bank balance type:</p>
+          {bankTypeOptions.map((type) => (
+            <Button
+              key={type}
+              type="button"
+              size="sm"
+              variant={bankTypeFilter === type ? 'default' : 'outline'}
+              onClick={() => setBankTypeFilter(type)}
+              className="h-7 px-2.5 text-xs"
+            >
+              {type === 'all' ? 'All' : type}
+            </Button>
+          ))}
+        </div>
+      )}
+
+      {/* Feature 2: Debt Health summary */}
+      {!loading && activeDebts.length > 0 && (
+        <div className="rounded-xl border bg-card px-5 py-4 shadow-sm flex flex-wrap items-center gap-x-6 gap-y-2">
+          <div className="flex items-center gap-2 shrink-0">
+            <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${
+              debtHealthTone === 'red' ? 'bg-destructive' :
+              debtHealthTone === 'yellow' ? 'bg-yellow-400' :
+              'bg-emerald-500'
+            }`} />
+            <p className="text-sm font-semibold">Debt Health</p>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">{maskAmount(totalRemainingDebt, isPrivate)}</span>
+            {' '}owed across{' '}
+            <span className="font-medium text-foreground">{activeDebts.length}</span>
+            {' '}{activeDebts.length === 1 ? 'debt' : 'debts'}
+          </p>
+          {nextDueDebt && (
+            <p className="text-sm text-muted-foreground">
+              Next due:{' '}
+              <span className="font-medium text-foreground">{maskName(nextDueDebt.creditorName, isPrivate)}</span>
+              {' — '}
+              {nextDueDebt.daysUntilDue === 0
+                ? 'today'
+                : `${nextDueDebt.daysUntilDue} day${nextDueDebt.daysUntilDue !== 1 ? 's' : ''}`}
+            </p>
+          )}
+          {debtInsights && (
+            <p className="text-sm text-muted-foreground ml-auto">
+              Burden:{' '}
+              <span className="font-medium text-foreground">{debtInsights.burdenPercent.toFixed(0)}%</span>
+              {' '}of income
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Health Snapshot */}
       <div>
         <div className="mb-3 flex items-center gap-2">
-          <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200">📊 Financial Health Check</h2>
+          <h2 className="text-sm font-bold">Financial Health Check</h2>
           <InfoTooltip text="These four cards give you a quick snapshot of how your finances are doing. Green = great, blue = okay, red = needs attention." />
         </div>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          title="Savings rate"
-          value={savingsRate === null ? '—' : formatPercent(Math.max(savingsRate, 0))}
-          caption="How much of your income you kept this month"
-          tooltip="Savings rate = (Income − Expenses) ÷ Income. Financial experts recommend saving at least 20% of your income every month."
-          tone={savingsRate !== null && savingsRate >= 0.2 ? 'positive' : savingsRate !== null && savingsRate > 0 ? 'neutral' : 'negative'}
-          loading={loading}
-        />
-        <MetricCard
-          title="Runway"
-          value={runwayMonths === null ? '—' : `${runwayMonths.toFixed(1)} months`}
-          caption={burnTrendCaption}
-          tooltip="Runway = total balance ÷ average monthly expenses (last 3 complete months). If you stopped earning today, this is how long your money would last. 6+ months is a solid emergency fund."
-          tone={runwayMonths !== null && runwayMonths >= 6 ? 'positive' : runwayMonths !== null && runwayMonths >= 3 ? 'neutral' : 'negative'}
-          loading={loading}
-        />
-        <MetricCard
-          title="Spending vs income"
-          value={expenseRatio === null ? '—' : formatPercent(expenseRatio)}
-          caption="Lower is better (aim for < 80%)"
-          tooltip="This shows what percentage of your income goes to expenses. If it's under 80%, you have breathing room. Over 100% means you're spending more than you earn."
-          tone={expenseRatio !== null && expenseRatio < 0.8 ? 'positive' : expenseRatio !== null && expenseRatio <= 1 ? 'neutral' : 'negative'}
-          loading={loading}
-        />
-
-        <MetricCard
-          title="Budgets"
-          value={
-            budgetHealth
-              ? `${budgetHealth.totalBudgets - budgetHealth.overBudgetCount}/${budgetHealth.totalBudgets} on track`
-              : '—'
-          }
-          caption={
-            budgetHealth
-              ? `Remaining this month: ${formatCurrency(budgetHealth.remainingAmount)}`
-              : 'Create budgets to keep spending under control'
-          }
-          tooltip="Budgets let you set spending limits per category (e.g. ₦50,000/month for food). This shows how many of your budgets are still within the limit you set."
-          tone={
-            budgetHealth
-              ? budgetHealth.overBudgetCount === 0
-                ? 'positive'
-                : budgetHealth.overBudgetCount < budgetHealth.totalBudgets
-                  ? 'neutral'
-                  : 'negative'
-              : 'neutral'
-          }
-          loading={loading}
-        />
+          <MetricCard
+            title="Savings rate"
+            value={savingsRate === null ? '—' : formatPercent(Math.max(savingsRate, 0))}
+            caption="How much of your income you kept this month"
+            tooltip="Savings rate = (Income − Expenses) ÷ Income. Financial experts recommend saving at least 20% of your income every month."
+            tone={savingsRate !== null && savingsRate >= 0.2 ? 'positive' : savingsRate !== null && savingsRate > 0 ? 'neutral' : 'negative'}
+            loading={loading}
+          />
+          <MetricCard
+            title="Runway"
+            value={runwayMonths === null ? '—' : `${runwayMonths.toFixed(1)} months`}
+            caption={burnTrendCaption}
+            tooltip="Runway = total balance ÷ average monthly expenses (last 3 complete months). If you stopped earning today, this is how long your money would last. 6+ months is a solid emergency fund."
+            tone={runwayMonths !== null && runwayMonths >= 6 ? 'positive' : runwayMonths !== null && runwayMonths >= 3 ? 'neutral' : 'negative'}
+            loading={loading}
+          />
+          <MetricCard
+            title="Spending vs income"
+            value={expenseRatio === null ? '—' : formatPercent(expenseRatio)}
+            caption="Lower is better (aim for < 80%)"
+            tooltip="This shows what percentage of your income goes to expenses. If it's under 80%, you have breathing room. Over 100% means you're spending more than you earn."
+            tone={expenseRatio !== null && expenseRatio < 0.8 ? 'positive' : expenseRatio !== null && expenseRatio <= 1 ? 'neutral' : 'negative'}
+            loading={loading}
+          />
+          <MetricCard
+            title="Budgets"
+            value={
+              budgetHealth
+                ? `${budgetHealth.totalBudgets - budgetHealth.overBudgetCount}/${budgetHealth.totalBudgets} on track`
+                : '—'
+            }
+            caption={
+              budgetHealth
+                ? `Remaining this month: ${maskAmount(budgetHealth.remainingAmount, isPrivate)}`
+                : 'Create budgets to keep spending under control'
+            }
+            tooltip="Budgets let you set spending limits per category (e.g. ₦50,000/month for food). This shows how many of your budgets are still within the limit you set."
+            tone={
+              budgetHealth
+                ? budgetHealth.overBudgetCount === 0
+                  ? 'positive'
+                  : budgetHealth.overBudgetCount < budgetHealth.totalBudgets
+                    ? 'neutral'
+                    : 'negative'
+                : 'neutral'
+            }
+            loading={loading}
+          />
+        </div>
       </div>
-      </div>
 
-      {/* ════════════════════  MAIN + AI SIDEBAR  ════════════════════ */}
+      {/* Main + AI Sidebar */}
       <div className="grid gap-6 xl:grid-cols-[1fr_340px]">
-        {/* ── Left: main content ── */}
+        {/* Left: main content */}
         <div className="space-y-8 min-w-0">
-          {/* ── Smart Insights ── */}
           <ChartCard title="Insights" icon={<InsightIcon />} description="Personalised tips based on your financial activity — updated every time you record a transaction">
             <FinancialInsights
               dashboard={dashboard}
@@ -421,7 +520,6 @@ export default function PersonalDashboard() {
             />
           </ChartCard>
 
-          {/* ── Month-over-Month Comparison ── */}
           <ChartCard
             title="This Month vs Last Month"
             icon={<CompareSmallIcon />}
@@ -430,7 +528,6 @@ export default function PersonalDashboard() {
             <MonthOverMonthCard data={incomeExpenseData} loading={loading} />
           </ChartCard>
 
-          {/* ── Net Worth + Cash Flow ── */}
           <div className="grid gap-6 lg:grid-cols-2">
             <ChartCard
               title="Net Worth Growth"
@@ -449,16 +546,6 @@ export default function PersonalDashboard() {
             </ChartCard>
           </div>
 
-          {/* ── Investment Contributions ── */}
-          <ChartCard
-            title="Investment Contributions"
-            icon={<LayersSmallIcon />}
-            description="This shows how much money you moved into investment tranches each month. Consistent investing — even small amounts — builds long-term wealth through compound growth."
-          >
-            <InvestmentContributionChart data={investData} loading={loading} />
-          </ChartCard>
-
-          {/* ── Pie + Recent Transactions ── */}
           <div className="grid gap-6 lg:grid-cols-2">
             <ChartCard
               title="Spending by Category"
@@ -488,7 +575,7 @@ export default function PersonalDashboard() {
           </div>
         </div>
 
-        {/* ── Right: AI Insights Panel ── */}
+        {/* Right: AI Insights Panel */}
         <div className="xl:sticky xl:top-6 xl:self-start">
           <AIInsightsPanel
             dashboard={dashboard}
@@ -497,13 +584,6 @@ export default function PersonalDashboard() {
           />
         </div>
       </div>
-
-      {/* ── Invest Modal ── */}
-      <InvestFromPersonalFundsModal
-        open={investModalOpen}
-        onClose={() => setInvestModalOpen(false)}
-        onSuccess={load}
-      />
     </div>
   );
 }
@@ -517,7 +597,7 @@ function TopCategoryBreakdown(props: {
     return (
       <div className="space-y-2">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-8 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
+          <Skeleton key={i} className="h-8 w-full rounded-xl" />
         ))}
       </div>
     );
@@ -530,33 +610,33 @@ function TopCategoryBreakdown(props: {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Top categories (this month)
         </p>
-        <p className="text-xs text-slate-400">Total: {formatCurrency(total)}</p>
+        <p className="text-xs text-muted-foreground">Total: {formatCurrency(total)}</p>
       </div>
 
       <ul className="space-y-2">
         {props.rows.slice(0, 5).map((r) => {
           const pct = total > 0 ? (r.amount / total) * 100 : 0;
           return (
-            <li key={r.categoryId} className="rounded-xl bg-slate-50/70 px-3 py-2.5 ring-1 ring-slate-200/60 dark:bg-slate-950/40 dark:ring-slate-800">
+            <li key={r.categoryId} className="rounded-xl bg-muted/40 px-3 py-2.5 ring-1 ring-border">
               <div className="flex items-center justify-between gap-3">
-                <p className="min-w-0 truncate text-sm font-semibold text-slate-700 dark:text-slate-200">
+                <p className="min-w-0 truncate text-sm font-semibold">
                   {r.categoryName}
                 </p>
-                <p className="shrink-0 text-sm font-bold tabular-nums text-slate-900 dark:text-slate-50">
+                <p className="shrink-0 text-sm font-bold tabular-nums">
                   {formatCurrency(r.amount)}
                 </p>
               </div>
               <div className="mt-2 flex items-center gap-3">
-                <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-500"
+                    className="h-full rounded-full bg-primary"
                     style={{ width: `${Math.min(pct, 100)}%` }}
                   />
                 </div>
-                <p className="w-12 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
+                <p className="w-12 text-right text-xs font-semibold text-muted-foreground tabular-nums">
                   {pct.toFixed(0)}%
                 </p>
               </div>
@@ -576,12 +656,12 @@ function MetricCard(props: {
   tone: 'positive' | 'neutral' | 'negative';
   loading?: boolean;
 }) {
-  const toneStyles =
+  const toneVariant =
     props.tone === 'positive'
-      ? 'bg-emerald-50/60 text-emerald-700 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-800'
+      ? 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-800'
       : props.tone === 'negative'
-        ? 'bg-rose-50/60 text-rose-700 ring-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:ring-rose-800'
-        : 'bg-blue-50/60 text-blue-700 ring-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-800';
+        ? 'bg-rose-50 text-rose-700 ring-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:ring-rose-800'
+        : 'bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-800';
 
   const toneLabels: Record<string, string> = {
     positive: '✓ good',
@@ -590,37 +670,33 @@ function MetricCard(props: {
   };
 
   return (
-    <div className="rounded-2xl bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(59,130,246,0.04)] ring-1 ring-slate-200/60 dark:bg-slate-900 dark:ring-slate-800">
+    <div className="rounded-xl border bg-card p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
               {props.title}
             </p>
             {props.tooltip && <InfoTooltip text={props.tooltip} />}
           </div>
-          <p className="mt-2 text-[26px] font-extrabold leading-none tracking-tight text-slate-900 dark:text-slate-50 tabular-nums">
+          <p className="mt-2 text-2xl font-extrabold leading-none tracking-tight tabular-nums">
             {props.loading ? (
-              <span className="relative inline-block h-8 w-28 overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800">
-                <span className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent dark:via-slate-700/60" />
-              </span>
+              <Skeleton className="h-8 w-28 rounded-lg" />
             ) : (
               props.value
             )}
           </p>
-          <p className="mt-2 text-[13px] font-medium text-slate-500 dark:text-slate-400">
+          <p className="mt-2 text-xs text-muted-foreground">
             {props.caption}
           </p>
         </div>
-        <div className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${toneStyles}`}>
+        <div className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${toneVariant}`}>
           {toneLabels[props.tone] ?? props.tone}
         </div>
       </div>
     </div>
   );
 }
-
-/* ── Reusable card wrapper ── */
 
 function ChartCard(props: {
   title: string;
@@ -629,17 +705,17 @@ function ChartCard(props: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="group rounded-2xl bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(59,130,246,0.04)] ring-1 ring-slate-200/60 transition-shadow duration-300 hover:shadow-[0_4px_20px_rgba(59,130,246,0.08)] dark:bg-slate-900 dark:ring-slate-800">
+    <div className="rounded-xl border bg-card p-6 shadow-sm">
       <div className="mb-5 flex items-center gap-2.5">
         {props.icon ? (
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-500 transition-transform duration-300 group-hover:scale-105 dark:bg-blue-950/50 dark:text-blue-400">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
             {props.icon}
           </div>
         ) : null}
         <div>
-          <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100">{props.title}</h2>
+          <h2 className="text-sm font-bold">{props.title}</h2>
           {props.description ? (
-            <p className="text-xs text-slate-400">{props.description}</p>
+            <p className="text-xs text-muted-foreground">{props.description}</p>
           ) : null}
         </div>
       </div>
@@ -647,8 +723,6 @@ function ChartCard(props: {
     </div>
   );
 }
-
-/* ── Section mini-icons ── */
 
 function InsightIcon() {
   return (
@@ -670,14 +744,6 @@ function BarChartSmallIcon() {
   return (
     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-    </svg>
-  );
-}
-
-function LayersSmallIcon() {
-  return (
-    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6.429 9.75L2.25 12l4.179 2.25m0-4.5l5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0l4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0l-5.571 3-5.571-3" />
     </svg>
   );
 }
@@ -707,37 +773,17 @@ function CompareSmallIcon() {
   );
 }
 
-/* ── Inline SVG icons ── */
-
 function WalletIcon() {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-5 w-5"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
     </svg>
   );
 }
 
 function ArrowUpIcon() {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-5 w-5"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
     </svg>
   );
@@ -745,34 +791,8 @@ function ArrowUpIcon() {
 
 function ArrowDownIcon() {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-5 w-5"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-    </svg>
-  );
-}
-
-function ChartIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-5 w-5"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-      />
     </svg>
   );
 }

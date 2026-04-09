@@ -18,8 +18,17 @@ namespace SmartFund.Persistence.Repositories
         public Task<List<ConnectedBankAccount>> ListAsync(CancellationToken ct) =>
             _db.ConnectedBankAccounts.OrderBy(x => x.ConnectedAtUtc).ToListAsync(ct);
 
+        public Task<List<ConnectedBankAccount>> ListByUserAsync(long userId, CancellationToken ct) =>
+            _db.ConnectedBankAccounts
+                .Where(x => x.UserId == userId)
+                .OrderBy(x => x.ConnectedAtUtc)
+                .ToListAsync(ct);
+
         public Task<ConnectedBankAccount?> GetByIdAsync(long id, CancellationToken ct) =>
             _db.ConnectedBankAccounts.FirstOrDefaultAsync(x => x.Id == id, ct);
+
+        public Task<ConnectedBankAccount?> GetByIdForUserAsync(long id, long userId, CancellationToken ct) =>
+            _db.ConnectedBankAccounts.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
 
         public Task<ConnectedBankAccount?> GetByMonoAccountIdAsync(string monoAccountId, CancellationToken ct) =>
             _db.ConnectedBankAccounts.FirstOrDefaultAsync(x => x.MonoAccountId == monoAccountId, ct);

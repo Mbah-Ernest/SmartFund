@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SmartFund.API.Infrastructure;
 using SmartFund.Application.Interfaces;
 using SmartFund.Application.Services.PersonalFinance;
 using SmartFund.Domain.PersonalFinance.Enums;
@@ -12,7 +13,7 @@ namespace SmartFund.API.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/bank")]
-public sealed class BankInboxController : ControllerBase
+public sealed class BankInboxController : SmartFundControllerBase
 {
     private readonly BankInboxService _inbox;
     private readonly TransferDetectionService _transferDetection;
@@ -39,8 +40,9 @@ public sealed class BankInboxController : ControllerBase
         if (page < 1) page = 1;
         if (pageSize < 1 || pageSize > 100) pageSize = 50;
 
-        var items = await _importRepo.ListInboxAsync(page, pageSize, accountId, ct);
-        var count = await _importRepo.CountNeedsReviewAsync(ct);
+        var userId = GetCurrentUserId();
+        var items = await _importRepo.ListInboxAsync(page, pageSize, userId, accountId, ct);
+        var count = await _importRepo.CountNeedsReviewAsync(userId, ct);
 
         return Ok(new
         {
@@ -71,7 +73,7 @@ public sealed class BankInboxController : ControllerBase
     [HttpGet("inbox/count")]
     public async Task<IActionResult> GetInboxCount(CancellationToken ct)
     {
-        var count = await _importRepo.CountNeedsReviewAsync(ct);
+        var count = await _importRepo.CountNeedsReviewAsync(GetCurrentUserId(), ct);
         return Ok(new { count });
     }
 
@@ -83,6 +85,7 @@ public sealed class BankInboxController : ControllerBase
             return BadRequest(new { error = "Invalid transactionType. Use 'Income' or 'Expense'." });
 
         var ledgerTxId = await _inbox.CategorizeAsync(
+            GetCurrentUserId(),
             id,
             body.WalletId,
             body.CategoryId,
@@ -99,7 +102,7 @@ public sealed class BankInboxController : ControllerBase
     [HttpPost("inbox/{id:long}/exclude")]
     public async Task<IActionResult> Exclude(long id, [FromBody] ExcludeRequest body, CancellationToken ct)
     {
-        await _inbox.ExcludeAsync(id, body.Note, ct);
+        await _inbox.ExcludeAsync(GetCurrentUserId(), id, body.Note, ct);
         return NoContent();
     }
 
@@ -110,7 +113,8 @@ public sealed class BankInboxController : ControllerBase
         if (!System.Enum.TryParse<PersonalTransactionType>(body.TransactionType, ignoreCase: true, out var txType))
             return BadRequest(new { error = "Invalid transactionType. Use 'Income' or 'Expense'." });
 
-        var posted = await _inbox.BulkCategorizeAsync(body.ImportIds, body.WalletId, body.CategoryId, txType, ct);
+        var posted = await _inbox.BulkCategorizeAsync(
+            GetCurrentUserId(), body.ImportIds, body.WalletId, body.CategoryId, txType, ct);
         return Ok(new { posted });
     }
 

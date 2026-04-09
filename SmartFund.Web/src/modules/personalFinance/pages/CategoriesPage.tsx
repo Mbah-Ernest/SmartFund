@@ -1,11 +1,33 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import {
   createCategory,
   getCategories,
-  renameCategory
+  renameCategory,
+  deleteCategory,
 } from '../services/personalFinanceApi';
 import type { PersonalCategoryDto } from '../types/financeTypes';
 import { PERSONAL_CATEGORY_TYPE } from '../types/financeTypes';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow
+} from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { AlertCircle, Plus, X, Trash2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 type CategoryTypeTab = 'expense' | 'income';
 
@@ -22,6 +44,8 @@ export default function CategoriesPage() {
   const [tab, setTab] = useState<CategoryTypeTab>('expense');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<PersonalCategoryDto | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -70,6 +94,23 @@ export default function CategoriesPage() {
     }
   }
 
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteCategory(deleteTarget.id);
+      toast('Category deleted');
+      setDeleteTarget(null);
+      await load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to delete category.');
+      setDeleteTarget(null);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   async function handleRename(id: number) {
     setSubmitting(true);
     setError(null);
@@ -87,189 +128,205 @@ export default function CategoriesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="animate-fade-in-up flex items-center justify-between">
+    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[26px] font-extrabold tracking-tight text-slate-900 dark:text-slate-50">
-            Categories
-          </h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          <h1 className="text-2xl font-bold tracking-tight">Categories</h1>
+          <p className="text-muted-foreground text-sm">
             Create and manage categories used for transactions and budgets (e.g. Tithe).
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowForm(v => !v)}
-          className="rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-blue-500/20 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5 active:scale-[0.97]"
-        >
-          {showForm ? 'Cancel' : '+ New Category'}
-        </button>
+        <Button onClick={() => setShowForm(v => !v)} variant={showForm ? 'outline' : 'default'} className="gap-2">
+          {showForm ? <><X className="h-4 w-4" /> Cancel</> : <><Plus className="h-4 w-4" /> New Category</>}
+        </Button>
       </div>
 
-      {error ? (
-        <div className="animate-fade-in-up flex items-start gap-3 rounded-2xl border border-rose-200 bg-gradient-to-r from-rose-50 to-rose-50/60 px-5 py-4 shadow-sm dark:border-rose-900/50 dark:from-rose-950/30 dark:to-rose-950/20">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-500 dark:bg-rose-950/50 dark:text-rose-400">
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-rose-800 dark:text-rose-200">Error</p>
-            <p className="mt-0.5 text-sm text-rose-700 dark:text-rose-300">{error}</p>
-          </div>
-        </div>
-      ) : null}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
-      {showForm ? (
-        <form
-          onSubmit={handleCreate}
-          className="rounded-2xl bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(59,130,246,0.04)] ring-1 ring-slate-200/60 space-y-4 dark:bg-slate-900 dark:ring-slate-800"
-        >
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-300">Name</span>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Tithe"
-                className="mt-1 block w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
-              />
-            </label>
-            <label className="block">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-300">Type</span>
-              <select
-                value={type}
-                onChange={(e) => setType(Number(e.target.value))}
-                className="mt-1 block w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
-              >
-                <option value={PERSONAL_CATEGORY_TYPE.Expense}>Expense</option>
-                <option value={PERSONAL_CATEGORY_TYPE.Income}>Income</option>
-              </select>
-            </label>
+      {showForm && (
+        <Card className="rounded-xl">
+          <CardHeader>
+            <CardTitle className="text-sm">New Category</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleCreate} className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="text-xs font-medium text-muted-foreground">Name</span>
+                  <Input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Tithe"
+                    className="mt-1"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-medium text-muted-foreground">Type</span>
+                  <select
+                    value={type}
+                    onChange={(e) => setType(Number(e.target.value))}
+                    className="mt-1 block w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-ring focus:ring-1 focus:ring-ring"
+                  >
+                    <option value={PERSONAL_CATEGORY_TYPE.Expense}>Expense</option>
+                    <option value={PERSONAL_CATEGORY_TYPE.Income}>Income</option>
+                  </select>
+                </label>
+              </div>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? 'Creating…' : 'Create Category'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card className="rounded-xl">
+        <CardHeader>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-sm">Your categories</CardTitle>
+              <CardDescription>Used for transactions, budgets and reporting</CardDescription>
+            </div>
+            <div className="flex gap-2">
+              {([
+                { key: 'expense', label: `Expenses (${expenseCategories.length})` },
+                { key: 'income', label: `Income (${incomeCategories.length})` }
+              ] as const).map(t => (
+                <Button
+                  key={t.key}
+                  type="button"
+                  size="sm"
+                  variant={tab === t.key ? 'default' : 'outline'}
+                  onClick={() => setTab(t.key)}
+                >
+                  {t.label}
+                </Button>
+              ))}
+            </div>
           </div>
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-blue-500/20 transition-all hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50 disabled:shadow-none"
-          >
-            {submitting ? 'Creating…' : 'Create Category'}
-          </button>
-        </form>
-      ) : null}
-
-      <div className="rounded-2xl bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(59,130,246,0.04)] ring-1 ring-slate-200/60 dark:bg-slate-900 dark:ring-slate-800">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100">Your categories</h2>
-            <p className="mt-0.5 text-xs text-slate-400">Used for transactions, budgets and reporting</p>
-          </div>
-
-          <div className="flex gap-2">
-            {([
-              { key: 'expense', label: `Expenses (${expenseCategories.length})` },
-              { key: 'income', label: `Income (${incomeCategories.length})` }
-            ] as const).map(t => (
-              <button
-                key={t.key}
-                type="button"
-                onClick={() => setTab(t.key)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                  tab === t.key
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-5 overflow-hidden rounded-xl ring-1 ring-slate-200/60 dark:ring-slate-800">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/60 dark:border-slate-800 dark:bg-slate-950">
-                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-slate-400">Name</th>
-                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-slate-400">ID</th>
-                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-slate-400 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>ID</TableHead>
+                <TableHead className="text-right">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {loading ? (
                 Array.from({ length: 6 }).map((_, i) => (
-                  <tr key={i} className="border-b border-slate-50 dark:border-slate-800">
-                    <td className="px-4 py-3"><div className="h-3 w-40 rounded bg-slate-100 dark:bg-slate-800" /></td>
-                    <td className="px-4 py-3"><div className="h-3 w-12 rounded bg-slate-100 dark:bg-slate-800" /></td>
-                    <td className="px-4 py-3"><div className="ml-auto h-7 w-20 rounded bg-slate-100 dark:bg-slate-800" /></td>
-                  </tr>
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-3 w-40" /></TableCell>
+                    <TableCell><Skeleton className="h-3 w-12" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="ml-auto h-7 w-20" /></TableCell>
+                  </TableRow>
                 ))
               ) : activeList.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="px-4 py-14 text-center">
-                    <p className="text-sm font-medium text-slate-500">No categories yet</p>
-                    <p className="mt-1 text-xs text-slate-400">Create one to start categorizing transactions.</p>
-                  </td>
-                </tr>
+                <TableRow>
+                  <TableCell colSpan={3} className="py-14 text-center">
+                    <p className="text-sm font-medium text-muted-foreground">No categories yet</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Create one to start categorizing transactions.</p>
+                  </TableCell>
+                </TableRow>
               ) : (
                 activeList.map((c) => (
-                  <tr key={c.id} className="border-b border-slate-50 dark:border-slate-800">
-                      <td className="px-4 py-3">
-                        {editingId === c.id ? (
-                          <input
-                            type="text"
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            className="block w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                          />
-                        ) : (
-                          <span className="font-semibold text-slate-800 dark:text-slate-100">{c.name}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{c.id}</td>
-                    <td className="px-4 py-3 text-right">
+                  <TableRow key={c.id}>
+                    <TableCell>
+                      {editingId === c.id ? (
+                        <Input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="max-w-xs"
+                        />
+                      ) : (
+                        <span className="font-semibold">{c.name}</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{c.id}</TableCell>
+                    <TableCell className="text-right">
                       {editingId === c.id ? (
                         <div className="flex justify-end gap-2">
-                          <button
+                          <Button
                             type="button"
+                            size="sm"
                             onClick={() => handleRename(c.id)}
                             disabled={submitting}
-                            className="rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
                           >
                             Save
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             type="button"
-                            onClick={() => {
-                              setEditingId(null);
-                              setEditName('');
-                            }}
-                            className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => { setEditingId(null); setEditName(''); }}
                           >
                             Cancel
-                          </button>
+                          </Button>
                         </div>
                       ) : (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingId(c.id);
-                            setEditName(c.name);
-                          }}
-                          className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-                        >
-                          Rename
-                        </button>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingId(c.id);
+                              setEditName(c.name);
+                            }}
+                          >
+                            Rename
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => setDeleteTarget(c)}
+                            title="Delete category"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       )}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{deleteTarget?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove the category. Only categories with no existing transactions can be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? 'Deleting…' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

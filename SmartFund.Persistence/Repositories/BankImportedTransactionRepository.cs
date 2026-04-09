@@ -35,10 +35,15 @@ namespace SmartFund.Persistence.Repositories
                 .ToListAsync(ct);
 
         public Task<List<BankImportedTransaction>> ListNeedsReviewAsync(
-            int page, int pageSize, long? accountId, CancellationToken ct)
+            int page, int pageSize, long userId, long? accountId, CancellationToken ct)
         {
+            var userAccountIds = _db.ConnectedBankAccounts
+                .Where(a => a.UserId == userId)
+                .Select(a => a.Id);
+
             var query = _db.BankImportedTransactions
-                .Where(x => x.Status == BankImportStatus.NeedsReview);
+                .Where(x => x.Status == BankImportStatus.NeedsReview
+                         && userAccountIds.Contains(x.ConnectedBankAccountId));
 
             if (accountId.HasValue)
                 query = query.Where(x => x.ConnectedBankAccountId == accountId.Value);
@@ -50,15 +55,28 @@ namespace SmartFund.Persistence.Repositories
                 .ToListAsync(ct);
         }
 
-        public Task<int> CountNeedsReviewAsync(CancellationToken ct) =>
-            _db.BankImportedTransactions.CountAsync(x => x.Status == BankImportStatus.NeedsReview, ct);
+        public Task<int> CountNeedsReviewAsync(long userId, CancellationToken ct)
+        {
+            var userAccountIds = _db.ConnectedBankAccounts
+                .Where(a => a.UserId == userId)
+                .Select(a => a.Id);
+
+            return _db.BankImportedTransactions
+                .CountAsync(x => x.Status == BankImportStatus.NeedsReview
+                              && userAccountIds.Contains(x.ConnectedBankAccountId), ct);
+        }
 
         public Task<List<BankImportedTransaction>> ListInboxAsync(
-            int page, int pageSize, long? accountId, CancellationToken ct)
+            int page, int pageSize, long userId, long? accountId, CancellationToken ct)
         {
+            var userAccountIds = _db.ConnectedBankAccounts
+                .Where(a => a.UserId == userId)
+                .Select(a => a.Id);
+
             var query = _db.BankImportedTransactions
                 .Where(x => x.Status == BankImportStatus.NeedsReview
-                         || x.Status == BankImportStatus.PairedTransfer);
+                         || x.Status == BankImportStatus.PairedTransfer)
+                .Where(x => userAccountIds.Contains(x.ConnectedBankAccountId));
 
             if (accountId.HasValue)
                 query = query.Where(x => x.ConnectedBankAccountId == accountId.Value);
@@ -94,6 +112,11 @@ namespace SmartFund.Persistence.Repositories
                 .Where(x => x.ConnectedBankAccountId == accountId)
                 .OrderByDescending(x => x.TransactionDateUtc)
                 .ToListAsync(ct);
+
+        public Task DeleteByAccountAsync(long accountId, CancellationToken ct) =>
+            _db.BankImportedTransactions
+                .Where(x => x.ConnectedBankAccountId == accountId)
+                .ExecuteDeleteAsync(ct);
 
         public Task AddAsync(BankImportedTransaction tx, CancellationToken ct) =>
             _db.BankImportedTransactions.AddAsync(tx, ct).AsTask();

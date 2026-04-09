@@ -11,6 +11,112 @@ namespace SmartFund.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.Sql(@"
+IF OBJECT_ID(N'[PersonalWallets]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [PersonalWallets] (
+        [Id] bigint NOT NULL IDENTITY,
+        [Name] nvarchar(100) NOT NULL,
+        [Currency] nvarchar(10) NOT NULL,
+        [LedgerAccountId] bigint NOT NULL,
+        [CreatedAt] datetime2 NOT NULL,
+        CONSTRAINT [PK_PersonalWallets] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_PersonalWallets_LedgerAccounts_LedgerAccountId] FOREIGN KEY ([LedgerAccountId]) REFERENCES [LedgerAccounts] ([Id]) ON DELETE NO ACTION
+    );
+
+    CREATE INDEX [IX_PersonalWallets_LedgerAccountId] ON [PersonalWallets] ([LedgerAccountId]);
+END;
+
+IF OBJECT_ID(N'[PersonalCategories]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [PersonalCategories] (
+        [Id] bigint NOT NULL IDENTITY,
+        [Name] nvarchar(100) NOT NULL,
+        [Type] int NOT NULL,
+        CONSTRAINT [PK_PersonalCategories] PRIMARY KEY ([Id])
+    );
+
+    CREATE UNIQUE INDEX [IX_PersonalCategories_Type_Name] ON [PersonalCategories] ([Type], [Name]);
+END;
+
+IF OBJECT_ID(N'[PersonalGoals]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [PersonalGoals] (
+        [Id] bigint NOT NULL IDENTITY,
+        [Name] nvarchar(200) NOT NULL,
+        [TargetAmount] decimal(18,2) NOT NULL,
+        [SavedAmount] decimal(18,2) NOT NULL,
+        [Deadline] datetime2 NOT NULL,
+        [CreatedAt] datetime2 NOT NULL,
+        CONSTRAINT [PK_PersonalGoals] PRIMARY KEY ([Id])
+    );
+END;
+
+IF OBJECT_ID(N'[PersonalBudgets]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [PersonalBudgets] (
+        [Id] bigint NOT NULL IDENTITY,
+        [CategoryId] bigint NOT NULL,
+        [Amount] decimal(18,2) NOT NULL,
+        [Period] int NOT NULL,
+        CONSTRAINT [PK_PersonalBudgets] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_PersonalBudgets_PersonalCategories_CategoryId] FOREIGN KEY ([CategoryId]) REFERENCES [PersonalCategories] ([Id]) ON DELETE NO ACTION
+    );
+
+    CREATE UNIQUE INDEX [IX_PersonalBudgets_CategoryId_Period] ON [PersonalBudgets] ([CategoryId], [Period]);
+END;
+
+IF OBJECT_ID(N'[PersonalBudgetTracking]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [PersonalBudgetTracking] (
+        [BudgetId] bigint NOT NULL,
+        [Year] int NOT NULL,
+        [Month] int NOT NULL,
+        [SpentAmount] decimal(18,2) NOT NULL,
+        [RemainingAmount] decimal(18,2) NOT NULL,
+        CONSTRAINT [PK_PersonalBudgetTracking] PRIMARY KEY ([BudgetId], [Year], [Month]),
+        CONSTRAINT [FK_PersonalBudgetTracking_PersonalBudgets_BudgetId] FOREIGN KEY ([BudgetId]) REFERENCES [PersonalBudgets] ([Id]) ON DELETE CASCADE
+    );
+
+    CREATE INDEX [IX_PersonalBudgetTracking_Year_Month] ON [PersonalBudgetTracking] ([Year], [Month]);
+END;
+
+IF OBJECT_ID(N'[PersonalTransactions]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [PersonalTransactions] (
+        [Id] bigint NOT NULL IDENTITY,
+        [WalletId] bigint NOT NULL,
+        [CategoryId] bigint NULL,
+        [Amount] decimal(18,2) NOT NULL,
+        [TransactionType] int NOT NULL,
+        [Date] datetime2 NOT NULL,
+        [Description] nvarchar(500) NULL,
+        [LedgerTransactionId] bigint NOT NULL,
+        CONSTRAINT [PK_PersonalTransactions] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_PersonalTransactions_LedgerTransactions_LedgerTransactionId] FOREIGN KEY ([LedgerTransactionId]) REFERENCES [LedgerTransactions] ([Id]) ON DELETE NO ACTION,
+        CONSTRAINT [FK_PersonalTransactions_PersonalCategories_CategoryId] FOREIGN KEY ([CategoryId]) REFERENCES [PersonalCategories] ([Id]) ON DELETE NO ACTION,
+        CONSTRAINT [FK_PersonalTransactions_PersonalWallets_WalletId] FOREIGN KEY ([WalletId]) REFERENCES [PersonalWallets] ([Id]) ON DELETE NO ACTION
+    );
+
+    CREATE INDEX [IX_PersonalTransactions_WalletId] ON [PersonalTransactions] ([WalletId]);
+    CREATE INDEX [IX_PersonalTransactions_CategoryId] ON [PersonalTransactions] ([CategoryId]);
+    CREATE INDEX [IX_PersonalTransactions_LedgerTransactionId] ON [PersonalTransactions] ([LedgerTransactionId]);
+END;
+
+IF OBJECT_ID(N'[PersonalInvestmentContributions]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [PersonalInvestmentContributions] (
+        [Id] bigint NOT NULL IDENTITY,
+        [PersonalTransactionId] bigint NOT NULL,
+        [CreatedAtUtc] datetime2 NOT NULL,
+        CONSTRAINT [PK_PersonalInvestmentContributions] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_PersonalInvestmentContributions_PersonalTransactions_PersonalTransactionId] FOREIGN KEY ([PersonalTransactionId]) REFERENCES [PersonalTransactions] ([Id]) ON DELETE CASCADE
+    );
+
+    CREATE INDEX [IX_PersonalInvestmentContributions_PersonalTransactionId] ON [PersonalInvestmentContributions] ([PersonalTransactionId]);
+END;
+");
+
             migrationBuilder.AddColumn<string>(
                 name: "LastSyncError",
                 table: "ConnectedBankAccounts",

@@ -343,11 +343,12 @@ namespace SmartFund.API.Services
         private async Task<(string resultJson, PendingActionSummary? pendingAction)> DispatchToolAsync(
             string userId, string toolName, JsonElement args, CancellationToken ct)
         {
+            var longUserId = long.TryParse(userId, out var uid) ? uid : 1L;
             switch (toolName)
             {
                 case "get_wallet_balances":
                 {
-                    var r = await _query.GetWalletBalancesAsync(ct);
+                    var r = await _query.GetWalletBalancesAsync(longUserId, ct);
                     return (JsonSerializer.Serialize(r), null);
                 }
                 case "get_spending_summary":
@@ -361,45 +362,45 @@ namespace SmartFund.API.Services
                         foreach (var el in catProp.EnumerateArray()) ids.Add(el.GetInt64());
                         catIds = ids.ToArray();
                     }
-                    var r = await _query.GetSpendingSummaryAsync(from, to, catIds, ct);
+                    var r = await _query.GetSpendingSummaryAsync(longUserId, from, to, catIds, ct);
                     return (JsonSerializer.Serialize(r), null);
                 }
                 case "get_cash_flow":
                 {
-                    var r = await _query.GetCashFlowAsync(GetInt(args, "months"), ct);
+                    var r = await _query.GetCashFlowAsync(longUserId, GetInt(args, "months"), ct);
                     return (JsonSerializer.Serialize(r), null);
                 }
                 case "get_goal_progress":
                 {
                     long? goalId = TryGetLong(args, "goalId", out var gid) ? gid : null;
-                    var r = await _query.GetGoalProgressAsync(goalId, ct);
+                    var r = await _query.GetGoalProgressAsync(longUserId, goalId, ct);
                     return (JsonSerializer.Serialize(r), null);
                 }
                 case "get_budget_health":
                 {
-                    var r = await _query.GetBudgetHealthAsync(GetInt(args, "year"), GetInt(args, "month"), ct);
+                    var r = await _query.GetBudgetHealthAsync(longUserId, GetInt(args, "year"), GetInt(args, "month"), ct);
                     return (JsonSerializer.Serialize(r), null);
                 }
                 case "get_recent_transactions":
                 {
                     var take = TryGetInt(args, "take", out var t) ? t : 20;
-                    var r = await _query.GetRecentTransactionsAsync(take, ct);
+                    var r = await _query.GetRecentTransactionsAsync(longUserId, take, ct);
                     return (JsonSerializer.Serialize(r), null);
                 }
                 case "get_cash_runway":
                 {
-                    var r = await _query.GetCashRunwayAsync(ct);
+                    var r = await _query.GetCashRunwayAsync(longUserId, ct);
                     return (JsonSerializer.Serialize(r), null);
                 }
                 case "draft_budget_suggestion":
                 {
                     var lb = TryGetInt(args, "lookbackMonths", out var l) ? l : 3;
-                    var r = await _query.SuggestBudgetsAsync(lb, ct);
+                    var r = await _query.SuggestBudgetsAsync(longUserId, lb, ct);
                     return (JsonSerializer.Serialize(r), null);
                 }
                 case "suggest_spending_cuts":
                 {
-                    var r = await _query.SuggestCutsAsync(GetDecimal(args, "targetReductionNaira"), ct);
+                    var r = await _query.SuggestCutsAsync(longUserId, GetDecimal(args, "targetReductionNaira"), ct);
                     return (JsonSerializer.Serialize(r), null);
                 }
                 case "initiate_transfer":
@@ -421,6 +422,165 @@ namespace SmartFund.API.Services
                         GetDecimal(args, "amountNaira"),
                         GetStr(args, "period"),
                         ct);
+                    return (JsonSerializer.Serialize(pending), pending);
+                }
+                case "get_top_categories":
+                {
+                    var from = DateTime.Parse(GetStr(args, "fromDate"));
+                    var to = DateTime.Parse(GetStr(args, "toDate"));
+                    var limit = TryGetInt(args, "limit", out var lim) ? lim : 5;
+                    TryGetStr(args, "type", out var typFilter);
+                    var r = await _query.GetTopCategoriesAsync(longUserId, from, to, limit, typFilter, ct);
+                    return (JsonSerializer.Serialize(r), null);
+                }
+                case "get_income_sources":
+                {
+                    var from = DateTime.Parse(GetStr(args, "fromDate"));
+                    var to = DateTime.Parse(GetStr(args, "toDate"));
+                    var r = await _query.GetIncomeSourcesAsync(longUserId, from, to, ct);
+                    return (JsonSerializer.Serialize(r), null);
+                }
+                case "get_category_trend":
+                {
+                    var catName = GetStr(args, "categoryName");
+                    var months = TryGetInt(args, "months", out var m) ? m : 6;
+                    var r = await _query.GetCategoryTrendAsync(longUserId, catName, months, ct);
+                    return (JsonSerializer.Serialize(r), null);
+                }
+                case "get_net_worth":
+                {
+                    var r = await _query.GetNetWorthAsync(longUserId, ct);
+                    return (JsonSerializer.Serialize(r), null);
+                }
+                case "get_savings_rate":
+                {
+                    var months = TryGetInt(args, "months", out var m) ? m : 3;
+                    var r = await _query.GetSavingsRateAsync(longUserId, months, ct);
+                    return (JsonSerializer.Serialize(r), null);
+                }
+                case "get_mtd_summary":
+                {
+                    var r = await _query.GetMtdSummaryAsync(longUserId, ct);
+                    return (JsonSerializer.Serialize(r), null);
+                }
+                case "get_spending_by_period":
+                {
+                    var from = DateTime.Parse(GetStr(args, "fromDate"));
+                    var to = DateTime.Parse(GetStr(args, "toDate"));
+                    var groupBy = TryGetStr(args, "groupBy", out var gb) ? gb ?? "day" : "day";
+                    var r = await _query.GetSpendingByPeriodAsync(longUserId, from, to, groupBy, ct);
+                    return (JsonSerializer.Serialize(r), null);
+                }
+                case "get_goal_save_up_plan":
+                {
+                    long? gid = TryGetLong(args, "goalId", out var goalId) ? goalId : null;
+                    var r = await _query.GetGoalSavePlanAsync(longUserId, gid, ct);
+                    return (JsonSerializer.Serialize(r), null);
+                }
+                case "get_wallet_transactions":
+                {
+                    var walletId = GetLong(args, "walletId");
+                    DateTime? from = TryGetStr(args, "fromDate", out var fd) && fd != null ? DateTime.Parse(fd) : null;
+                    DateTime? to = TryGetStr(args, "toDate", out var td) && td != null ? DateTime.Parse(td) : null;
+                    var take = TryGetInt(args, "take", out var tk) ? tk : 30;
+                    var r = await _query.GetWalletTransactionsAsync(longUserId, walletId, from, to, take, ct);
+                    return (JsonSerializer.Serialize(r), null);
+                }
+                case "get_recurring_patterns":
+                {
+                    var months = TryGetInt(args, "lookbackMonths", out var m) ? m : 3;
+                    var r = await _query.GetRecurringPatternsAsync(longUserId, months, ct);
+                    return (JsonSerializer.Serialize(r), null);
+                }
+                case "log_expense":
+                {
+                    TryGetStr(args, "description", out var desc);
+                    var date = TryGetStr(args, "date", out var ds) && ds != null
+                        ? DateTime.Parse(ds) : DateTime.UtcNow;
+                    var pending = await _action.InitiateLogExpenseAsync(
+                        userId,
+                        GetDecimal(args, "amountNaira"),
+                        GetLong(args, "categoryId"),
+                        GetLong(args, "walletId"),
+                        desc, date, ct);
+                    return (JsonSerializer.Serialize(pending), pending);
+                }
+                case "log_income":
+                {
+                    TryGetStr(args, "description", out var desc);
+                    var date = TryGetStr(args, "date", out var ds) && ds != null
+                        ? DateTime.Parse(ds) : DateTime.UtcNow;
+                    var pending = await _action.InitiateLogIncomeAsync(
+                        userId,
+                        GetDecimal(args, "amountNaira"),
+                        GetLong(args, "categoryId"),
+                        GetLong(args, "walletId"),
+                        desc, date, ct);
+                    return (JsonSerializer.Serialize(pending), pending);
+                }
+                case "update_budget":
+                {
+                    var pending = await _action.InitiateUpdateBudgetAsync(
+                        userId,
+                        GetLong(args, "budgetId"),
+                        GetDecimal(args, "newAmountNaira"),
+                        ct);
+                    return (JsonSerializer.Serialize(pending), pending);
+                }
+                case "update_goal_target":
+                {
+                    DateTime? newDeadline = TryGetStr(args, "newDeadline", out var nd) && nd != null
+                        ? DateTime.Parse(nd) : null;
+                    var pending = await _action.InitiateUpdateGoalTargetAsync(
+                        userId,
+                        GetLong(args, "goalId"),
+                        GetDecimal(args, "newTargetNaira"),
+                        newDeadline, ct);
+                    return (JsonSerializer.Serialize(pending), pending);
+                }
+                case "get_debt_overview":
+                {
+                    var r = await _query.GetDebtOverviewAsync(longUserId, ct);
+                    return (JsonSerializer.Serialize(r), null);
+                }
+                case "get_debt_list":
+                {
+                    TryGetStr(args, "status", out var status);
+                    var r = await _query.GetDebtListAsync(longUserId, status, ct);
+                    return (JsonSerializer.Serialize(r), null);
+                }
+                case "get_debt_insights":
+                {
+                    var r = await _query.GetDebtInsightsAsync(longUserId, ct);
+                    return (JsonSerializer.Serialize(r), null);
+                }
+                case "get_debt_payment_history":
+                {
+                    var r = await _query.GetDebtPaymentHistoryAsync(longUserId, GetLong(args, "debtId"), ct);
+                    return (JsonSerializer.Serialize(r), null);
+                }
+                case "record_debt_payment":
+                {
+                    var paidOn = TryGetStr(args, "paidOn", out var po) && po != null
+                        ? DateTime.Parse(po) : DateTime.UtcNow;
+                    TryGetStr(args, "note", out var note);
+                    var pending = await _action.InitiateRecordDebtPaymentAsync(
+                        userId,
+                        GetLong(args, "debtId"),
+                        GetDecimal(args, "amountNaira"),
+                        note, paidOn, ct);
+                    return (JsonSerializer.Serialize(pending), pending);
+                }
+                case "create_debt":
+                {
+                    TryGetStr(args, "description", out var desc);
+                    var pending = await _action.InitiateCreateDebtAsync(
+                        userId,
+                        GetStr(args, "creditorName"),
+                        GetDecimal(args, "principalAmount"),
+                        GetDecimal(args, "totalAmountDue"),
+                        DateTime.Parse(GetStr(args, "dueDate")),
+                        desc, ct);
                     return (JsonSerializer.Serialize(pending), pending);
                 }
                 default:
@@ -651,6 +811,266 @@ namespace SmartFund.API.Services
                             required = new[] { "categoryId", "amountNaira", "period" }
                         })
                     }
+                },
+                new() {
+                    Function = new GroqToolFunction {
+                        Name = "get_top_categories",
+                        Description = "Returns the top spending/income categories ranked by total, with % of total and transaction count.",
+                        Parameters = P(new {
+                            type = "object",
+                            properties = new {
+                                fromDate = new { type = "string", description = "Start date YYYY-MM-DD" },
+                                toDate   = new { type = "string", description = "End date YYYY-MM-DD" },
+                                limit    = new { type = "integer", description = "Max categories to return (default 5)" },
+                                type     = new { type = "string", description = "Filter by type: Income or Expense (optional)" }
+                            },
+                            required = new[] { "fromDate", "toDate" }
+                        })
+                    }
+                },
+                new() {
+                    Function = new GroqToolFunction {
+                        Name = "get_income_sources",
+                        Description = "Returns income grouped by category with % share of total income for a date range.",
+                        Parameters = P(new {
+                            type = "object",
+                            properties = new {
+                                fromDate = new { type = "string", description = "Start date YYYY-MM-DD" },
+                                toDate   = new { type = "string", description = "End date YYYY-MM-DD" }
+                            },
+                            required = new[] { "fromDate", "toDate" }
+                        })
+                    }
+                },
+                new() {
+                    Function = new GroqToolFunction {
+                        Name = "get_category_trend",
+                        Description = "Returns month-by-month spending totals for a named category over the last N months.",
+                        Parameters = P(new {
+                            type = "object",
+                            properties = new {
+                                categoryName = new { type = "string", description = "Category name (case-insensitive substring match)" },
+                                months       = new { type = "integer", description = "Number of past months (default 6)" }
+                            },
+                            required = new[] { "categoryName" }
+                        })
+                    }
+                },
+                new() {
+                    Function = new GroqToolFunction {
+                        Name = "get_net_worth",
+                        Description = "Returns the sum of all wallet balances (total net worth) broken down per wallet.",
+                        Parameters = P(new { type = "object", properties = new { } })
+                    }
+                },
+                new() {
+                    Function = new GroqToolFunction {
+                        Name = "get_savings_rate",
+                        Description = "Returns month-by-month savings rate (income minus expenses / income) plus an average across the period.",
+                        Parameters = P(new {
+                            type = "object",
+                            properties = new {
+                                months = new { type = "integer", description = "Number of past months (default 3)" }
+                            }
+                        })
+                    }
+                },
+                new() {
+                    Function = new GroqToolFunction {
+                        Name = "get_mtd_summary",
+                        Description = "Returns current month-to-date income, expenses, and net vs the previous full month, with % change.",
+                        Parameters = P(new { type = "object", properties = new { } })
+                    }
+                },
+                new() {
+                    Function = new GroqToolFunction {
+                        Name = "get_spending_by_period",
+                        Description = "Returns spending totals grouped by day, week, or month for a date range.",
+                        Parameters = P(new {
+                            type = "object",
+                            properties = new {
+                                fromDate = new { type = "string", description = "Start date YYYY-MM-DD" },
+                                toDate   = new { type = "string", description = "End date YYYY-MM-DD" },
+                                groupBy  = new { type = "string", description = "day | week | month (default day)" }
+                            },
+                            required = new[] { "fromDate", "toDate" }
+                        })
+                    }
+                },
+                new() {
+                    Function = new GroqToolFunction {
+                        Name = "get_goal_save_up_plan",
+                        Description = "For each active goal, calculates the required monthly savings to hit the target by the deadline.",
+                        Parameters = P(new {
+                            type = "object",
+                            properties = new {
+                                goalId = new { type = "integer", description = "Specific goal ID, or omit for all goals" }
+                            }
+                        })
+                    }
+                },
+                new() {
+                    Function = new GroqToolFunction {
+                        Name = "get_wallet_transactions",
+                        Description = "Returns transactions for a specific wallet, newest first, with optional date filter.",
+                        Parameters = P(new {
+                            type = "object",
+                            properties = new {
+                                walletId = new { type = "integer", description = "Wallet ID" },
+                                fromDate = new { type = "string", description = "Optional start date YYYY-MM-DD" },
+                                toDate   = new { type = "string", description = "Optional end date YYYY-MM-DD" },
+                                take     = new { type = "integer", description = "Max transactions to return (default 30)" }
+                            },
+                            required = new[] { "walletId" }
+                        })
+                    }
+                },
+                new() {
+                    Function = new GroqToolFunction {
+                        Name = "get_recurring_patterns",
+                        Description = "Detects recurring transactions (same description in 2+ months) and returns their frequency, average amount, and category.",
+                        Parameters = P(new {
+                            type = "object",
+                            properties = new {
+                                lookbackMonths = new { type = "integer", description = "Months of history to scan (default 3)" }
+                            }
+                        })
+                    }
+                },
+                new() {
+                    Function = new GroqToolFunction {
+                        Name = "log_expense",
+                        Description = "Proposes logging an expense transaction. Returns a pendingActionId — the user must confirm before it is saved.",
+                        Parameters = P(new {
+                            type = "object",
+                            properties = new {
+                                amountNaira = new { type = "number",  description = "Amount in Naira" },
+                                categoryId  = new { type = "integer", description = "Category ID" },
+                                walletId    = new { type = "integer", description = "Wallet ID to debit" },
+                                description = new { type = "string",  description = "Optional note" },
+                                date        = new { type = "string",  description = "Optional date YYYY-MM-DD (default today)" }
+                            },
+                            required = new[] { "amountNaira", "categoryId", "walletId" }
+                        })
+                    }
+                },
+                new() {
+                    Function = new GroqToolFunction {
+                        Name = "log_income",
+                        Description = "Proposes logging an income transaction. Returns a pendingActionId — the user must confirm before it is saved.",
+                        Parameters = P(new {
+                            type = "object",
+                            properties = new {
+                                amountNaira = new { type = "number",  description = "Amount in Naira" },
+                                categoryId  = new { type = "integer", description = "Category ID" },
+                                walletId    = new { type = "integer", description = "Wallet ID to credit" },
+                                description = new { type = "string",  description = "Optional note" },
+                                date        = new { type = "string",  description = "Optional date YYYY-MM-DD (default today)" }
+                            },
+                            required = new[] { "amountNaira", "categoryId", "walletId" }
+                        })
+                    }
+                },
+                new() {
+                    Function = new GroqToolFunction {
+                        Name = "update_budget",
+                        Description = "Proposes updating the amount of an existing budget. Returns a pendingActionId — the user must confirm before it is saved.",
+                        Parameters = P(new {
+                            type = "object",
+                            properties = new {
+                                budgetId       = new { type = "integer", description = "Budget ID to update" },
+                                newAmountNaira = new { type = "number",  description = "New budget amount in Naira" }
+                            },
+                            required = new[] { "budgetId", "newAmountNaira" }
+                        })
+                    }
+                },
+                new() {
+                    Function = new GroqToolFunction {
+                        Name = "update_goal_target",
+                        Description = "Proposes updating a savings goal's target amount and/or deadline. Returns a pendingActionId — the user must confirm.",
+                        Parameters = P(new {
+                            type = "object",
+                            properties = new {
+                                goalId         = new { type = "integer", description = "Goal ID to update" },
+                                newTargetNaira = new { type = "number",  description = "New target amount in Naira" },
+                                newDeadline    = new { type = "string",  description = "Optional new deadline YYYY-MM-DD" }
+                            },
+                            required = new[] { "goalId", "newTargetNaira" }
+                        })
+                    }
+                },
+                new() {
+                    Function = new GroqToolFunction {
+                        Name = "get_debt_overview",
+                        Description = "Returns aggregate debt figures: total count, active/overdue counts, total owed, paid, remaining, total interest, and earliest due date.",
+                        Parameters = P(new { type = "object", properties = new { } })
+                    }
+                },
+                new() {
+                    Function = new GroqToolFunction {
+                        Name = "get_debt_list",
+                        Description = "Returns individual debts with urgency badges (Overdue/Critical/Soon/Upcoming/Future), sorted by due date. Optionally filter by status (Active, PaidOff, Forgiven).",
+                        Parameters = P(new {
+                            type = "object",
+                            properties = new {
+                                status = new { type = "string", description = "Optional filter: Active | PaidOff | Forgiven" }
+                            }
+                        })
+                    }
+                },
+                new() {
+                    Function = new GroqToolFunction {
+                        Name = "get_debt_insights",
+                        Description = "Returns repayment projections, debt-free date estimate, monthly debt burden as % of income, and urgency ranking. Use for 'When will I be debt-free?' or 'How much of my income goes to debt?'",
+                        Parameters = P(new { type = "object", properties = new { } })
+                    }
+                },
+                new() {
+                    Function = new GroqToolFunction {
+                        Name = "get_debt_payment_history",
+                        Description = "Returns the payment history for a specific debt.",
+                        Parameters = P(new {
+                            type = "object",
+                            properties = new {
+                                debtId = new { type = "integer", description = "Debt ID" }
+                            },
+                            required = new[] { "debtId" }
+                        })
+                    }
+                },
+                new() {
+                    Function = new GroqToolFunction {
+                        Name = "record_debt_payment",
+                        Description = "Proposes recording a payment against a debt. Returns a pendingActionId — the user must confirm before it is saved.",
+                        Parameters = P(new {
+                            type = "object",
+                            properties = new {
+                                debtId      = new { type = "integer", description = "Debt ID" },
+                                amountNaira = new { type = "number",  description = "Payment amount in Naira" },
+                                note        = new { type = "string",  description = "Optional note" },
+                                paidOn      = new { type = "string",  description = "Optional payment date YYYY-MM-DD (default today)" }
+                            },
+                            required = new[] { "debtId", "amountNaira" }
+                        })
+                    }
+                },
+                new() {
+                    Function = new GroqToolFunction {
+                        Name = "create_debt",
+                        Description = "Proposes tracking a new debt obligation. Returns a pendingActionId — the user must confirm before it is saved.",
+                        Parameters = P(new {
+                            type = "object",
+                            properties = new {
+                                creditorName    = new { type = "string",  description = "Name of the creditor (bank, person, institution)" },
+                                principalAmount = new { type = "number",  description = "Original principal borrowed in Naira" },
+                                totalAmountDue  = new { type = "number",  description = "Total repayment amount (principal + interest) in Naira" },
+                                dueDate         = new { type = "string",  description = "Repayment deadline YYYY-MM-DD" },
+                                description     = new { type = "string",  description = "Optional notes about the debt" }
+                            },
+                            required = new[] { "creditorName", "principalAmount", "totalAmountDue", "dueDate" }
+                        })
+                    }
                 }
             };
         }
@@ -669,19 +1089,42 @@ namespace SmartFund.API.Services
             - For transfers or budget creation: use the initiate_* tool, present the pending summary, and wait for the user to confirm. Never claim an action completed until you receive the confirmation result.
             - Scope: Personal Finance only — wallets, transactions, goals, budgets, bank accounts. Do not comment on investment tranches, fund deals, or other users' data.
 
+            DEBT AWARENESS:
+            - Use get_debt_overview for any question about total debt, debt load, or net worth impact of debts.
+            - Use get_debt_list to show individual debts with urgency rankings.
+            - Use get_debt_insights for repayment projections and debt-free date estimates.
+            - Always factor in active debt obligations when assessing affordability or cash runway.
+            - Use record_debt_payment (with confirmation) when the user wants to log a payment.
+            - Use create_debt (with confirmation) when the user wants to track a new debt.
+
             AFFORDABILITY COACHING (for "Can I afford X?" questions):
             Follow this sequence before answering:
             1. Call get_wallet_balances — check if liquid funds cover the purchase outright.
             2. Call get_cash_runway — understand burn rate and financial cushion. If RunwayMonths < 3, flag as low buffer.
-            3. Call get_goal_progress — check every active goal. Flag any where the purchase would delay the deadline or reduce ProgressPct significantly.
-            4. Call get_budget_health for the current month — see if the purchase fits within available budget headroom.
-            5. Optionally call get_spending_summary for the last 30 days — to add context on recent patterns.
+            3. Call get_debt_overview — check total active debt obligations. If there are overdue debts, flag them before approving any discretionary spend.
+            4. Call get_goal_progress — check every active goal. Flag any where the purchase would delay the deadline or reduce ProgressPct significantly.
+            5. Call get_budget_health for the current month — see if the purchase fits within available budget headroom.
+            6. Optionally call get_spending_summary for the last 30 days — to add context on recent patterns.
 
             Then synthesize a verdict:
             - YES (comfortable): funds cover it, runway stays healthy (≥3 months), no goal materially delayed.
             - YES (with caution): affordable now but cite the specific risk (runway drops, goal slips by N months, budget blown).
             - NO: explain the shortfall, suggest a save-up timeline based on surplus income from get_cash_flow.
             Always state the post-purchase runway so the user sees the real impact.
+
+            TOOL ROUTING GUIDE:
+            - "How am I doing this month?" → call get_mtd_summary first; optionally follow with get_spending_by_period (groupBy="day") for a daily breakdown.
+            - "Is my [X] spend going up?" → call get_category_trend with the category name and months=6.
+            - "Where is my money coming from?" → call get_income_sources with the current month or last 30 days.
+            - "What's my savings rate?" → call get_savings_rate with months=3.
+            - "What are my recurring expenses/subscriptions?" → call get_recurring_patterns.
+            - "When will I hit my goal?" / "How much should I save per month?" → call get_goal_save_up_plan.
+            - "What are my biggest expenses?" → call get_top_categories with type="Expense".
+            - "What's my net worth?" → call get_net_worth.
+            - Log/record/add expense or income → use log_expense or log_income. Always identify the category first from context or ask the user. Always confirm the wallet. Present the pending summary and wait for user confirmation.
+            - Update a budget → use update_budget. Fetch current budget health first if context is missing. Show old vs new in summary before confirming.
+            - Update a goal target or deadline → use update_goal_target. Fetch goal progress first if context is missing. Show what changes before confirming.
+            - For action tools (log_expense, log_income, update_budget, update_goal_target, initiate_transfer, create_budget): never claim the action is done until you receive the confirmation result from the user.
 
             RESPONSE STYLE:
             - Lead with a direct verdict (YES / NO / CAUTION), then supporting data.

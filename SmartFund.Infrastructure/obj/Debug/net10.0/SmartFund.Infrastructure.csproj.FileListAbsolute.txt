@@ -25,3 +25,9 @@ C:\Users\User\AppData\Local\Temp\build_check\SmartFund.Infrastructure.pdb
 C:\Users\User\AppData\Local\Temp\sfbuild_check\SmartFund.Infrastructure.deps.json
 C:\Users\User\AppData\Local\Temp\sfbuild_check\SmartFund.Infrastructure.dll
 C:\Users\User\AppData\Local\Temp\sfbuild_check\SmartFund.Infrastructure.pdb
+C:\Users\User\AppData\Local\Temp\sf-build-check\SmartFund.Infrastructure.deps.json
+C:\Users\User\AppData\Local\Temp\sf-build-check\SmartFund.Infrastructure.dll
+C:\Users\User\AppData\Local\Temp\sf-build-check\SmartFund.Infrastructure.pdb
+C:\Users\User\AppData\Local\Temp\sf-final-build\SmartFund.Infrastructure.deps.json
+C:\Users\User\AppData\Local\Temp\sf-final-build\SmartFund.Infrastructure.dll
+C:\Users\User\AppData\Local\Temp\sf-final-build\SmartFund.Infrastructure.pdb

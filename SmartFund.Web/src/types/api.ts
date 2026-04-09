@@ -1,13 +1,120 @@
 export type EntityId = number;
 
 export interface LoginRequest {
-  username: string;
+  username?: string;
+  email?: string;
   password: string;
 }
 
 export interface LoginResponse {
   token: string;
   expiresAtUtc: string;
+}
+
+export interface RegisterRequest {
+  fullName: string;
+  email: string;
+  password: string;
+}
+
+export interface RegisterResponse {
+  userId: number;
+  email: string;
+  fullName: string;
+  role: string;
+}
+
+export interface LoanApplicationDto {
+  id: EntityId;
+  userId: EntityId;
+  amount: number;
+  purposeCategory: string;
+  purposeDescription: string;
+  durationDays: number;
+  repaymentInstallments: number;
+  accountNumber: string;
+  bankName: string;
+  accountName: string;
+  dailyInterestRate: number;
+  interestAmount: number;
+  totalRepayable: number;
+  installmentAmount: number;
+  status: string;
+  submittedAtUtc: string;
+  reviewedAtUtc?: string | null;
+  reviewedByUserId?: EntityId | null;
+  adminNote?: string | null;
+}
+
+export interface SubmitLoanRequest {
+  amount: number;
+  durationDays: number;
+  repaymentInstallments: number;
+  accountNumber: string;
+  bankName?: string;
+  accountName?: string;
+  purposeCategory?: string;
+  purposeDescription?: string;
+}
+
+export interface ReviewLoanRequest {
+  adminNote?: string;
+}
+
+export interface LoanApplicantProfileDto {
+  id: EntityId;
+  userId: EntityId;
+  submittedName: string;
+  fullName?: string | null;
+  phoneNumber?: string | null;
+  emailAddress?: string | null;
+  emergencyContactNumber?: string | null;
+  status: string;
+  submittedAtUtc: string;
+  reviewedAtUtc?: string | null;
+  adminNote?: string | null;
+}
+
+export interface SubmitLoanApplicantRequest {
+  fullName: string;
+}
+
+export interface VerifyLoanApplicantRequest {
+  fullName: string;
+  phoneNumber: string;
+  emailAddress: string;
+  emergencyContactNumber: string;
+  adminNote?: string;
+}
+
+export interface RejectLoanApplicantRequest {
+  adminNote?: string;
+}
+
+export interface UserSummaryDto {
+  id: EntityId;
+  email: string;
+  fullName: string;
+  role: string;
+  isActive: boolean;
+  createdAtUtc: string;
+}
+
+export interface UserCreditInsightsDto {
+  userId: EntityId;
+  fullName: string;
+  email: string;
+  tenureDays: number;
+  avgMonthlyIncome: number;
+  avgMonthlyExpenses: number;
+  incomeToExpenseRatio: number;
+  bankAccountCount: number;
+  budgetComplianceRate: number;
+  goalOnTrackRate: number;
+  incomeStabilityScore: number;
+  avgMonthlyTransactionCount: number;
+  loanCount: number;
+  mostRecentLoanStatus?: string | null;
 }
 
 export interface InvestorDto {

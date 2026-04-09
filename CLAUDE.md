@@ -1,14 +1,58 @@
 # SmartFund
 
+## General Rules
+
+When implementing features from a spec/plan file, start coding immediately after a brief scan. Do NOT spend extensive time exploring the codebase. Limit exploration to 2-3 minutes max before writing code.
+
+For complex or multi-step tasks, create a todo list using the TaskCreate tool at the start to track progress. Mark each task complete as it's finished — do not batch completions.
+
+When running low on context during a long task, write a `CONTINUATION.md` file before stopping with: 1) what's been completed, 2) what files were changed, 3) what remains, 4) the exact next step to take. Include file paths and any gotchas discovered.
+
+## Project Architecture
+
+This project uses TypeScript (React/Vite frontend) and C#/.NET (ASP.NET backend with EF Core and SQL Server). Always check port configurations match between Vite proxy and backend API. MAUI Blazor is used for the Restaurant POS app (separate project).
+
+## Build & Verification
+
+Always run `dotnet build` after every set of changes to catch errors immediately. Never chain multiple file edits without a build check in between.
+
+## Database & Migrations
+
+Before editing EF Core migration files, ensure the API server is stopped to avoid DLL lock issues. Never use sed to edit migration files — use the Edit tool instead.
+
+## Code Quality
+
+When implementing stub/placeholder service classes, always ensure they implement their declared interfaces with all required methods before moving on.
+
 ## 1. Project Purpose
 
 SmartFund is a Nigerian investment fund management platform for a fund operator (not a retail app). It tracks investor tranches inside deals, enforces double-entry bookkeeping on every cash movement, and records a full audit trail. A secondary personal-finance module lets individual users track wallets, budgets, and spending goals. The system is built for one fund operator running the backend locally or on-premise.
 
-### Current focus (Personal Finance + Mono + AI)
+### Current focus (Personal Finance — Manual Entry + Ledger View)
 
-The current development focus is on making the Personal Finance module production-grade (UX + correctness) and wiring bank data via Mono.
+The current development focus is on **manual transaction entry as the primary input method** (Mono bank sync is paused). Users record income/expense/transfer manually; bank sync is a secondary path for when Mono resumes.
 
-- **Mono bank sync**
+- **Manual transaction entry** — primary input method
+  - `QuickEntrySheet` (`SmartFund.Web/src/modules/personalFinance/components/QuickEntrySheet.tsx`) is the primary UI entry point. It stays open after each submission (batch-entry mode) and has a "Done" button to close.
+  - Transactions are entered manually via `POST /api/personal-transactions/income|expense|transfer`.
+  - `TransactionSource` enum (`SmartFund.Domain/PersonalFinance/Enums/TransactionSource.cs`) tracks provenance:
+    - `Manual = 1` — user-entered via QuickEntrySheet
+    - `BankSync = 2` — imported via Mono bank sync
+    - `Reconciliation = 3` — created by the reconcile-wallet use case
+  - `PersonalTransactionType.Adjustment = 4` is used exclusively by reconciliation entries.
+  - Existing bank-imported transactions are backfilled to `Source = 2` via migration data fixup.
+  - `PATCH /api/personal-transactions/{id}/description` allows editing only the description of a posted transaction (amount and date are immutable for double-entry integrity).
+
+- **Opening balance + wallet reconciliation**
+  - `PersonalWallet` carries `OpeningBalance` (decimal, default 0) and `OpeningBalanceDate` (nullable DateTime).
+  - Effective wallet balance = `OpeningBalance + ledger posted balance`.
+  - Running balance is computed **client-side** in `ledgerUtils.ts:computeRunningBalance` — it is never stored in the DB.
+  - `PUT /api/personal-wallets/{id}/opening-balance` sets the opening balance.
+  - `POST /api/personal-wallets/{id}/reconcile` computes drift (actual − current) and posts an Adjustment entry.
+  - `ReconcileSheet` (`SmartFund.Web/src/modules/personalFinance/components/ReconcileSheet.tsx`) is the UI for reconciliation; lives in per-wallet tab headers.
+  - `OpeningBalancePrompt` shows when `openingBalanceDate === null`, with distinct messaging for zero-transaction wallets ("anchor" message) vs wallets with existing transactions ("accurate running totals" message).
+
+- **Mono bank sync** (paused — infrastructure exists, resuming later)
   - Config lives in `SmartFund.API/appsettings.json` under `Mono:*`.
   - `Mono:PublicKey` is used for Mono Connect; `Mono:SecretKey` is used for server-to-server calls via `mono-sec-key`.
   - Webhook receiver exists at `POST /api/webhooks/mono` (`SmartFund.API/Controllers/MonoWebhookController.cs`).
@@ -45,7 +89,7 @@ The current development focus is on making the Personal Finance module productio
 - **Database:** SQL Server LocalDB (`(localdb)\mssqllocaldb`) — database `SmartFundDb`
 - **Auth:** JWT Bearer (HS256), configured in `appsettings.json` under `Jwt:*`
 - **API docs:** Swashbuckle/Swagger at `/swagger` in development
-- **Frontend:** React 19, TypeScript 5.7, Vite 6, Tailwind CSS 3, Recharts 2, React Router 6, Axios
+- **Frontend:** React 19, TypeScript 5.7, Vite 6, Tailwind CSS v4 (OKLCH design tokens), Recharts 2, React Router 6, Axios, shadcn-style Radix UI component library, next-themes (dark mode), sonner (toasts), lucide-react (icons)
 - **Tests:** xUnit (`SmartFund.Tests`)
 
 ## 3. Project Map
@@ -117,9 +161,79 @@ npm run preview  # preview production build
 - **Migration baselining on startup** — `Program.cs:116–185` detects a pre-existing DB without EF history and baselines it. When adding migrations to an existing deployment, verify this path is not broken.
 - **Controllers return anonymous shapes** — response DTOs are anonymous objects inside the controller action, not separate DTO classes. `TranchesController.cs:133–138`
 
-## 6. Additional Documentation
+## 6. Frontend Design System (SmartFund.Web)
+
+### Component library
+All UI primitives live in `SmartFund.Web/src/components/ui/` and are imported via the `@/` alias (maps to `./src`). Every component follows the shadcn/Radix pattern.
+
+| File | Exports |
+|------|---------|
+| `button` | `Button`, `buttonVariants` |
+| `card` | `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardAction`, `CardContent`, `CardFooter` |
+| `badge` | `Badge` |
+| `input` | `Input` |
+| `field` | `Field`, `FieldGroup`, `FieldLabel`, `FieldError`, `FieldDescription` |
+| `label` | `Label` |
+| `skeleton` | `Skeleton` |
+| `separator` | `Separator` |
+| `alert` | `Alert`, `AlertTitle`, `AlertDescription` |
+| `alert-dialog` | `AlertDialog`, `AlertDialogTrigger`, `AlertDialogContent`, `AlertDialogHeader`, `AlertDialogFooter`, `AlertDialogTitle`, `AlertDialogDescription`, `AlertDialogAction`, `AlertDialogCancel` |
+| `dialog` | `Dialog`, `DialogTrigger`, `DialogContent`, `DialogHeader`, `DialogFooter`, `DialogTitle`, `DialogDescription`, `DialogClose` |
+| `table` | `Table`, `TableHeader`, `TableBody`, `TableFooter`, `TableHead`, `TableRow`, `TableCell` |
+| `tabs` | `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` |
+| `select` | `Select`, `SelectContent`, `SelectItem`, `SelectTrigger`, `SelectValue` |
+| `textarea` | `Textarea` |
+| `progress` | `Progress` |
+| `switch` | `Switch` |
+| `checkbox` | `Checkbox` |
+| `tooltip` | `Tooltip`, `TooltipTrigger`, `TooltipContent` |
+| `scroll-area` | `ScrollArea` |
+| `collapsible` | `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` |
+| `avatar` | `Avatar`, `AvatarImage`, `AvatarFallback` |
+| `dropdown-menu` | `DropdownMenu`, `DropdownMenuTrigger`, `DropdownMenuContent`, `DropdownMenuItem`, `DropdownMenuLabel`, `DropdownMenuSeparator` |
+| `popover` | `Popover`, `PopoverTrigger`, `PopoverContent` |
+| `sheet` | `Sheet`, `SheetTrigger`, `SheetContent`, `SheetHeader`, `SheetTitle`, `SheetDescription` |
+| `spinner` | `Spinner` |
+| `sonner` | `Toaster` — use `toast()` from `'sonner'` for all notifications |
+| `sidebar` | Full collapsible sidebar primitives — see `app-sidebar.tsx` for usage |
+
+### Utilities
+- `@/lib/utils` → `cn()`, `formatNaira()`, `formatDate()`, `formatDateTime()`
+- `@/hooks/use-mobile` → `useIsMobile()`
+
+### Top-level components
+- `@/components/theme-provider` → `ThemeProvider` (wraps `next-themes`, default dark)
+- `@/components/theme-toggle` → `ThemeToggle` (sun/moon button)
+- `@/components/smart-fund-logo` → `SmartFundLogo` (logo + wordmark)
+- `@/components/app-sidebar` → `AppSidebar` (full nav sidebar with role-based sections, inbox badge)
+- `@/components/ChatWidget` → floating AI chat button + panel
+
+### Layout
+`src/layouts/BaseLayout.tsx` uses `SidebarProvider → AppSidebar + SidebarInset`. Every authenticated page renders inside `<SidebarInset>` via `<Outlet />`. The header contains `SidebarTrigger` + `ThemeToggle`.
+
+### Page structure convention
+Every interior page must follow this pattern:
+```tsx
+<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+  <div>
+    <h1 className="text-2xl font-bold tracking-tight">Page Title</h1>
+    <p className="text-muted-foreground text-sm">Subtitle</p>
+  </div>
+  {/* content in Cards */}
+</div>
+```
+
+### Design tokens
+`src/index.css` defines OKLCH CSS variables for both light and dark themes (primary, secondary, muted, card, sidebar, success, warning, destructive, etc.) and a `.glass` utility class for frosted-glass cards. Tailwind CSS v4 is used via `@tailwindcss/postcss` (no `tailwind.config.js`).
+
+### Auth pages
+`LoginPage` and `RegisterPage` use the `glass` Card centered on a radial-gradient background — no sidebar.
+
+## 7. Additional Documentation
 
 - `.claude/docs/architectural_patterns.md` — Clean Architecture layers, Repository pattern, Use Case pattern, double-entry ledger, EF Fluent config, DomainException error boundary, and audit trail patterns with file:line references and extension guidance.
+- `SmartFund.Web/src/index.css` — Full OKLCH design token definitions (CSS vars for all colors in light + dark).
+- `SmartFund.Web/src/lib/utils.ts` — `cn`, `formatNaira`, `formatDate`, `formatDateTime`.
 
 ## Adding New Features or Fixing Bugs
 

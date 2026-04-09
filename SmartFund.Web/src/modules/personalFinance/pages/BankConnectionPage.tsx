@@ -7,8 +7,44 @@ import {
   disconnectBankAccount,
   syncBankAccount,
   getReauthToken,
+  getWallets,
+  createWallet,
+  setOpeningBalance,
+  deleteWallet,
   type ConnectedBankAccountDto,
 } from '../services/personalFinanceApi';
+import type { PersonalWalletDto } from '../types/financeTypes';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
+import {
+  AlertCircle, CheckCircle2, X, Plus, RefreshCw, Trash2,
+  Lock, Clock, Inbox, ListChecks, Building2, PlusCircle, Wallet
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { formatNaira } from '@/lib/utils';
 
 /* ── Mono Connect widget type ───────────────────────────────────────────── */
 declare global {
@@ -24,15 +60,6 @@ declare global {
 
 const MONO_SCRIPT_URL = 'https://connect.withmono.com/connect.js';
 const MAX_ACCOUNTS = 5;
-
-/* ── Helpers ─────────────────────────────────────────────────────────────── */
-function formatCurrency(amount: number, currency = 'NGN') {
-  return new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
 
 function maskAccountNumber(n: string) {
   if (n.length <= 4) return n;
@@ -53,6 +80,14 @@ function formatRelativeTime(iso: string) {
   }
 }
 
+function formatCurrency(amount: number, currency = 'NGN') {
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
 function extractErrorMessage(err: unknown): string {
   if (err != null && typeof err === 'object') {
     if ('message' in err) return String((err as { message: string }).message);
@@ -60,7 +95,6 @@ function extractErrorMessage(err: unknown): string {
   return 'An unexpected error occurred.';
 }
 
-/* ── Bank colour palette ─────────────────────────────────────────────────── */
 const BANK_COLORS: [RegExp, string][] = [
   [/gtbank|guaranty/i, 'from-orange-500 to-orange-600'],
   [/access/i, 'from-red-500 to-red-600'],
@@ -84,24 +118,234 @@ function bankGradient(bankName: string): string {
   return 'from-slate-600 to-slate-700';
 }
 
-/* ══════════════════════════════════════════════════════════════════════════ */
+/* ── PIN Confirm Dialog ─────────────────────────────────────────────────── */
+interface PinDialogProps {
+  open: boolean;
+  title: string;
+  description: string;
+  confirmLabel?: string;
+  onConfirm: (pin: string) => Promise<void>;
+  onCancel: () => void;
+}
+
+function PinConfirmDialog({ open, title, description, confirmLabel = 'Confirm', onConfirm, onCancel }: PinDialogProps) {
+  const [pin, setPin] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function handleOpenChange(o: boolean) {
+    if (!o) {
+      setPin('');
+      setError(null);
+      onCancel();
+    }
+  }
+
+  async function handleConfirm() {
+    if (!pin.trim()) {
+      setError('Enter your password.');
+      return;
+    }
+    setError(null);
+    setSubmitting(true);
+    try {
+      await onConfirm(pin);
+      setPin('');
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <AlertDialog open={open} onOpenChange={handleOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="space-y-2 py-2">
+          <Input
+            type="password"
+            placeholder="Enter your password"
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') void handleConfirm(); }}
+            autoFocus
+          />
+          {error && <p className="text-xs text-destructive">{error}</p>}
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => { setPin(''); setError(null); onCancel(); }}>
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={(e) => { e.preventDefault(); void handleConfirm(); }}
+            disabled={submitting}
+          >
+            {submitting ? 'Confirming…' : confirmLabel}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+/* ── Add Manual Wallet Dialog ───────────────────────────────────────────── */
+interface AddManualWalletDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreated: (wallet: PersonalWalletDto) => void;
+}
+
+function AddManualWalletDialog({ open, onOpenChange, onCreated }: AddManualWalletDialogProps) {
+  const [name, setName] = useState('');
+  const [balance, setBalance] = useState('');
+  const [balanceDate, setBalanceDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function reset() {
+    setName('');
+    setBalance('');
+    setBalanceDate(new Date().toISOString().slice(0, 10));
+    setError(null);
+  }
+
+  function handleOpenChange(o: boolean) {
+    if (!o) reset();
+    onOpenChange(o);
+  }
+
+  async function handleCreate() {
+    if (!name.trim()) {
+      setError('Enter a wallet name.');
+      return;
+    }
+    setError(null);
+    setSubmitting(true);
+    try {
+      const wallet = await createWallet({ name: name.trim(), currency: 'NGN' });
+      const amt = parseFloat(balance);
+      if (!isNaN(amt) && amt > 0) {
+        await setOpeningBalance(wallet.id, { amount: amt, date: balanceDate });
+        // Return a wallet with the opening balance filled in
+        onCreated({ ...wallet, openingBalance: amt, openingBalanceDate: balanceDate });
+      } else {
+        onCreated(wallet);
+      }
+      toast('Manual wallet created');
+      handleOpenChange(false);
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add Manual Wallet</DialogTitle>
+          <DialogDescription>
+            Create a wallet you track manually — no bank sync needed. You can record transactions
+            on the Transactions page.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Wallet name</label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. GTBank Savings, Cash, Piggybank"
+              autoFocus
+              onKeyDown={(e) => { if (e.key === 'Enter') void handleCreate(); }}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">
+              Starting balance (₦) <span className="text-muted-foreground/60">— optional</span>
+            </label>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={balance}
+              onChange={(e) => setBalance(e.target.value)}
+              onBlur={() => {
+                if (balance !== '' && !isNaN(parseFloat(balance))) {
+                  setBalance(parseFloat(balance).toFixed(2));
+                }
+              }}
+              placeholder="0.00"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Set the current balance of this account before you started tracking it here.
+            </p>
+          </div>
+
+          {balance !== '' && !isNaN(parseFloat(balance)) && parseFloat(balance) > 0 && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Balance as of date</label>
+              <Input
+                type="date"
+                value={balanceDate}
+                onChange={(e) => setBalanceDate(e.target.value)}
+              />
+            </div>
+          )}
+
+          {error && <p className="text-sm text-destructive">{error}</p>}
+        </div>
+
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline" type="button">Cancel</Button>
+          </DialogClose>
+          <Button onClick={handleCreate} disabled={submitting}>
+            {submitting ? 'Creating…' : 'Create Wallet'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ── Main Page ──────────────────────────────────────────────────────────── */
+
 export default function BankConnectionPage() {
   const [accounts, setAccounts] = useState<ConnectedBankAccountDto[]>([]);
+  const [manualWallets, setManualWallets] = useState<PersonalWalletDto[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
   const [syncingId, setSyncingId] = useState<number | null>(null);
-  const [disconnectingId, setDisconnectingId] = useState<number | null>(null);
   const [reauthingId, setReauthingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Disconnect Mono bank — PIN dialog
+  const [disconnectTarget, setDisconnectTarget] = useState<ConnectedBankAccountDto | null>(null);
+
+  // Delete manual wallet — PIN dialog
+  const [deleteWalletTarget, setDeleteWalletTarget] = useState<PersonalWalletDto | null>(null);
+
+  // Add manual wallet dialog
+  const [addWalletOpen, setAddWalletOpen] = useState(false);
+
   const scriptLoadedRef = useRef(false);
 
-  /* ── Load connected accounts ─────────────────────────────────────────── */
-  const loadAccounts = useCallback(async () => {
+  const loadData = useCallback(async () => {
     setAccountsLoading(true);
     try {
-      const data = await getConnectedAccounts();
-      setAccounts(data);
+      const [accs, wallets] = await Promise.all([getConnectedAccounts(), getWallets()]);
+      setAccounts(accs);
+      const linkedIds = new Set(accs.map(a => a.personalWalletId).filter(Boolean));
+      setManualWallets(wallets.filter(w => !linkedIds.has(w.id)));
     } catch (err) {
       setError(extractErrorMessage(err));
     } finally {
@@ -109,9 +353,8 @@ export default function BankConnectionPage() {
     }
   }, []);
 
-  useEffect(() => { loadAccounts(); }, [loadAccounts]);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  /* ── Ensure Mono script loaded ───────────────────────────────────────── */
   useEffect(() => {
     if (document.getElementById('mono-connect-js')) {
       scriptLoadedRef.current = true;
@@ -125,7 +368,6 @@ export default function BankConnectionPage() {
     document.head.appendChild(script);
   }, []);
 
-  /* ── Open connect widget (fresh token per click) ─────────────────────── */
   async function openConnectWidget() {
     if (accounts.length >= MAX_ACCOUNTS) {
       setError(`Maximum ${MAX_ACCOUNTS} accounts allowed.`);
@@ -145,16 +387,12 @@ export default function BankConnectionPage() {
           try {
             const authCode = data.code ?? data.id;
             if (!authCode) throw new Error('Mono did not return an authorization code.');
-
             const account = await connectBankAccount(authCode);
             setAccounts(prev => {
               const exists = prev.some(a => a.id === account.id);
-              return exists
-                ? prev.map(a => (a.id === account.id ? account : a))
-                : [...prev, account];
+              return exists ? prev.map(a => a.id === account.id ? account : a) : [...prev, account];
             });
-            setSuccessMsg(`${account.bankName} connected! Initial sync starting in the background.`);
-            setTimeout(() => setSuccessMsg(null), 6000);
+            toast.success(`${account.bankName} connected! Initial sync starting in the background.`);
           } catch (err) {
             setError(extractErrorMessage(err));
           } finally {
@@ -171,15 +409,13 @@ export default function BankConnectionPage() {
     }
   }
 
-  /* ── Manual sync ─────────────────────────────────────────────────────── */
   async function handleSync(account: ConnectedBankAccountDto) {
     setSyncingId(account.id);
     setError(null);
     try {
       const updated = await syncBankAccount(account.id);
-      setAccounts(prev => prev.map(a => (a.id === updated.id ? updated : a)));
-      setSuccessMsg(`${account.bankName} synced — ${updated.totalTransactionsSynced} total transactions.`);
-      setTimeout(() => setSuccessMsg(null), 4000);
+      setAccounts(prev => prev.map(a => a.id === updated.id ? updated : a));
+      toast.success(`${account.bankName} synced — ${updated.totalTransactionsSynced} total transactions.`);
     } catch (err) {
       setError(extractErrorMessage(err));
     } finally {
@@ -187,21 +423,22 @@ export default function BankConnectionPage() {
     }
   }
 
-  /* ── Disconnect ──────────────────────────────────────────────────────── */
-  async function handleDisconnect(account: ConnectedBankAccountDto) {
-    if (!confirm(`Disconnect ${account.bankName}? Your transaction history will be kept.`)) return;
-    setDisconnectingId(account.id);
-    try {
-      await disconnectBankAccount(account.id);
-      setAccounts(prev => prev.filter(a => a.id !== account.id));
-    } catch (err) {
-      setError(extractErrorMessage(err));
-    } finally {
-      setDisconnectingId(null);
-    }
+  async function handleDisconnect(pin: string) {
+    if (!disconnectTarget) return;
+    await disconnectBankAccount(disconnectTarget.id, pin);
+    setAccounts(prev => prev.filter(a => a.id !== disconnectTarget.id));
+    toast.success(`${disconnectTarget.bankName} disconnected.`);
+    setDisconnectTarget(null);
   }
 
-  /* ── Reauth ──────────────────────────────────────────────────────────── */
+  async function handleDeleteWallet(pin: string) {
+    if (!deleteWalletTarget) return;
+    await deleteWallet(deleteWalletTarget.id, pin);
+    setManualWallets(prev => prev.filter(w => w.id !== deleteWalletTarget.id));
+    toast.success(`"${deleteWalletTarget.name}" deleted.`);
+    setDeleteWalletTarget(null);
+  }
+
   async function handleReauth(account: ConnectedBankAccountDto) {
     if (!window.Connect) {
       setError('Mono Connect is still loading — please try again in a moment.');
@@ -214,9 +451,8 @@ export default function BankConnectionPage() {
       const instance = new window.Connect({
         key: token,
         onSuccess: async () => {
-          await loadAccounts();
-          setSuccessMsg(`${account.bankName} reconnected successfully.`);
-          setTimeout(() => setSuccessMsg(null), 4000);
+          await loadData();
+          toast.success(`${account.bankName} reconnected successfully.`);
           setReauthingId(null);
         },
         onClose: () => setReauthingId(null),
@@ -232,454 +468,394 @@ export default function BankConnectionPage() {
   const atLimit = accounts.length >= MAX_ACCOUNTS;
   const reauthCount = accounts.filter(a => a.syncStatus === 'ReauthRequired').length;
 
-  /* ──────────────────────────────────────────────────────────────────────── */
   return (
-    <div className="space-y-6">
-
+    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
       {/* Header */}
-      <div className="animate-fade-in-up flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-[26px] font-extrabold tracking-tight text-slate-900 dark:text-slate-50">
-            Bank Connections
-          </h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            {accounts.length === 0
-              ? 'Connect up to 5 bank accounts via Mono to sync transactions automatically.'
-              : `${accounts.length} of ${MAX_ACCOUNTS} accounts connected · Auto-syncs every 15 minutes`}
+          <h1 className="text-2xl font-bold tracking-tight">Bank Connections</h1>
+          <p className="text-muted-foreground text-sm">
+            Connect banks via Mono for auto-sync, or add manual wallets to track cash/savings.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <Link
-            to="/finance/bank/inbox"
-            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
-          >
-            <InboxIcon className="h-4 w-4" />
-            Review Inbox
-          </Link>
-          <button
-            type="button"
+          <Button variant="outline" asChild>
+            <Link to="/finance/bank/inbox" className="gap-2">
+              <Inbox className="h-4 w-4" />
+              Review Inbox
+            </Link>
+          </Button>
+          <Button
             onClick={openConnectWidget}
             disabled={connecting || atLimit}
-            className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 disabled:translate-y-0 ${
-              atLimit
-                ? 'bg-slate-400'
-                : 'bg-gradient-to-r from-blue-500 to-blue-600 shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30'
-            }`}
+            variant={atLimit ? 'secondary' : 'default'}
+            className="gap-2"
           >
             {connecting ? (
-              <>
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                Connecting…
-              </>
+              <><RefreshCw className="h-4 w-4 animate-spin" /> Connecting…</>
             ) : atLimit ? (
               'Limit Reached'
             ) : accounts.length === 0 ? (
-              <>
-                <BankIcon className="h-4 w-4" />
-                Connect Bank Account
-              </>
+              <><Building2 className="h-4 w-4" /> Connect Bank Account</>
             ) : (
-              <>
-                <PlusIcon className="h-4 w-4" />
-                Connect Another Bank
-              </>
+              <><Plus className="h-4 w-4" /> Connect Another Bank</>
             )}
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Reauth warning */}
       {reauthCount > 0 && (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-amber-50/60 px-5 py-4 dark:border-amber-800/50 dark:from-amber-950/30 dark:to-amber-950/20">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-400">
-            <ExclamationIcon />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">Reconnection Required</p>
-            <p className="mt-0.5 text-sm text-amber-700 dark:text-amber-300">
-              {reauthCount === 1 ? '1 account needs' : `${reauthCount} accounts need`} to be reconnected.
-              Click <strong>Reconnect</strong> on the affected account below.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Success banner */}
-      {successMsg && (
-        <div className="animate-fade-in-up flex items-center gap-3 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-emerald-50/60 px-5 py-4 shadow-sm dark:border-emerald-800/50 dark:from-emerald-950/30 dark:to-emerald-950/20">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-400">
-            <CheckCircleIcon />
-          </div>
-          <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">{successMsg}</p>
-          <button
-            type="button"
-            onClick={() => setSuccessMsg(null)}
-            className="ml-auto shrink-0 rounded-lg p-1 text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/60"
-            aria-label="Dismiss"
-          >
-            <XIcon className="h-4 w-4" />
-          </button>
-        </div>
+        <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800/50 dark:bg-amber-950/20">
+          <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          <AlertTitle className="text-amber-800 dark:text-amber-200">Reconnection Required</AlertTitle>
+          <AlertDescription className="text-amber-700 dark:text-amber-300">
+            {reauthCount === 1 ? '1 account needs' : `${reauthCount} accounts need`} to be reconnected.
+            Click <strong>Reconnect</strong> on the affected account below.
+          </AlertDescription>
+        </Alert>
       )}
 
       {/* Error banner */}
       {error && (
-        <div className="animate-fade-in-up flex items-start gap-3 rounded-2xl border border-rose-200 bg-gradient-to-r from-rose-50 to-rose-50/60 px-5 py-4 shadow-sm dark:border-rose-900/50 dark:from-rose-950/30 dark:to-rose-950/20">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-500 dark:bg-rose-950/50 dark:text-rose-400">
-            <ExclamationIcon />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-rose-800 dark:text-rose-200">Error</p>
-            <p className="mt-0.5 text-sm text-rose-700 dark:text-rose-300">{error}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setError(null)}
-            className="ml-auto shrink-0 rounded-lg p-1 text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/60"
-            aria-label="Dismiss"
-          >
-            <XIcon className="h-4 w-4" />
-          </button>
-        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription className="flex items-center justify-between gap-2">
+            {error}
+            <button type="button" onClick={() => setError(null)} className="shrink-0">
+              <X className="h-4 w-4" />
+            </button>
+          </AlertDescription>
+        </Alert>
       )}
 
-      {/* ── Connected Accounts ─────────────────────────────────────────────── */}
-      <div className="rounded-2xl bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(59,130,246,0.04)] ring-1 ring-slate-200/60 dark:bg-slate-900 dark:ring-slate-800">
-        <div className="mb-5 flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-500 dark:bg-blue-950/40 dark:text-blue-400">
-            <BankIcon className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100">Connected Accounts</h2>
-            <p className="text-xs text-slate-400">
-              {accounts.length === 0 ? 'No accounts connected yet.' : `${accounts.length} / ${MAX_ACCOUNTS} connected`}
-            </p>
-          </div>
-        </div>
-
-        {accountsLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {[1, 2].map(i => (
-              <div key={i} className="h-44 animate-pulse rounded-2xl bg-slate-50 dark:bg-slate-800/50" />
-            ))}
-          </div>
-        ) : accounts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-slate-200 py-14 dark:border-slate-700">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-950/40">
-              <BankIcon className="h-7 w-7 text-blue-400" />
+      {/* ── Connected Bank Accounts (Mono) ─────────────────────────────── */}
+      <Card className="rounded-xl">
+        <CardHeader>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Building2 className="h-5 w-5" />
+              </div>
+              <div>
+                <CardTitle className="text-sm">Connected Bank Accounts</CardTitle>
+                <CardDescription>
+                  {accounts.length === 0 ? 'No accounts connected yet.' : `${accounts.length} / ${MAX_ACCOUNTS} connected · Auto-sync every 15 min`}
+                </CardDescription>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">No bank accounts connected</p>
-              <p className="mt-1 text-xs text-slate-400">
-                Connect your first account and transactions will start syncing automatically.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={openConnectWidget}
-              disabled={connecting}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-blue-500/20 transition-all hover:-translate-y-0.5 active:scale-[0.97] disabled:opacity-60"
-            >
-              <BankIcon className="h-4 w-4" />
-              Connect Your First Bank
-            </button>
           </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {accounts.map(account => {
-              const gradient = bankGradient(account.bankName);
-              const isSyncing = syncingId === account.id;
-              const isDisconnecting = disconnectingId === account.id;
-              const isReathing = reauthingId === account.id;
-              const needsReauth = account.syncStatus === 'ReauthRequired';
-              const hasError = account.syncStatus === 'Error';
+        </CardHeader>
+        <CardContent>
+          {accountsLoading ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2].map(i => <Skeleton key={i} className="h-44 rounded-2xl" />)}
+            </div>
+          ) : accounts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-muted py-10">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <Building2 className="h-6 w-6" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-semibold">No bank accounts connected</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Connect your first account via Mono and transactions will sync automatically.
+                </p>
+              </div>
+              <Button onClick={openConnectWidget} disabled={connecting} className="gap-2">
+                <Building2 className="h-4 w-4" />
+                Connect Your First Bank
+              </Button>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {accounts.map(account => {
+                const gradient = bankGradient(account.bankName);
+                const isSyncing = syncingId === account.id;
+                const isReathing = reauthingId === account.id;
+                const needsReauth = account.syncStatus === 'ReauthRequired';
+                const hasError = account.syncStatus === 'Error';
 
-              return (
-                <div
-                  key={account.id}
-                  className={`relative overflow-hidden rounded-2xl ring-1 transition-all duration-200 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-md ${
-                    needsReauth
-                      ? 'ring-amber-300 dark:ring-amber-700'
-                      : hasError
-                      ? 'ring-rose-300 dark:ring-rose-700'
-                      : 'ring-slate-200/80 hover:-translate-y-0.5 dark:ring-slate-700'
-                  }`}
-                >
-                  {/* Card gradient top */}
-                  <div className={`bg-gradient-to-br ${gradient} p-5`}>
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="truncate text-xs font-bold uppercase tracking-wider text-white/70">
-                          {account.bankName}
-                        </p>
-                        <p className="mt-1 font-mono text-base font-semibold text-white">
-                          {maskAccountNumber(account.accountNumber)}
-                        </p>
-                        <p className="mt-0.5 truncate text-xs text-white/80">{account.accountName}</p>
+                return (
+                  <div
+                    key={account.id}
+                    className={`relative overflow-hidden rounded-2xl ring-1 transition-all duration-200 shadow-sm hover:shadow-md ${
+                      needsReauth ? 'ring-amber-300 dark:ring-amber-700'
+                      : hasError ? 'ring-rose-300 dark:ring-rose-700'
+                      : 'ring-border hover:-translate-y-0.5'
+                    }`}
+                  >
+                    <div className={`bg-gradient-to-br ${gradient} p-5`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-bold uppercase tracking-wider text-white/70">
+                            {account.bankName}
+                          </p>
+                          <p className="mt-1 font-mono text-base font-semibold text-white">
+                            {maskAccountNumber(account.accountNumber)}
+                          </p>
+                          <p className="mt-0.5 truncate text-xs text-white/80">{account.accountName}</p>
+                        </div>
+                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                          needsReauth ? 'bg-amber-400/90 text-amber-900'
+                          : hasError ? 'bg-rose-400/90 text-rose-900'
+                          : 'bg-white/20 text-white/90'
+                        }`}>
+                          {needsReauth ? 'Reauth' : hasError ? 'Error' : 'Active'}
+                        </span>
                       </div>
-                      <span
-                        className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-                          needsReauth
-                            ? 'bg-amber-400/90 text-amber-900'
-                            : hasError
-                            ? 'bg-rose-400/90 text-rose-900'
-                            : 'bg-white/20 text-white/90'
-                        }`}
-                      >
-                        {needsReauth ? 'Reauth' : hasError ? 'Error' : 'Active'}
-                      </span>
+                      <div className="mt-4 border-t border-white/20 pt-3">
+                        <p className="text-[11px] font-medium text-white/60">Balance</p>
+                        <p className="mt-0.5 text-2xl font-extrabold tabular-nums text-white">
+                          {formatCurrency(account.balanceNaira, account.currency)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="mt-4 border-t border-white/20 pt-3">
-                      <p className="text-[11px] font-medium text-white/60">Balance</p>
-                      <p className="mt-0.5 text-2xl font-extrabold tabular-nums text-white">
-                        {formatCurrency(account.balanceNaira, account.currency)}
+
+                    <div className="flex items-center justify-between gap-2 bg-card px-4 py-3">
+                      {needsReauth ? (
+                        <>
+                          <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                            Reconnection required
+                          </p>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleReauth(account)}
+                            disabled={isReathing}
+                            className="h-7 text-xs border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400"
+                          >
+                            {isReathing && <RefreshCw className="h-3 w-3 animate-spin mr-1" />}
+                            Reconnect
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <div>
+                            <p className="text-[11px] text-muted-foreground">
+                              Synced {formatRelativeTime(account.lastSyncedAtUtc)}
+                            </p>
+                            {hasError && account.lastSyncError && (
+                              <button
+                                type="button"
+                                onClick={() => setError(account.lastSyncError)}
+                                className="mt-0.5 max-w-[200px] text-left text-[10px] text-destructive underline decoration-destructive/50 underline-offset-2 break-words"
+                                title="Click to view full error"
+                              >
+                                {account.lastSyncError}
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleSync(account)}
+                              disabled={isSyncing}
+                              title="Sync now"
+                              className="h-8 w-8"
+                            >
+                              <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDisconnectTarget(account)}
+                              title="Disconnect"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {!atLimit && accounts.length > 0 && (
+                <button
+                  type="button"
+                  onClick={openConnectWidget}
+                  disabled={connecting}
+                  className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-muted py-10 text-muted-foreground transition-all hover:border-primary/30 hover:text-primary hover:-translate-y-0.5 disabled:opacity-50"
+                >
+                  {connecting ? <RefreshCw className="h-6 w-6 animate-spin" /> : <PlusCircle className="h-7 w-7" />}
+                  <span className="text-xs font-semibold">Connect Another Bank</span>
+                  <span className="text-[11px]">
+                    {MAX_ACCOUNTS - accounts.length} slot{MAX_ACCOUNTS - accounts.length !== 1 ? 's' : ''} remaining
+                  </span>
+                </button>
+              )}
+            </div>
+          )}
+
+          {atLimit && (
+            <p className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+              <Lock className="h-3.5 w-3.5" />
+              Maximum of {MAX_ACCOUNTS} accounts reached. Disconnect one to add another.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Manual Wallets ─────────────────────────────────────────────── */}
+      <Card className="rounded-xl">
+        <CardHeader>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/10 text-violet-500">
+                <Wallet className="h-5 w-5" />
+              </div>
+              <div>
+                <CardTitle className="text-sm">Manual Wallets</CardTitle>
+                <CardDescription>
+                  Cash, savings, or any account you track by hand — no bank sync.
+                </CardDescription>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 shrink-0"
+              onClick={() => setAddWalletOpen(true)}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add Wallet
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {accountsLoading ? (
+            <div className="space-y-2">
+              {[1, 2].map(i => <Skeleton key={i} className="h-16 rounded-xl" />)}
+            </div>
+          ) : manualWallets.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-muted py-10">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-500">
+                <Wallet className="h-6 w-6" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-semibold">No manual wallets yet</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Add a wallet for cash, a savings account, or any account you don't sync via Mono.
+                </p>
+              </div>
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setAddWalletOpen(true)}>
+                <Plus className="h-3.5 w-3.5" />
+                Add Your First Wallet
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {manualWallets.map(wallet => (
+                <div
+                  key={wallet.id}
+                  className="flex items-center justify-between gap-4 rounded-xl border bg-card px-4 py-3 shadow-sm"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-500">
+                      <Wallet className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{wallet.name}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {wallet.openingBalanceDate
+                          ? `Starting balance: ${formatNaira(wallet.openingBalance)}`
+                          : 'No starting balance set'}
                       </p>
                     </div>
                   </div>
-
-                  {/* Card bottom actions */}
-                  <div className="flex items-center justify-between gap-2 bg-white px-4 py-3 dark:bg-slate-800/80">
-                    {needsReauth ? (
-                      <>
-                        <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
-                          Reconnection required
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => handleReauth(account)}
-                          disabled={isReathing}
-                          className="flex items-center gap-1.5 rounded-lg bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-200 disabled:opacity-60 dark:bg-amber-900/30 dark:text-amber-400"
-                        >
-                          {isReathing && (
-                            <span className="h-3 w-3 animate-spin rounded-full border-2 border-amber-400 border-t-amber-700" />
-                          )}
-                          Reconnect
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <div>
-                          <p className="text-[11px] text-slate-400">
-                            Synced {formatRelativeTime(account.lastSyncedAtUtc)}
-                          </p>
-                          {hasError && account.lastSyncError && (
-                            <button
-                              type="button"
-                              onClick={() => setError(account.lastSyncError)}
-                              className="mt-0.5 max-w-[240px] text-left text-[10px] text-rose-500 underline decoration-rose-400/50 underline-offset-2 break-words"
-                              title="Click to view full error"
-                            >
-                              {account.lastSyncError}
-                            </button>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleSync(account)}
-                            disabled={isSyncing}
-                            title="Sync now"
-                            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 disabled:opacity-50 dark:hover:bg-slate-700 dark:hover:text-slate-300"
-                            aria-label="Sync"
-                          >
-                            <RefreshIcon className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDisconnect(account)}
-                            disabled={isDisconnecting}
-                            title="Disconnect"
-                            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-500 disabled:opacity-50 dark:hover:bg-rose-950/30 dark:hover:text-rose-400"
-                            aria-label="Disconnect"
-                          >
-                            {isDisconnecting ? (
-                              <span className="block h-3.5 w-3.5 animate-spin rounded-full border-2 border-rose-300 border-t-rose-600" />
-                            ) : (
-                              <TrashIcon className="h-3.5 w-3.5" />
-                            )}
-                          </button>
-                        </div>
-                      </>
-                    )}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge variant="secondary" className="text-[10px]">Manual</Badge>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setDeleteWalletTarget(wallet)}
+                      title="Delete wallet"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 </div>
-              );
-            })}
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-            {/* Add another placeholder */}
-            {!atLimit && accounts.length > 0 && (
-              <button
-                type="button"
-                onClick={openConnectWidget}
-                disabled={connecting}
-                className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-slate-200 py-10 text-slate-400 transition-all hover:border-blue-300 hover:text-blue-500 hover:-translate-y-0.5 disabled:opacity-50 dark:border-slate-700 dark:hover:border-blue-700"
-              >
-                {connecting ? (
-                  <span className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-blue-500" />
-                ) : (
-                  <PlusCircleIcon className="h-7 w-7" />
-                )}
-                <span className="text-xs font-semibold">Connect Another Bank</span>
-                <span className="text-[11px] text-slate-400">
-                  {MAX_ACCOUNTS - accounts.length} slot{MAX_ACCOUNTS - accounts.length !== 1 ? 's' : ''} remaining
-                </span>
-              </button>
-            )}
-          </div>
-        )}
-
-        {atLimit && (
-          <p className="mt-4 flex items-center gap-2 text-xs text-slate-500">
-            <LockIcon className="h-3.5 w-3.5" />
-            Maximum of {MAX_ACCOUNTS} accounts reached. Disconnect one to add another.
-          </p>
-        )}
-      </div>
-
-      {/* ── Quick-navigation cards ──────────────────────────────────────────── */}
+      {/* Quick-navigation cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         <Link
           to="/finance/bank/inbox"
-          className="flex items-center gap-3 rounded-2xl bg-white p-4 ring-1 ring-slate-200/60 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 dark:bg-slate-900 dark:ring-slate-800"
+          className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
         >
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-orange-500 dark:bg-orange-950/40 dark:text-orange-400">
-            <InboxIcon className="h-5 w-5" />
+            <Inbox className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Review Inbox</p>
-            <p className="text-xs text-slate-400">Categorize pending transactions</p>
+            <p className="text-sm font-bold">Review Inbox</p>
+            <p className="text-xs text-muted-foreground">Categorize pending transactions</p>
           </div>
         </Link>
 
         <Link
           to="/finance/bank/rules"
-          className="flex items-center gap-3 rounded-2xl bg-white p-4 ring-1 ring-slate-200/60 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 dark:bg-slate-900 dark:ring-slate-800"
+          className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
         >
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-500 dark:bg-violet-950/40 dark:text-violet-400">
-            <RulesIcon className="h-5 w-5" />
+            <ListChecks className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Categorization Rules</p>
-            <p className="text-xs text-slate-400">Auto-post matching transactions</p>
+            <p className="text-sm font-bold">Categorization Rules</p>
+            <p className="text-xs text-muted-foreground">Auto-post matching transactions</p>
           </div>
         </Link>
 
-        <div className="flex items-center gap-3 rounded-2xl bg-white p-4 ring-1 ring-slate-200/60 shadow-sm dark:bg-slate-900 dark:ring-slate-800">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-            <ClockIcon className="h-5 w-5" />
+        <div className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+            <Clock className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Auto-Sync</p>
-            <p className="text-xs text-slate-400">Background sync every 15 min</p>
+            <p className="text-sm font-bold">Auto-Sync</p>
+            <p className="text-xs text-muted-foreground">Background sync every 15 min</p>
           </div>
         </div>
       </div>
 
+      {/* Disconnect Mono bank — PIN dialog */}
+      <PinConfirmDialog
+        open={disconnectTarget !== null}
+        title={`Disconnect ${disconnectTarget?.bankName}?`}
+        description="Your transaction history will be kept. Enter your password to confirm."
+        confirmLabel="Disconnect"
+        onConfirm={handleDisconnect}
+        onCancel={() => setDisconnectTarget(null)}
+      />
+
+      {/* Delete manual wallet — PIN dialog */}
+      <PinConfirmDialog
+        open={deleteWalletTarget !== null}
+        title={`Delete "${deleteWalletTarget?.name}"?`}
+        description="All transactions in this wallet will also be deleted. This cannot be undone. Enter your password to confirm."
+        confirmLabel="Delete"
+        onConfirm={handleDeleteWallet}
+        onCancel={() => setDeleteWalletTarget(null)}
+      />
+
+      {/* Add manual wallet dialog */}
+      <AddManualWalletDialog
+        open={addWalletOpen}
+        onOpenChange={setAddWalletOpen}
+        onCreated={(wallet) => setManualWallets(prev => [...prev, wallet])}
+      />
     </div>
-  );
-}
-
-/* ── Icons ───────────────────────────────────────────────────────────────── */
-function BankIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 2l9 4v2H3V6l9-4z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 8v10M9 8v10M15 8v10M19 8v10" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 18h18v2H3v-2z" />
-    </svg>
-  );
-}
-
-function InboxIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M2 12l2-7h16l2 7" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M2 12h4l2 3h8l2-3h4v7a1 1 0 01-1 1H3a1 1 0 01-1-1v-7z" />
-    </svg>
-  );
-}
-
-function RulesIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h10M4 18h7" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M17 15l2 2 4-4" />
-    </svg>
-  );
-}
-
-function ClockIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
-}
-
-function PlusIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16M4 12h16" />
-    </svg>
-  );
-}
-
-function PlusCircleIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m-3-3h6" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18z" />
-    </svg>
-  );
-}
-
-function RefreshIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h5M20 20v-5h-5" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 9a8 8 0 0114.93-2M20 15a8 8 0 01-14.93 2" />
-    </svg>
-  );
-}
-
-function TrashIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
-    </svg>
-  );
-}
-
-function LockIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8 11V7a4 4 0 018 0v4M5 11h14v10H5V11z" />
-    </svg>
-  );
-}
-
-function CheckCircleIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18z" />
-    </svg>
-  );
-}
-
-function ExclamationIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4M12 17h.01" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-    </svg>
-  );
-}
-
-function XIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-    </svg>
   );
 }

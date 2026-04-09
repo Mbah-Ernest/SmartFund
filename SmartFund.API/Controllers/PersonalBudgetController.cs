@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartFund.API.Contracts.PersonalBudget;
+using SmartFund.API.Infrastructure;
 using SmartFund.Application.Interfaces;
 using SmartFund.Domain.PersonalBudget.Entities;
 using System.Linq;
@@ -12,7 +13,7 @@ namespace SmartFund.API.Controllers
     [ApiController]
     [Authorize]
     [Route("api/personal-budgets")]
-    public sealed class PersonalBudgetController : ControllerBase
+    public sealed class PersonalBudgetController : SmartFundControllerBase
     {
         private readonly IPersonalBudgetRepository _budgets;
         private readonly IPersonalBudgetTrackingRepository _tracking;
@@ -30,7 +31,7 @@ namespace SmartFund.API.Controllers
             [FromBody] CreatePersonalBudgetRequest request,
             CancellationToken ct)
         {
-            var budget = Budget.Create(request.CategoryId, request.Amount, request.Period);
+            var budget = Budget.Create(GetCurrentUserId(), request.CategoryId, request.Amount, request.Period);
 
             await _budgets.AddAsync(budget, ct);
             await _budgets.SaveChangesAsync(ct);
@@ -49,7 +50,7 @@ namespace SmartFund.API.Controllers
         [HttpGet]
         public async Task<ActionResult<BudgetDto[]>> List(CancellationToken ct)
         {
-            var budgets = await _budgets.ListAsync(ct);
+            var budgets = await _budgets.ListByUserAsync(GetCurrentUserId(), ct);
 
             return Ok(budgets.Select(b => new BudgetDto
             {
@@ -63,7 +64,7 @@ namespace SmartFund.API.Controllers
         [HttpGet("{id:long}")]
         public async Task<ActionResult<BudgetDto>> GetById(long id, CancellationToken ct)
         {
-            var budget = await _budgets.GetByIdAsync(id, ct);
+            var budget = await _budgets.GetByIdForUserAsync(id, GetCurrentUserId(), ct);
 
             if (budget is null)
                 return NotFound();
@@ -80,7 +81,7 @@ namespace SmartFund.API.Controllers
         [HttpGet("{id:long}/tracking")]
         public async Task<ActionResult<BudgetTrackingDto[]>> Tracking(long id, CancellationToken ct)
         {
-            var budget = await _budgets.GetByIdAsync(id, ct);
+            var budget = await _budgets.GetByIdForUserAsync(id, GetCurrentUserId(), ct);
 
             if (budget is null)
                 return NotFound();

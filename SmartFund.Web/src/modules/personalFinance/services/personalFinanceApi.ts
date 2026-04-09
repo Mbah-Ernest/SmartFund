@@ -21,7 +21,15 @@ import type {
   CreatePersonalWalletRequest,
   PersonalTransactionDto,
   PersonalFinanceSettingsDto,
-  ResetResultDto
+  ResetResultDto,
+  SetOpeningBalanceRequest,
+  ReconcileResponse,
+  PersonalDebtDto,
+  CreatePersonalDebtRequest,
+  UpdatePersonalDebtRequest,
+  RecordDebtPaymentRequest,
+  RecordDebtPaymentResponse,
+  DebtInsightsDto
 } from '../types/financeTypes';
 
 /* ── Dashboard & Reports ── */
@@ -32,6 +40,14 @@ export async function getDashboard(): Promise<PersonalFinanceDashboardDto> {
       '/personal-reports/dashboard'
     );
     return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function deleteGoal(id: number, pin: string): Promise<void> {
+  try {
+    await api.delete(`/personal-goals/${id}`, { data: { pin } });
   } catch (error) {
     throw toApiClientError(error);
   }
@@ -54,6 +70,14 @@ export async function createCategory(
   try {
     const { data } = await api.post<PersonalCategoryDto>('/personal-categories', request);
     return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function deleteCategory(id: number): Promise<void> {
+  try {
+    await api.delete(`/personal-categories/${id}`);
   } catch (error) {
     throw toApiClientError(error);
   }
@@ -180,12 +204,14 @@ export async function getTransactions(options?: {
   orderBy?: TransactionOrderBy;
   direction?: TransactionOrderDirection;
   take?: number;
+  walletId?: number;
 }): Promise<PersonalTransactionDto[]> {
   try {
     const params = new URLSearchParams();
     if (options?.orderBy) params.set('orderBy', options.orderBy);
     if (options?.direction) params.set('direction', options.direction);
     if (options?.take) params.set('take', String(options.take));
+    if (options?.walletId) params.set('walletId', String(options.walletId));
 
     const qs = params.toString();
 
@@ -193,6 +219,62 @@ export async function getTransactions(options?: {
       qs ? `/personal-transactions?${qs}` : '/personal-transactions'
     );
     return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function setOpeningBalance(
+  walletId: number,
+  req: SetOpeningBalanceRequest
+): Promise<PersonalWalletDto> {
+  try {
+    const { data } = await api.put<PersonalWalletDto>(
+      `/personal-wallets/${walletId}/opening-balance`,
+      req
+    );
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function reconcileWallet(
+  walletId: number,
+  body: { actualBalance: number; date: string; note?: string }
+): Promise<ReconcileResponse> {
+  try {
+    const { data } = await api.post<ReconcileResponse>(
+      `/personal-wallets/${walletId}/reconcile`,
+      body
+    );
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export type BulkReconcileEntry = { walletId: number; actualBalance: number };
+export type BulkReconcileResult = {
+  adjusted: { walletId: number; walletName: string; drift: number; newBalance: number }[];
+  skipped: number[];
+};
+
+export async function bulkReconcileWallets(entries: BulkReconcileEntry[]): Promise<BulkReconcileResult> {
+  try {
+    const { data } = await api.post<BulkReconcileResult>('/personal-wallets/bulk-reconcile', entries);
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function updateTransactionDescription(
+  id: number,
+  description: string | null
+): Promise<void> {
+  try {
+    await api.patch(`/personal-transactions/${id}/description`, { description });
   } catch (error) {
     throw toApiClientError(error);
   }
@@ -262,6 +344,7 @@ export interface ConnectedBankAccountDto {
   bankName: string;
   accountNumber: string;
   accountName: string;
+  accountType: string;
   currency: string;
   balanceNaira: number;
   syncStatus: 'Active' | 'ReauthRequired' | 'Error';
@@ -339,9 +422,17 @@ export async function getConnectedAccounts(): Promise<ConnectedBankAccountDto[]>
   }
 }
 
-export async function disconnectBankAccount(id: number): Promise<void> {
+export async function disconnectBankAccount(id: number, pin: string): Promise<void> {
   try {
-    await api.delete(`/bank/accounts/${id}`);
+    await api.delete(`/bank/accounts/${id}`, { data: { pin } });
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function deleteWallet(id: number, pin: string): Promise<void> {
+  try {
+    await api.delete(`/personal-wallets/${id}`, { data: { pin } });
   } catch (error) {
     throw toApiClientError(error);
   }
@@ -576,11 +667,98 @@ export async function updatePersonalFinanceSettings(
   }
 }
 
+export async function bulkCreateCategories(
+  categories: Array<{ name: string; type: number }>
+): Promise<{ created: number; skipped: number }> {
+  try {
+    const { data } = await api.post<{ created: number; skipped: number }>(
+      '/personal-categories/bulk',
+      { categories }
+    );
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
 export async function resetPersonalFinanceData(): Promise<ResetResultDto> {
   try {
     const { data } = await api.post<ResetResultDto>('/personal-finance/reset', {
       confirmation: 'RESET'
     });
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+/* ── Personal Debts ── */
+
+export async function getDebts(): Promise<PersonalDebtDto[]> {
+  try {
+    const { data } = await api.get<PersonalDebtDto[]>('/personal-debts');
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function getDebtById(id: number): Promise<PersonalDebtDto> {
+  try {
+    const { data } = await api.get<PersonalDebtDto>(`/personal-debts/${id}`);
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function createDebt(request: CreatePersonalDebtRequest): Promise<PersonalDebtDto> {
+  try {
+    const { data } = await api.post<PersonalDebtDto>('/personal-debts', request);
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function updateDebt(id: number, request: UpdatePersonalDebtRequest): Promise<PersonalDebtDto> {
+  try {
+    const { data } = await api.put<PersonalDebtDto>(`/personal-debts/${id}`, request);
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function recordDebtPayment(id: number, request: RecordDebtPaymentRequest): Promise<RecordDebtPaymentResponse> {
+  try {
+    const { data } = await api.post<RecordDebtPaymentResponse>(`/personal-debts/${id}/payments`, request);
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function forgiveDebt(id: number): Promise<PersonalDebtDto> {
+  try {
+    const { data } = await api.patch<PersonalDebtDto>(`/personal-debts/${id}/forgive`);
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function deleteDebt(id: number, pin: string): Promise<void> {
+  try {
+    await api.delete(`/personal-debts/${id}`, { data: { pin } });
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function getDebtInsights(): Promise<DebtInsightsDto> {
+  try {
+    const { data } = await api.get<DebtInsightsDto>('/personal-debts/insights');
     return data;
   } catch (error) {
     throw toApiClientError(error);

@@ -19,6 +19,13 @@ namespace SmartFund.Persistence.Configurations.PersonalFinance
                 .HasMaxLength(10)
                 .IsRequired();
 
+            builder.Property(x => x.UserId).IsRequired();
+            builder.HasIndex(x => x.UserId);
+            builder.HasOne<SmartFund.Domain.Entities.User>()
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             builder.Property(x => x.LedgerAccountId).IsRequired();
             builder.HasIndex(x => x.LedgerAccountId);
 

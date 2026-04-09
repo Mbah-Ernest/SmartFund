@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartFund.API.Contracts.PersonalFinance;
+using SmartFund.API.Infrastructure;
 using SmartFund.Application.Interfaces;
 using SmartFund.Domain.PersonalFinance.Enums;
 using System.Collections.Generic;
@@ -14,10 +15,9 @@ namespace SmartFund.API.Controllers
     [ApiController]
     [Authorize]
     [Route("api/personal-transactions")]
-    public sealed class PersonalTransactionController : ControllerBase
+    public sealed class PersonalTransactionController : SmartFundControllerBase
     {
         private readonly IPersonalTransactionService _tx;
-        private readonly IPersonalInvestmentContributionService _contributions;
         private readonly IPersonalTransactionRepository _txRepo;
         private readonly IPersonalWalletRepository _walletRepo;
         private readonly IPersonalCategoryRepository _categoryRepo;
@@ -26,14 +26,12 @@ namespace SmartFund.API.Controllers
 
         public PersonalTransactionController(
             IPersonalTransactionService tx,
-            IPersonalInvestmentContributionService contributions,
             IPersonalTransactionRepository txRepo,
             IPersonalWalletRepository walletRepo,
             IPersonalCategoryRepository categoryRepo,
             IConnectedBankAccountRepository bankAccountRepo)
         {
             _tx = tx;
-            _contributions = contributions;
             _txRepo = txRepo;
             _walletRepo = walletRepo;
             _categoryRepo = categoryRepo;
@@ -45,9 +43,13 @@ namespace SmartFund.API.Controllers
             [FromQuery] string? orderBy,
             [FromQuery] string? direction,
             [FromQuery] int? take,
+            [FromQuery] long? walletId,
             CancellationToken ct)
         {
-            var transactions = await _txRepo.ListAllAsync(ct);
+            var userId = GetCurrentUserId();
+            var transactions = walletId.HasValue && walletId.Value > 0
+                ? (await _txRepo.ListByUserAsync(userId, ct)).Where(t => t.WalletId == walletId.Value).ToList()
+                : await _txRepo.ListByUserAsync(userId, ct);
             var wallets = await _walletRepo.ListAsync(ct);
             var categories = await _categoryRepo.ListAsync(ct);
             var bankAccounts = await _bankAccountRepo.ListAsync(ct);
@@ -90,17 +92,19 @@ namespace SmartFund.API.Controllers
                 PersonalTransactionType.Income => "Income",
                 PersonalTransactionType.Expense => "Expense",
                 PersonalTransactionType.Transfer => "Transfer",
-                PersonalTransactionType.InvestmentContribution => "Investment",
+                PersonalTransactionType.Adjustment => "Adjustment",
                 _ => t.ToString()
             };
 
             var dtos = sorted.Select(t => new PersonalTransactionDto
             {
                 Id = t.Id,
+                WalletId = t.WalletId,
                 Amount = t.Amount,
                 Wallet = t.WalletId > 0 && walletMap.TryGetValue(t.WalletId, out var wn) ? wn : $"Wallet #{t.WalletId}",
                 Category = t.CategoryId.HasValue && categoryMap.TryGetValue(t.CategoryId.Value, out var cn) ? cn : "—",
                 Type = TypeName(t.TransactionType),
+                Source = t.Source.ToString(),
                 Date = t.Date,
                 Description = t.Description,
                 SourceConnectedBankAccountId = t.SourceConnectedBankAccountId,
@@ -118,6 +122,7 @@ namespace SmartFund.API.Controllers
             CancellationToken ct)
         {
             var ledgerTxId = await _tx.RecordIncomeAsync(
+                GetCurrentUserId(),
                 request.WalletId,
                 request.CategoryId,
                 request.Amount,
@@ -134,6 +139,7 @@ namespace SmartFund.API.Controllers
             CancellationToken ct)
         {
             var ledgerTxId = await _tx.RecordExpenseAsync(
+                GetCurrentUserId(),
                 request.WalletId,
                 request.CategoryId,
                 request.Amount,
@@ -150,6 +156,7 @@ namespace SmartFund.API.Controllers
             CancellationToken ct)
         {
             var ledgerTxId = await _tx.RecordTransferAsync(
+                GetCurrentUserId(),
                 request.SourceWalletId,
                 request.DestinationWalletId,
                 request.Amount,
@@ -160,19 +167,21 @@ namespace SmartFund.API.Controllers
             return Ok(new RecordTransactionResponse { LedgerTransactionId = ledgerTxId });
         }
 
-        [HttpPost("investment-contribution")]
-        public async Task<ActionResult<RecordTransactionResponse>> RecordInvestmentContribution(
-            [FromBody] RecordInvestmentContributionRequest request,
+        [HttpPatch("{id:long}/description")]
+        public async Task<IActionResult> UpdateDescription(
+            long id,
+            [FromBody] UpdateDescriptionRequest request,
             CancellationToken ct)
         {
-            var ledgerTxId = await _contributions.ContributeAsync(
-                request.WalletId,
-                request.TrancheId,
-                request.Amount,
-                request.Description,
-                ct);
+            var userId = GetCurrentUserId();
+            var tx = await _txRepo.GetByIdAsync(id, ct);
+            if (tx is null || tx.UserId != userId)
+                return NotFound();
 
-            return Ok(new RecordTransactionResponse { LedgerTransactionId = ledgerTxId });
+            tx.UpdateDescription(request.Description);
+            await _txRepo.SaveChangesAsync(ct);
+
+            return Ok(new { id = tx.Id, description = tx.Description });
         }
     }
 }

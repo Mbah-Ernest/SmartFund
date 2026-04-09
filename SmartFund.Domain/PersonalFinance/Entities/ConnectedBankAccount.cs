@@ -8,6 +8,8 @@ namespace SmartFund.Domain.PersonalFinance.Entities
     {
         public long Id { get; private set; }
 
+        public long UserId { get; private set; }
+
         /// <summary>The permanent account ID returned by Mono after code exchange.</summary>
         public string MonoAccountId { get; private set; } = default!;
 
@@ -30,6 +32,7 @@ namespace SmartFund.Domain.PersonalFinance.Entities
         private ConnectedBankAccount() { } // EF
 
         public static ConnectedBankAccount Create(
+            long userId,
             string monoAccountId,
             string bankName,
             string accountNumber,
@@ -39,6 +42,8 @@ namespace SmartFund.Domain.PersonalFinance.Entities
             long lastKnownBalanceKobo,
             DateTime utcNow)
         {
+            if (userId <= 0)
+                throw new DomainException("UserId must be a positive value.");
             if (string.IsNullOrWhiteSpace(monoAccountId))
                 throw new DomainException("Mono account ID is required.");
             if (string.IsNullOrWhiteSpace(bankName))
@@ -46,6 +51,7 @@ namespace SmartFund.Domain.PersonalFinance.Entities
 
             return new ConnectedBankAccount
             {
+                UserId = userId,
                 MonoAccountId = monoAccountId.Trim(),
                 BankName = bankName.Trim(),
                 AccountNumber = (accountNumber ?? string.Empty).Trim(),

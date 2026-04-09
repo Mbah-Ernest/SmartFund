@@ -23,3 +23,9 @@ C:\Users\User\AppData\Local\Temp\build_check\SmartFund.Application.pdb
 C:\Users\User\AppData\Local\Temp\sfbuild_check\SmartFund.Application.deps.json
 C:\Users\User\AppData\Local\Temp\sfbuild_check\SmartFund.Application.dll
 C:\Users\User\AppData\Local\Temp\sfbuild_check\SmartFund.Application.pdb
+C:\Users\User\AppData\Local\Temp\sf-build-check\SmartFund.Application.deps.json
+C:\Users\User\AppData\Local\Temp\sf-build-check\SmartFund.Application.dll
+C:\Users\User\AppData\Local\Temp\sf-build-check\SmartFund.Application.pdb
+C:\Users\User\AppData\Local\Temp\sf-final-build\SmartFund.Application.deps.json
+C:\Users\User\AppData\Local\Temp\sf-final-build\SmartFund.Application.dll
+C:\Users\User\AppData\Local\Temp\sf-final-build\SmartFund.Application.pdb

@@ -16,8 +16,14 @@ internal sealed class InMemoryPersonalWalletRepository : IPersonalWalletReposito
     public Task<PersonalWallet?> GetByIdAsync(long id, CancellationToken ct) =>
         Task.FromResult(Wallets.FirstOrDefault(x => x.Id == id));
 
+    public Task<PersonalWallet?> GetByIdForUserAsync(long id, long userId, CancellationToken ct) =>
+        Task.FromResult(Wallets.FirstOrDefault(x => x.Id == id && x.UserId == userId));
+
     public Task<List<PersonalWallet>> ListAsync(CancellationToken ct) =>
         Task.FromResult(Wallets.OrderByDescending(x => x.Id).ToList());
+
+    public Task<List<PersonalWallet>> ListByUserAsync(long userId, CancellationToken ct) =>
+        Task.FromResult(Wallets.Where(x => x.UserId == userId).OrderByDescending(x => x.Id).ToList());
 
     public Task AddAsync(PersonalWallet wallet, CancellationToken ct)
     {

@@ -5,6 +5,6 @@ namespace SmartFund.Domain.PersonalFinance.Enums
         Income = 1,
         Expense = 2,
         Transfer = 3,
-        InvestmentContribution = 4
+        Adjustment = 4
     }
 }

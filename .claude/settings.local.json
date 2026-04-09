@@ -27,7 +27,29 @@
       "Bash(npx tsc:*)",
       "Bash(node -e \"const r = require\\(''''./node_modules/recharts''''\\); const p = Object.keys\\(r.Pie?.propTypes || {}\\); console.log\\(p.join\\(''''\\\\n''''\\)\\);\")",
       "Bash(wc -l C:UsersUserDesktopTech-IdeasPersonalSmartFundSmartFund.ApplicationServicesPersonalFinance/*.cs)",
-      "Bash(grep -r \"LinkTransferPair\\\\|TransferPairImportId\" /c/Users/User/Desktop/Tech-Ideas/Personal/SmartFund --include=*.cs)"
+      "Bash(grep -r \"LinkTransferPair\\\\|TransferPairImportId\" /c/Users/User/Desktop/Tech-Ideas/Personal/SmartFund --include=*.cs)",
+      "Bash(grep -E '\\\\.\\(cs|tsx?\\)$')",
+      "Bash(taskkill /F /PID 8120)",
+      "Bash(Get-Process -Id 8120 -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object Id, Name)",
+      "Bash(powershell -Command \"Get-Process -Id 8120 -ErrorAction SilentlyContinue | Select-Object Id, Name\")",
+      "Bash(powershell -Command \"Stop-Process -Id 8120 -Force\")",
+      "Bash(dotnet run:*)",
+      "Bash(powershell -Command \"Get-Process | Where-Object { $_.MainWindowTitle -like '*SmartFund*' -or $_.Name -like '*SmartFund*' } | Select-Object Id, Name\" 2>&1)",
+      "Bash(powershell -Command \"Get-Process dotnet | Select-Object Id, Name, StartTime\")",
+      "Bash(taskkill:*)",
+      "Bash(cmd.exe /c \"taskkill /PID 25944 /F\" 2>&1)",
+      "Bash(cmd.exe /c \"taskkill /IM SmartFund.API.exe /F 2>&1\")",
+      "Bash(xcopy /E /I /Y \"C:\\\\Users\\\\User\\\\Downloads\\\\SmartFund_WebApp\" \"C:\\\\Users\\\\User\\\\Desktop\\\\Tech-Ideas\\\\Personal\\\\SmartFund\\\\SmartFund.WebNext\")",
+      "Bash(cp:*)",
+      "Bash(xargs cat:*)",
+      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
+      "Bash(grep -v \"//\")",
+      "Bash(python3:*)",
+      "Bash(node:*)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)"
     ]
   }
 }

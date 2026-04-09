@@ -9,6 +9,8 @@ namespace SmartFund.Tests.PersonalFinance;
 
 public sealed class PersonalWalletServiceTests
 {
+    private const long UserId = 1L;
+
     [Fact]
     public async Task CreateWallet_CreatesLedgerAccount_AndStoresLedgerAccountId()
     {
@@ -18,7 +20,7 @@ public sealed class PersonalWalletServiceTests
 
         var svc = new PersonalWalletService(walletRepo, accountRepo, txRepo);
 
-        var wallet = await svc.CreateWalletAsync("Main", "NGN", CancellationToken.None);
+        var wallet = await svc.CreateWalletAsync(UserId, "Main", "NGN", CancellationToken.None);
 
         wallet.Id.Should().BeGreaterThan(0);
         wallet.LedgerAccountId.Should().BeGreaterThan(0);
@@ -38,7 +40,7 @@ public sealed class PersonalWalletServiceTests
 
         var svc = new PersonalWalletService(walletRepo, accountRepo, txRepo);
 
-        var wallet = await svc.CreateWalletAsync("Main", "NGN", CancellationToken.None);
+        var wallet = await svc.CreateWalletAsync(UserId, "Main", "NGN", CancellationToken.None);
 
         // Balanced ledger tx that increases wallet by 100.
         var lt = LedgerTransaction.CreateDraft("seed");
