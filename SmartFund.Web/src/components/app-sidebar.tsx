@@ -7,6 +7,7 @@ import {
   ArrowLeftRight,
   PiggyBank,
   Target,
+  Wallet,
   Tags,
   Building2,
   Inbox,
@@ -63,7 +64,8 @@ const personalFinanceItems = [
   { title: 'Dashboard', href: '/finance/dashboard', icon: LayoutDashboard },
   { title: 'Transactions', href: '/finance/transactions', icon: ArrowLeftRight },
   { title: 'Budgets', href: '/finance/budgets', icon: PiggyBank },
-  { title: 'Goals & Wallets', href: '/finance/goals', icon: Target },
+  { title: 'Goals',   href: '/finance/goals',   icon: Target },
+  { title: 'Wallets', href: '/finance/wallets',  icon: Wallet },
   { title: 'Categories', href: '/finance/categories', icon: Tags },
   { title: 'Debts', href: '/finance/debts', icon: CreditCard },
 ];

@@ -13,6 +13,7 @@ namespace SmartFund.Domain.PersonalFinance.Entities
         public decimal SavedAmount { get; private set; }
         public DateTime Deadline { get; private set; }
         public DateTime CreatedAt { get; private set; }
+        public long? WalletId { get; private set; }
 
         private PersonalGoal() { } // EF
 
@@ -38,8 +39,18 @@ namespace SmartFund.Domain.PersonalFinance.Entities
         public static PersonalGoal Create(long userId, string name, decimal targetAmount, DateTime deadline) =>
             new PersonalGoal(userId, name, targetAmount, 0m, deadline, DateTime.UtcNow);
 
+        public void SetWallet(long walletId)
+        {
+            if (walletId <= 0) throw new DomainException("WalletId must be positive.");
+            WalletId = walletId;
+        }
+
+        public void UnlinkWallet() => WalletId = null;
+
         public void Contribute(decimal amount)
         {
+            if (WalletId.HasValue)
+                throw new DomainException("This goal tracks savings via a linked wallet. Make a wallet transfer instead.");
             if (amount <= 0)
                 throw new DomainException("Contribution amount must be greater than zero.");
 

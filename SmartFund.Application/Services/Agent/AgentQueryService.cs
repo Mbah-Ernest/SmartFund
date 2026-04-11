@@ -236,15 +236,28 @@ namespace SmartFund.Application.Services.Agent
                 : await _goalRepo.ListByUserAsync(userId, ct);
 
             var utcNow = DateTime.UtcNow;
-            return goals.Select(g =>
+            var results = new List<GoalProgressResult>();
+            foreach (var g in goals)
             {
-                var pct = g.TargetAmount > 0 ? Math.Round(g.SavedAmount / g.TargetAmount * 100, 1) : 0m;
+                decimal savedNaira;
+                if (g.WalletId.HasValue)
+                {
+                    try { savedNaira = await _wallets.GetWalletBalanceAsync(g.WalletId.Value, ct); }
+                    catch { savedNaira = g.SavedAmount; }
+                }
+                else
+                {
+                    savedNaira = g.SavedAmount;
+                }
+
+                var pct = g.TargetAmount > 0 ? Math.Round(savedNaira / g.TargetAmount * 100, 1) : 0m;
                 var monthsLeft = g.Deadline > utcNow
                     ? (int)Math.Ceiling((g.Deadline - utcNow).TotalDays / 30.44)
                     : 0;
-                return new GoalProgressResult(
-                    g.Id, g.Name, g.TargetAmount, g.SavedAmount, pct, g.Deadline, monthsLeft);
-            }).ToList();
+                results.Add(new GoalProgressResult(
+                    g.Id, g.Name, g.TargetAmount, savedNaira, pct, g.Deadline, monthsLeft));
+            }
+            return results;
         }
 
         public async Task<List<BudgetHealthResult>> GetBudgetHealthAsync(long userId, int year, int month, CancellationToken ct)
@@ -591,23 +604,36 @@ namespace SmartFund.Application.Services.Agent
                 : await _goalRepo.ListByUserAsync(userId, ct);
 
             var utcNow = DateTime.UtcNow;
-            return goals.Select(g =>
+            var results = new List<GoalSavePlanResult>();
+            foreach (var g in goals)
             {
-                var isComplete = g.SavedAmount >= g.TargetAmount;
+                decimal savedNaira;
+                if (g.WalletId.HasValue)
+                {
+                    try { savedNaira = await _wallets.GetWalletBalanceAsync(g.WalletId.Value, ct); }
+                    catch { savedNaira = g.SavedAmount; }
+                }
+                else
+                {
+                    savedNaira = g.SavedAmount;
+                }
+
+                var isComplete = savedNaira >= g.TargetAmount;
                 var isOverdue = !isComplete && g.Deadline <= utcNow;
-                var remaining = Math.Max(0m, g.TargetAmount - g.SavedAmount);
+                var remaining = Math.Max(0m, g.TargetAmount - savedNaira);
                 var monthsLeft = g.Deadline > utcNow
                     ? (int)Math.Ceiling((g.Deadline - utcNow).TotalDays / 30.44)
                     : 0;
                 var requiredMonthly = !isComplete && monthsLeft > 0
                     ? Math.Round(remaining / monthsLeft, 2)
                     : 0m;
-                return new GoalSavePlanResult(
-                    g.Id, g.Name, g.TargetAmount, g.SavedAmount, remaining,
+                results.Add(new GoalSavePlanResult(
+                    g.Id, g.Name, g.TargetAmount, savedNaira, remaining,
                     g.Deadline, monthsLeft, requiredMonthly,
                     !isComplete && !isOverdue && monthsLeft > 0,
-                    isComplete, isOverdue);
-            }).ToList();
+                    isComplete, isOverdue));
+            }
+            return results;
         }
 
         public async Task<List<RecentTransactionResult>> GetWalletTransactionsAsync(

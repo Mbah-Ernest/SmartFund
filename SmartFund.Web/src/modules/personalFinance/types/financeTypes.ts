@@ -206,6 +206,64 @@ export type ResetResultDto = {
   message: string;
 };
 
+/* ── Personal Goals ── */
+
+export type PersonalGoalDto = {
+  id: number;
+  name: string;
+  targetAmount: number;
+  savedAmount: number;
+  effectiveSavedAmount: number;
+  progressPct: number;
+  remainingAmount: number;
+  walletId: number | null;
+  isWalletLinked: boolean;
+  deadline: string;
+  createdAt: string;
+};
+
+export type CreatePersonalGoalRequest = {
+  name: string;
+  targetAmount: number;
+  deadline: string;
+  walletId?: number;
+};
+
+export type SetGoalWalletRequest = {
+  walletId: number | null;
+};
+
+export type ContributeToGoalRequest = {
+  amount: number;
+};
+
+export type GoalInsightItemDto = {
+  goalId: number;
+  name: string;
+  targetNaira: number;
+  savedNaira: number;
+  progressPct: number;
+  monthlyRequiredNaira: number;
+  estimatedCompletionDate: string | null;
+  isOnTrack: boolean;
+  isOverdue: boolean;
+  isWalletLinked: boolean;
+  walletId: number | null;
+};
+
+export type GoalInsightsDto = {
+  totalTargetNaira: number;
+  totalSavedNaira: number;
+  goalsOnTrack: number;
+  totalActiveGoals: number;
+  overdueGoals: number;
+  overallProgressPct: number;
+  nextDeadlineGoalId: number | null;
+  nextDeadlineGoalName: string | null;
+  nextDeadline: string | null;
+  items: GoalInsightItemDto[];
+};
+
 /* ── Personal Debts ── */
 
 export type DebtStatus = 'Active' | 'PaidOff' | 'Forgiven';

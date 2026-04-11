@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
 using SmartFund.Application.Services.Agent;
+using SmartFund.Application.UseCases.PersonalFinance;
 
 namespace SmartFund.API.Services
 {
@@ -139,6 +140,7 @@ namespace SmartFund.API.Services
         private readonly HttpClient _http;
         private readonly AgentQueryService _query;
         private readonly AgentActionService _action;
+        private readonly GetGoalInsights _goalInsights;
         private readonly string _apiKey;
         private readonly string _model;
         private readonly string _baseUrl;
@@ -152,11 +154,12 @@ namespace SmartFund.API.Services
         };
 
         public AgentChatService(HttpClient http, AgentQueryService query, AgentActionService action,
-            string apiKey, string model, string? baseUrl = null)
+            GetGoalInsights goalInsights, string apiKey, string model, string? baseUrl = null)
         {
             _http = http;
             _query = query;
             _action = action;
+            _goalInsights = goalInsights;
             _apiKey = apiKey;
             _model = model;
             _baseUrl = string.IsNullOrWhiteSpace(baseUrl)
@@ -319,9 +322,23 @@ namespace SmartFund.API.Services
 
         private static bool TryGetInt(JsonElement args, string key, out int value)
         {
-            if (args.TryGetProperty(key, out var el) && el.ValueKind == JsonValueKind.Number)
-            { value = el.GetInt32(); return true; }
-            value = 0; return false;
+            if (!args.TryGetProperty(key, out var el))
+            {
+                value = 0;
+                return false;
+            }
+
+            if (el.ValueKind == JsonValueKind.Number)
+            {
+                value = el.GetInt32();
+                return true;
+            }
+
+            if (el.ValueKind == JsonValueKind.String && int.TryParse(el.GetString(), out value))
+                return true;
+
+            value = 0;
+            return false;
         }
 
         private static bool TryGetLong(JsonElement args, string key, out long value)
@@ -583,6 +600,22 @@ namespace SmartFund.API.Services
                         desc, ct);
                     return (JsonSerializer.Serialize(pending), pending);
                 }
+                case "get_goal_insights":
+                {
+                    var r = await _goalInsights.ExecuteAsync(longUserId, ct);
+                    return (JsonSerializer.Serialize(r), null);
+                }
+                case "contribute_to_goal":
+                {
+                    long? fromWalletId = TryGetLong(args, "fromWalletId", out var fw) ? fw : null;
+                    var pending = await _action.InitiateContributeToGoalAsync(
+                        userId,
+                        GetLong(args, "goalId"),
+                        GetDecimal(args, "amountNaira"),
+                        fromWalletId,
+                        ct);
+                    return (JsonSerializer.Serialize(pending), pending);
+                }
                 default:
                     return (JsonSerializer.Serialize(new { error = $"Unknown tool: {toolName}" }), null);
             }
@@ -821,7 +854,13 @@ namespace SmartFund.API.Services
                             properties = new {
                                 fromDate = new { type = "string", description = "Start date YYYY-MM-DD" },
                                 toDate   = new { type = "string", description = "End date YYYY-MM-DD" },
-                                limit    = new { type = "integer", description = "Max categories to return (default 5)" },
+                                limit    = new {
+                                    anyOf = new object[] {
+                                        new { type = "integer" },
+                                        new { type = "string", pattern = "^[0-9]+$" }
+                                    },
+                                    description = "Max categories to return (default 5)"
+                                },
                                 type     = new { type = "string", description = "Filter by type: Income or Expense (optional)" }
                             },
                             required = new[] { "fromDate", "toDate" }
@@ -906,6 +945,28 @@ namespace SmartFund.API.Services
                             properties = new {
                                 goalId = new { type = "integer", description = "Specific goal ID, or omit for all goals" }
                             }
+                        })
+                    }
+                },
+                new() {
+                    Function = new GroqToolFunction {
+                        Name = "get_goal_insights",
+                        Description = "Returns aggregate goal analytics: total target, total saved, goals on track, overdue goals, overall progress %, next deadline goal, and per-goal breakdown with monthly required savings and estimated completion dates.",
+                        Parameters = P(new { type = "object", properties = new { } })
+                    }
+                },
+                new() {
+                    Function = new GroqToolFunction {
+                        Name = "contribute_to_goal",
+                        Description = "Proposes contributing to a savings goal. For wallet-linked goals, initiates a wallet transfer. For manual goals, directly adds to the saved amount. Returns a pendingActionId — the user must confirm.",
+                        Parameters = P(new {
+                            type = "object",
+                            properties = new {
+                                goalId      = new { type = "integer", description = "Goal ID" },
+                                amountNaira = new { type = "number",  description = "Amount to contribute in Naira" },
+                                fromWalletId = new { type = "integer", description = "Source wallet ID (required for wallet-linked goals)" }
+                            },
+                            required = new[] { "goalId", "amountNaira" }
                         })
                     }
                 },
@@ -1097,6 +1158,13 @@ namespace SmartFund.API.Services
             - Use record_debt_payment (with confirmation) when the user wants to log a payment.
             - Use create_debt (with confirmation) when the user wants to track a new debt.
 
+            GOAL TRACKING:
+            - Use get_goal_insights for any question about savings goals progress, on-track status, or aggregate goal health.
+            - Use get_goal_progress for simple per-goal progress checks.
+            - Use get_goal_save_up_plan when the user asks how much to save per month or when they'll hit a goal.
+            - Use contribute_to_goal (with confirmation) when the user wants to add money to a goal. For wallet-linked goals, a fromWalletId is required.
+            - Always check goal progress when answering affordability questions that could delay a goal timeline.
+
             AFFORDABILITY COACHING (for "Can I afford X?" questions):
             Follow this sequence before answering:
             1. Call get_wallet_balances — check if liquid funds cover the purchase outright.
@@ -1119,6 +1187,8 @@ namespace SmartFund.API.Services
             - "What's my savings rate?" → call get_savings_rate with months=3.
             - "What are my recurring expenses/subscriptions?" → call get_recurring_patterns.
             - "When will I hit my goal?" / "How much should I save per month?" → call get_goal_save_up_plan.
+            - "How are my savings goals doing?" / "Am I on track with my goals?" → call get_goal_insights.
+            - "Contribute X to my [goal name]" / "Put money toward my goal" → use contribute_to_goal (with confirmation).
             - "What are my biggest expenses?" → call get_top_categories with type="Expense".
             - "What's my net worth?" → call get_net_worth.
             - Log/record/add expense or income → use log_expense or log_income. Always identify the category first from context or ask the user. Always confirm the wallet. Present the pending summary and wait for user confirmation.

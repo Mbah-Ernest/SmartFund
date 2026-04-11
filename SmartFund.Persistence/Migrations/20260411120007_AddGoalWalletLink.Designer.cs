@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SmartFund.Persistence.DbContext;
 
@@ -11,9 +12,11 @@ using SmartFund.Persistence.DbContext;
 namespace SmartFund.Persistence.Migrations
 {
     [DbContext(typeof(SmartFundDbContext))]
-    partial class SmartFundDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260411120007_AddGoalWalletLink")]
+    partial class AddGoalWalletLink
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

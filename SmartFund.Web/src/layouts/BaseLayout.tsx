@@ -1,7 +1,7 @@
 /// <reference path="../shims-react-router-dom.d.ts" />
 
 import { Outlet, useLocation } from 'react-router-dom';
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { AppSidebar } from '@/components/app-sidebar';
 import ChatWidget from '@/components/ChatWidget';
@@ -12,7 +12,8 @@ const ROUTE_LABELS: Record<string, string> = {
   '/finance/dashboard': 'Dashboard',
   '/finance/transactions': 'Transactions',
   '/finance/budgets': 'Budgets',
-  '/finance/goals': 'Goals & Wallets',
+  '/finance/goals': 'Goals',
+  '/finance/wallets': 'Wallets',
   '/finance/categories': 'Categories',
   '/finance/debts': 'Debts',
   '/finance/bank': 'Bank',
@@ -37,6 +38,7 @@ export default function BaseLayout() {
       <AppSidebar />
       <SidebarInset className="h-svh overflow-hidden overflow-x-hidden">
         <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background/95 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:px-4">
+          <SidebarTrigger className="hidden max-[1366px]:inline-flex" />
           {pageLabel && (
             <span className="text-sm text-muted-foreground font-medium truncate">
               {pageLabel}
@@ -56,7 +58,7 @@ export default function BaseLayout() {
             <ThemeToggle />
           </div>
         </header>
-        <main className="flex-1 flex flex-col overflow-hidden overflow-x-hidden">
+        <main className="flex-1 min-h-0 flex flex-col overflow-y-auto overflow-x-hidden pt-4">
           <Outlet />
         </main>
       </SidebarInset>

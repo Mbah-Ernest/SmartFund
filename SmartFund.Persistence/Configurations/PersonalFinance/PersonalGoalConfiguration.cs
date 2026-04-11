@@ -11,6 +11,7 @@ namespace SmartFund.Persistence.Configurations.PersonalFinance
             builder.ToTable("PersonalGoals");
             builder.HasKey(x => x.Id);
 
+
             builder.Property(x => x.UserId).IsRequired();
             builder.HasIndex(x => x.UserId);
             builder.HasOne<SmartFund.Domain.Entities.User>()
@@ -32,6 +33,14 @@ namespace SmartFund.Persistence.Configurations.PersonalFinance
 
             builder.Property(x => x.Deadline).IsRequired();
             builder.Property(x => x.CreatedAt).IsRequired();
+
+            builder.Property(x => x.WalletId).IsRequired(false);
+            builder.HasIndex(x => x.WalletId);
+            builder.HasOne<PersonalWallet>()
+                .WithMany()
+                .HasForeignKey(x => x.WalletId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

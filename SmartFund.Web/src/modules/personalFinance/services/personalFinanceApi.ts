@@ -29,7 +29,12 @@ import type {
   UpdatePersonalDebtRequest,
   RecordDebtPaymentRequest,
   RecordDebtPaymentResponse,
-  DebtInsightsDto
+  DebtInsightsDto,
+  PersonalGoalDto,
+  CreatePersonalGoalRequest,
+  ContributeToGoalRequest,
+  SetGoalWalletRequest,
+  GoalInsightsDto
 } from '../types/financeTypes';
 
 /* ── Dashboard & Reports ── */
@@ -39,6 +44,62 @@ export async function getDashboard(): Promise<PersonalFinanceDashboardDto> {
     const { data } = await api.get<PersonalFinanceDashboardDto>(
       '/personal-reports/dashboard'
     );
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+/* ── Goals ── */
+
+export async function getGoals(): Promise<PersonalGoalDto[]> {
+  try {
+    const { data } = await api.get<PersonalGoalDto[]>('/personal-goals');
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function getGoal(id: number): Promise<PersonalGoalDto> {
+  try {
+    const { data } = await api.get<PersonalGoalDto>(`/personal-goals/${id}`);
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function createGoal(request: CreatePersonalGoalRequest): Promise<PersonalGoalDto> {
+  try {
+    const { data } = await api.post<PersonalGoalDto>('/personal-goals', request);
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function contributeToGoal(id: number, request: ContributeToGoalRequest): Promise<PersonalGoalDto> {
+  try {
+    const { data } = await api.post<PersonalGoalDto>(`/personal-goals/${id}/contribute`, request);
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function setGoalWallet(id: number, request: SetGoalWalletRequest): Promise<PersonalGoalDto> {
+  try {
+    const { data } = await api.patch<PersonalGoalDto>(`/personal-goals/${id}/wallet`, request);
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function getGoalInsights(): Promise<GoalInsightsDto> {
+  try {
+    const { data } = await api.get<GoalInsightsDto>('/personal-goals/insights');
     return data;
   } catch (error) {
     throw toApiClientError(error);

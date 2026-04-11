@@ -131,6 +131,7 @@ builder.Services.AddScoped<SmartFund.Application.UseCases.PersonalFinance.Update
 builder.Services.AddScoped<SmartFund.Application.UseCases.PersonalFinance.MarkDebtForgiven>();
 builder.Services.AddScoped<SmartFund.Application.UseCases.PersonalFinance.DeletePersonalDebt>();
 builder.Services.AddScoped<SmartFund.Application.UseCases.PersonalFinance.GetDebtInsights>();
+builder.Services.AddScoped<SmartFund.Application.UseCases.PersonalFinance.GetGoalInsights>();
 
 // Bank sync + categorization
 builder.Services.Configure<MonoOptions>(builder.Configuration.GetSection("Mono"));
@@ -191,9 +192,10 @@ builder.Services.AddScoped<AgentChatService>(sp =>
         sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(AgentChatService)),
         sp.GetRequiredService<AgentQueryService>(),
         sp.GetRequiredService<AgentActionService>(),
+        sp.GetRequiredService<SmartFund.Application.UseCases.PersonalFinance.GetGoalInsights>(),
         groqApiKey,
-         groqModel,
-         groqBaseUrl));
+        groqModel,
+        groqBaseUrl));
 
 // Use case
 builder.Services.AddScoped<CreateTranche>();

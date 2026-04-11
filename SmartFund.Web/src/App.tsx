@@ -17,6 +17,7 @@ import PersonalDashboard from './modules/personalFinance/pages/PersonalDashboard
 import TransactionsPage from './modules/personalFinance/pages/TransactionsPage';
 import BudgetPage from './modules/personalFinance/pages/BudgetPage';
 import GoalsPage from './modules/personalFinance/pages/GoalsPage';
+import WalletsPage from './modules/personalFinance/pages/WalletsPage';
 import CategoriesPage from './modules/personalFinance/pages/CategoriesPage';
 import DebtsPage from './modules/personalFinance/pages/DebtsPage';
 import BankConnectionPage from './modules/personalFinance/pages/BankConnectionPage';
@@ -59,6 +60,7 @@ export default function App() {
         <Route path="finance/transactions" element={<TransactionsPage />} />
         <Route path="finance/budgets" element={<BudgetPage />} />
         <Route path="finance/goals" element={<GoalsPage />} />
+        <Route path="finance/wallets" element={<WalletsPage />} />
         <Route path="finance/categories" element={<CategoriesPage />} />
         <Route path="finance/debts" element={<DebtsPage />} />
         <Route path="finance/bank" element={<BankConnectionPage />} />

@@ -38,6 +38,8 @@ namespace SmartFund.Application.Services.Agent
         string CreditorName, decimal PrincipalAmount, decimal TotalAmountDue,
         DateTime DueDate, string? Description);
 
+    public sealed record ContributeToGoalPayload(long GoalId, decimal AmountNaira, long? FromWalletId);
+
     // ── Result returned to the controller / LLM ───────────────────────────────
 
     public sealed record PendingActionSummary(
@@ -211,6 +213,36 @@ namespace SmartFund.Application.Services.Agent
             return new PendingActionSummary(action.Id, summary, 300);
         }
 
+        public async Task<PendingActionSummary> InitiateContributeToGoalAsync(
+            string userId, long goalId, decimal amountNaira, long? fromWalletId, CancellationToken ct)
+        {
+            var longUserId = long.TryParse(userId, out var uid) ? uid : 1L;
+            var goal = await _goalRepo.GetByIdForUserAsync(goalId, longUserId, ct)
+                ?? throw new DomainException($"Goal #{goalId} not found.");
+
+            string summary;
+            if (goal.WalletId.HasValue)
+            {
+                var fromWallet = fromWalletId.HasValue
+                    ? await _walletService.GetWalletAsync(fromWalletId.Value, ct)
+                    : null;
+                var fromName = fromWallet?.Name ?? (fromWalletId.HasValue ? $"Wallet #{fromWalletId}" : "your wallet");
+                var goalWallet = await _walletService.GetWalletAsync(goal.WalletId.Value, ct);
+                var goalWalletName = goalWallet?.Name ?? $"Wallet #{goal.WalletId}";
+                summary = $"Transfer ₦{amountNaira:N0} from {fromName} to goal wallet '{goalWalletName}'";
+            }
+            else
+            {
+                summary = $"Contribute ₦{amountNaira:N0} to goal '{goal.Name}'";
+            }
+
+            var payload = new ContributeToGoalPayload(goalId, amountNaira, fromWalletId);
+            var action = PendingAgentAction.Create(userId, "ContributeToGoal", JsonSerializer.Serialize(payload), summary, DateTime.UtcNow);
+            await _pendingRepo.AddAsync(action, ct);
+            await _pendingRepo.SaveChangesAsync(ct);
+            return new PendingActionSummary(action.Id, summary, 300);
+        }
+
         public async Task<PendingActionSummary> InitiateCreateDebtAsync(
             string userId, string creditorName, decimal principalAmount, decimal totalAmountDue,
             DateTime dueDate, string? description, CancellationToken ct)
@@ -370,6 +402,42 @@ namespace SmartFund.Application.Services.Agent
                         null, ct);
 
                     result = $"Payment of ₦{payload.AmountNaira:N0} recorded on debt '{debt.CreditorName}'. Remaining balance: ₦{debt.RemainingBalance:N0}.";
+                    break;
+                }
+
+                case "ContributeToGoal":
+                {
+                    var payload = JsonSerializer.Deserialize<ContributeToGoalPayload>(action.PayloadJson)!;
+                    var longUserId = long.TryParse(userId, out var uid) ? uid : 1L;
+                    var goal = await _goalRepo.GetByIdForUserAsync(payload.GoalId, longUserId, ct)
+                        ?? throw new DomainException($"Goal #{payload.GoalId} not found.");
+
+                    if (goal.WalletId.HasValue)
+                    {
+                        var fromWalletId = payload.FromWalletId
+                            ?? throw new DomainException("A source wallet is required to transfer to a wallet-linked goal.");
+                        await _txService.RecordTransferAsync(
+                            longUserId,
+                            fromWalletId,
+                            goal.WalletId.Value,
+                            payload.AmountNaira,
+                            $"Contribution to goal '{goal.Name}'",
+                            DateTime.UtcNow,
+                            ct);
+                    }
+                    else
+                    {
+                        goal.Contribute(payload.AmountNaira);
+                        await _goalRepo.SaveChangesAsync(ct);
+                    }
+
+                    await _audit.RecordAsync(
+                        AuditCategory.PersonalFinance,
+                        "[AI] ContributeToGoal",
+                        $"AI-initiated goal contribution confirmed. {action.Summary} (pendingActionId={pendingActionId})",
+                        null, ct);
+
+                    result = $"Contribution of ₦{payload.AmountNaira:N0} to goal '{goal.Name}' completed successfully.";
                     break;
                 }
 
