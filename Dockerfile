@@ -1,0 +1,1 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build`nWORKDIR /src`n`nCOPY . .`nRUN dotnet restore "SmartFund.API/SmartFund.API.csproj"`nRUN dotnet publish "SmartFund.API/SmartFund.API.csproj" -c Release -o /app/publish`n`nFROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final`nWORKDIR /app`nEXPOSE 8080`nCOPY --from=build /app/publish .`nENTRYPOINT ["dotnet", "SmartFund.API.dll"]
