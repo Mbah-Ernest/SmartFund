@@ -1,1 +1,11 @@
 .vs/
+
+# .NET build artifacts
+**/bin/
+**/obj/
+
+# Node artifacts
+**/node_modules/
+**/.next/
+**/dist/
+**/.pnpm-store/
