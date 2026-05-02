@@ -11,7 +11,7 @@ export default function KpiCarousel({ children, className }: KpiCarouselProps) {
     <div
       className={cn(
         'flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2',
-        'xl:grid xl:grid-cols-3 xl:overflow-visible xl:snap-none xl:pb-0',
+        'xl:grid xl:grid-cols-5 xl:overflow-visible xl:snap-none xl:pb-0',
         'scrollbar-hide',
         className
       )}

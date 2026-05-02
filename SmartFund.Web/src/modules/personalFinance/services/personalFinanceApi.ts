@@ -34,7 +34,11 @@ import type {
   CreatePersonalGoalRequest,
   ContributeToGoalRequest,
   SetGoalWalletRequest,
-  GoalInsightsDto
+  GoalInsightsDto,
+  IncomeScheduleItemDto,
+  CreateIncomeScheduleRequest,
+  UpdateIncomeScheduleRequest,
+  IncomeScheduleSummaryDto
 } from '../types/financeTypes';
 
 /* ── Dashboard & Reports ── */
@@ -859,6 +863,61 @@ export async function deleteDebt(id: number, pin: string): Promise<void> {
 export async function getDebtInsights(): Promise<DebtInsightsDto> {
   try {
     const { data } = await api.get<DebtInsightsDto>('/personal-debts/insights');
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+/* ── Income Schedule ── */
+
+export async function getIncomeSchedule(includeCompleted = false): Promise<IncomeScheduleItemDto[]> {
+  try {
+    const { data } = await api.get<IncomeScheduleItemDto[]>(`/income-schedule?includeCompleted=${includeCompleted}`);
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function createIncomeScheduleItem(req: CreateIncomeScheduleRequest): Promise<IncomeScheduleItemDto> {
+  try {
+    const { data } = await api.post<IncomeScheduleItemDto>('/income-schedule', req);
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function updateIncomeScheduleItem(id: number, req: UpdateIncomeScheduleRequest): Promise<IncomeScheduleItemDto> {
+  try {
+    const { data } = await api.put<IncomeScheduleItemDto>(`/income-schedule/${id}`, req);
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function deleteIncomeScheduleItem(id: number): Promise<void> {
+  try {
+    await api.delete(`/income-schedule/${id}`);
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function markIncomeReceived(id: number): Promise<IncomeScheduleItemDto> {
+  try {
+    const { data } = await api.post<IncomeScheduleItemDto>(`/income-schedule/${id}/mark-received`);
+    return data;
+  } catch (error) {
+    throw toApiClientError(error);
+  }
+}
+
+export async function getIncomeScheduleSummary(): Promise<IncomeScheduleSummaryDto> {
+  try {
+    const { data } = await api.get<IncomeScheduleSummaryDto>('/income-schedule/summary');
     return data;
   } catch (error) {
     throw toApiClientError(error);

@@ -229,6 +229,27 @@ export default function PersonalDashboard() {
 
   const runwayMonths = runway?.runwayMonths ?? null;
 
+  // Expected inflow: average of last 3 complete months' income
+  const expectedInflow = useMemo(() => {
+    const now = new Date();
+    const thisKey = monthKey(now.getFullYear(), now.getMonth() + 1);
+
+    const byMonth = new Map<string, number>();
+    for (const r of incomeRows) {
+      const k = monthKey(r.year, r.month);
+      byMonth.set(k, (byMonth.get(k) ?? 0) + r.amount);
+    }
+
+    const pastMonths = Array.from(byMonth.entries())
+      .filter(([k]) => k < thisKey)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .slice(0, 3)
+      .map(([, v]) => v);
+
+    if (pastMonths.length === 0) return null;
+    return pastMonths.reduce((s, v) => s + v, 0) / pastMonths.length;
+  }, [incomeRows]);
+
   const bankTypeOptions = useMemo(() => {
     const types = Array.from(new Set(connectedAccounts
       .map(a => (a.accountType || '').trim().toLowerCase())
@@ -354,6 +375,27 @@ export default function PersonalDashboard() {
             }
             loading={loading}
             colorAccent="rose"
+          />
+          <BalanceCard
+            title="Monthly Net Cash"
+            value={dashboard ? maskAmount(savings, isPrivate) : '—'}
+            description="What you kept this month after all expenses. Positive means you saved money."
+            icon={<NetCashIcon />}
+            trend={
+              dashboard
+                ? { value: savings >= 0 ? 'saved' : 'deficit', positive: savings >= 0 }
+                : undefined
+            }
+            loading={loading}
+            colorAccent={savings >= 0 ? 'emerald' : 'rose'}
+          />
+          <BalanceCard
+            title="Expected Inflow"
+            value={expectedInflow !== null ? maskAmount(expectedInflow, isPrivate) : '—'}
+            description="Estimated income for next month based on your last 3 months average."
+            icon={<ExpectedInflowIcon />}
+            loading={loading}
+            colorAccent="violet"
           />
         </KpiCarousel>
         </div>
@@ -687,6 +729,22 @@ function ArrowDownIcon() {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+    </svg>
+  );
+}
+
+function NetCashIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-4-4l4 4 4-4M3 10h18" />
+    </svg>
+  );
+}
+
+function ExpectedInflowIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
     </svg>
   );
 }

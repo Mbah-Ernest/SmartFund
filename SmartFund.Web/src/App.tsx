@@ -24,6 +24,7 @@ import BankConnectionPage from './modules/personalFinance/pages/BankConnectionPa
 import BankInboxPage from './modules/personalFinance/pages/BankInboxPage';
 import BankRulesPage from './modules/personalFinance/pages/BankRulesPage';
 import AiChatPage from './modules/personalFinance/pages/AiChatPage';
+import IncomeSchedulePage from './modules/personalFinance/pages/IncomeSchedulePage';
 import { getUserRole } from './auth/authStorage';
 
 function RequireAdmin({ children }: { children: React.ReactNode }) {
@@ -68,6 +69,7 @@ export default function App() {
         <Route path="finance/bank/rules" element={<BankRulesPage />} />
         <Route path="finance/bank-test" element={<BankConnectionPage />} />
         <Route path="finance/ai-chat" element={<AiChatPage />} />
+        <Route path="finance/income-schedule" element={<IncomeSchedulePage />} />
 
         {/* Member loan routes */}
         <Route path="loans/apply" element={<LoanApplicationPage />} />

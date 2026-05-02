@@ -361,3 +361,61 @@ export type DebtInsightsDto = {
   coverageItems: DebtCoverageItem[];
   urgencyRanking: RankedDebt[];
 };
+
+/* ── Income Schedule ── */
+
+export type IncomeScheduleKind = 'Recurring' | 'OneTime';
+export type IncomeScheduleDirection = 'Inflow' | 'Outflow';
+export type IncomeRecurrenceInterval = 'Daily' | 'Weekly' | 'BiWeekly' | 'Monthly' | 'Quarterly' | 'Annually';
+export type IncomeScheduleStatus = 'Active' | 'Paused' | 'Completed';
+
+export interface IncomeScheduleItemDto {
+  id: number;
+  userId: number;
+  label: string;
+  amount: number;
+  direction: IncomeScheduleDirection;
+  kind: IncomeScheduleKind;
+  recurrenceInterval?: IncomeRecurrenceInterval;
+  nextExpectedDate: string;
+  endDate?: string;
+  notes?: string;
+  status: IncomeScheduleStatus;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateIncomeScheduleRequest {
+  label: string;
+  amount: number;
+  direction: IncomeScheduleDirection;
+  kind: IncomeScheduleKind;
+  recurrenceInterval?: IncomeRecurrenceInterval;
+  nextExpectedDate: string;
+  endDate?: string;
+  notes?: string;
+}
+
+export type UpdateIncomeScheduleRequest = CreateIncomeScheduleRequest;
+
+export interface IncomeScheduleSummaryDto {
+  totalActiveItems: number;
+  expectedIncomeThisMonthNaira: number;
+  expectedExpenseThisMonthNaira: number;
+  projectedNetThisMonthNaira: number;
+  expectedIncomeNext30DaysNaira: number;
+  expectedExpenseNext30DaysNaira: number;
+  projectedNetNext30DaysNaira: number;
+  expectedIncomeNext90DaysNaira: number;
+  expectedExpenseNext90DaysNaira: number;
+  projectedNetNext90DaysNaira: number;
+  recurringIncomeTotalNaira: number;
+  recurringExpenseTotalNaira: number;
+  oneTimeIncomeTotalNaira: number;
+  oneTimeExpenseTotalNaira: number;
+  expectedThisMonthNaira: number;
+  expectedNext30DaysNaira: number;
+  expectedNext90DaysNaira: number;
+  recurringTotalNaira: number;
+  oneTimeTotalNaira: number;
+}

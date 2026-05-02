@@ -53,9 +53,11 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("SmartFundWeb", policy =>
         policy
-            .WithOrigins(
-                "http://localhost:5173", "https://localhost:5173",
-                "http://localhost:4173", "https://localhost:4173")
+            .SetIsOriginAllowed(origin =>
+            {
+                var uri = new Uri(origin);
+                return uri.Host == "localhost" || uri.Host == "127.0.0.1";
+            })
             .AllowAnyHeader()
             .AllowAnyMethod());
 });
@@ -75,8 +77,6 @@ builder.Services.AddScoped<ILedgerSequenceGenerator, LedgerSequenceGenerator>();
 builder.Services.AddScoped<IReportingService, ReportingService>();
 builder.Services.AddScoped<IPersonalFinanceReportService, PersonalFinanceReportService>();
 builder.Services.AddScoped<IPersonalFinanceDashboardService, PersonalFinanceDashboardService>();
-
-builder.Services.AddScoped<SmartFund.Application.Interfaces.ILedgerAccountRepository, SmartFund.Persistence.Repositories.LedgerAccountRepository>();
 
 // Repos + generators it depends on
 builder.Services.AddScoped<ITrancheRepository, TrancheRepository>();
@@ -132,6 +132,14 @@ builder.Services.AddScoped<SmartFund.Application.UseCases.PersonalFinance.MarkDe
 builder.Services.AddScoped<SmartFund.Application.UseCases.PersonalFinance.DeletePersonalDebt>();
 builder.Services.AddScoped<SmartFund.Application.UseCases.PersonalFinance.GetDebtInsights>();
 builder.Services.AddScoped<SmartFund.Application.UseCases.PersonalFinance.GetGoalInsights>();
+
+// Income Schedule use cases
+builder.Services.AddScoped<SmartFund.Application.Interfaces.IIncomeScheduleRepository, SmartFund.Persistence.Repositories.IncomeScheduleRepository>();
+builder.Services.AddScoped<SmartFund.Application.UseCases.PersonalFinance.CreateIncomeScheduleItem>();
+builder.Services.AddScoped<SmartFund.Application.UseCases.PersonalFinance.UpdateIncomeScheduleItem>();
+builder.Services.AddScoped<SmartFund.Application.UseCases.PersonalFinance.DeleteIncomeScheduleItem>();
+builder.Services.AddScoped<SmartFund.Application.UseCases.PersonalFinance.MarkIncomeReceived>();
+builder.Services.AddScoped<SmartFund.Application.UseCases.PersonalFinance.GetIncomeScheduleSummary>();
 
 // Bank sync + categorization
 builder.Services.Configure<MonoOptions>(builder.Configuration.GetSection("Mono"));

@@ -970,6 +970,59 @@ namespace SmartFund.Persistence.Migrations
                     b.ToTable("ConnectedBankAccounts", (string)null);
                 });
 
+            modelBuilder.Entity("SmartFund.Domain.PersonalFinance.Entities.IncomeScheduleItem", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Direction")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime>("NextExpectedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("RecurrenceInterval")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("IncomeScheduleItems", (string)null);
+                });
+
             modelBuilder.Entity("SmartFund.Domain.PersonalFinance.Entities.PersonalCategory", b =>
                 {
                     b.Property<long>("Id")
@@ -1555,6 +1608,15 @@ namespace SmartFund.Persistence.Migrations
                         .HasForeignKey("PersonalWalletId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("SmartFund.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SmartFund.Domain.PersonalFinance.Entities.IncomeScheduleItem", b =>
+                {
                     b.HasOne("SmartFund.Domain.Entities.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")

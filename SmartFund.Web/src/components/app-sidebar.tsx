@@ -22,6 +22,7 @@ import {
   ChevronDown,
   Bot,
   CreditCard,
+  CalendarClock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -68,6 +69,7 @@ const personalFinanceItems = [
   { title: 'Wallets', href: '/finance/wallets',  icon: Wallet },
   { title: 'Categories', href: '/finance/categories', icon: Tags },
   { title: 'Debts', href: '/finance/debts', icon: CreditCard },
+  { title: 'Cash Flow Schedule', href: '/finance/income-schedule', icon: CalendarClock },
 ];
 
 const bankItems = [
