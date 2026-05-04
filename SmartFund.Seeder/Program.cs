@@ -17,6 +17,7 @@ using SmartFund.Domain.PersonalBudget.Entities;
 using SmartFund.Domain.PersonalBudget.Enums;
 using SmartFund.Domain.PersonalFinance.Entities;
 using SmartFund.Domain.PersonalFinance.Enums;
+using SmartFund.Domain.Stocks.Entities;
 using SmartFund.Persistence.DbContext;
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -105,6 +106,21 @@ if (personalFinanceOnly)
     Console.WriteLine($"  Ledger Accounts (added)       : {personal.LedgerAccountsAdded}");
     Console.WriteLine();
     return;
+}
+
+// ── NGX Stocks (idempotent — always runs) ─────────────────────────────────────
+if (!await db.Stocks.AnyAsync())
+{
+    Step("Seeding NGX stocks");
+    var stocks = new[]
+    {
+        Stock.Create("DANGCEM",    "NSENG:DANGCEM",    "Dangote Cement Plc",      "Building Materials"),
+        Stock.Create("MTNN",       "NSENG:MTNN",       "MTN Nigeria Plc",         "Telecommunications"),
+        Stock.Create("ZENITHBANK", "NSENG:ZENITHBANK", "Zenith Bank Plc",         "Banking"),
+    };
+    db.Stocks.AddRange(stocks);
+    await db.SaveChangesAsync();
+    Done(stocks.Length);
 }
 
 if (await db.Investors.AnyAsync())

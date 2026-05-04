@@ -1366,6 +1366,172 @@ namespace SmartFund.Persistence.Migrations
                     b.ToTable("RecurringPatterns", (string)null);
                 });
 
+            modelBuilder.Entity("SmartFund.Domain.Stocks.Entities.AiBrief", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("BriefText")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("GeneratedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("MacdSignal")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("NewsSentiment")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("PriceVsSma20")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("PriceVsSma50")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("RsiSignal")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<decimal?>("RsiValue")
+                        .HasColumnType("decimal(8,4)");
+
+                    b.Property<string>("Ticker")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Ticker", "GeneratedAtUtc");
+
+                    b.ToTable("StockAiBriefs", (string)null);
+                });
+
+            modelBuilder.Entity("SmartFund.Domain.Stocks.Entities.PriceEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("Close")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("High")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<decimal>("Low")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<decimal>("Open")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<string>("Ticker")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("TradeDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("Volume")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Ticker");
+
+                    b.HasIndex("Ticker", "TradeDate")
+                        .IsUnique();
+
+                    b.ToTable("StockPriceEntries", (string)null);
+                });
+
+            modelBuilder.Entity("SmartFund.Domain.Stocks.Entities.Stock", b =>
+                {
+                    b.Property<string>("Ticker")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("CompanyName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Sector")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("TradingViewSymbol")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Ticker");
+
+                    b.ToTable("Stocks", (string)null);
+                });
+
+            modelBuilder.Entity("SmartFund.Domain.Stocks.Entities.StockWatchlistEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal?>("AvgCost")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("HoldingsQty")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<string>("Ticker")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Ticker");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "Ticker")
+                        .IsUnique();
+
+                    b.ToTable("StockWatchlistEntries", (string)null);
+                });
+
             modelBuilder.Entity("SmartFund.Persistence.DbContext.LedgerDailySequence", b =>
                 {
                     b.Property<string>("DateKey")
@@ -1717,6 +1883,39 @@ namespace SmartFund.Persistence.Migrations
 
             modelBuilder.Entity("SmartFund.Domain.PersonalFinance.Entities.RecurringPattern", b =>
                 {
+                    b.HasOne("SmartFund.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SmartFund.Domain.Stocks.Entities.AiBrief", b =>
+                {
+                    b.HasOne("SmartFund.Domain.Stocks.Entities.Stock", null)
+                        .WithMany()
+                        .HasForeignKey("Ticker")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SmartFund.Domain.Stocks.Entities.PriceEntry", b =>
+                {
+                    b.HasOne("SmartFund.Domain.Stocks.Entities.Stock", null)
+                        .WithMany()
+                        .HasForeignKey("Ticker")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SmartFund.Domain.Stocks.Entities.StockWatchlistEntry", b =>
+                {
+                    b.HasOne("SmartFund.Domain.Stocks.Entities.Stock", null)
+                        .WithMany()
+                        .HasForeignKey("Ticker")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("SmartFund.Domain.Entities.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")

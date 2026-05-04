@@ -7,12 +7,16 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using SmartFund.API.Services;
 using SmartFund.Application.Interfaces;
+using SmartFund.Application.Interfaces.Stocks;
 using SmartFund.Application.Services.Agent;
 using SmartFund.Application.Services.PersonalFinance;
+using SmartFund.Application.Services.Stocks;
 using SmartFund.Application.UseCases.Tranches;
 using SmartFund.Infrastructure.BankSync;
+using SmartFund.Infrastructure.Stocks;
 using SmartFund.Persistence.DbContext;
 using SmartFund.Persistence.Repositories;
+using SmartFund.Persistence.Repositories.Stocks;
 using SmartFund.Persistence.Reporting;
 using SmartFund.Application.Services;
 using System.Security.Authentication;
@@ -100,6 +104,14 @@ builder.Services.AddScoped<IPersonalFinanceSettingsRepository, PersonalFinanceSe
 
 builder.Services.AddScoped<IAuditRepository, AuditRepository>();
 builder.Services.AddScoped<IAuditService, SmartFund.Application.Services.AuditService>();
+
+// Stock Intelligence
+builder.Services.AddScoped<IStockRepository, StockRepository>();
+builder.Services.AddScoped<IPriceRepository, PriceRepository>();
+builder.Services.AddScoped<IAiBriefRepository, AiBriefRepository>();
+builder.Services.AddScoped<IStockWatchlistRepository, StockWatchlistRepository>();
+builder.Services.AddScoped<TechnicalIndicatorService>();
+builder.Services.AddScoped<IAiBriefOrchestrator, AiBriefOrchestrator>();
 
 builder.Services.AddScoped<IPersonalWalletService, PersonalWalletService>();
 builder.Services.AddScoped<IPersonalTransactionService, PersonalTransactionService>();

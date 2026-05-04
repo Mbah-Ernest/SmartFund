@@ -3,6 +3,7 @@ using SmartFund.Domain.Agent;
 using SmartFund.Domain.Entities;
 using SmartFund.Domain.PersonalBudget.Entities;
 using SmartFund.Domain.PersonalFinance.Entities;
+using SmartFund.Domain.Stocks.Entities;
 
 namespace SmartFund.Persistence.DbContext
 {
@@ -52,6 +53,11 @@ namespace SmartFund.Persistence.DbContext
 
         public DbSet<LedgerEntry> LedgerEntries => Set<LedgerEntry>();
         public DbSet<LedgerDailySequence> LedgerDailySequences => Set<LedgerDailySequence>();
+
+        public DbSet<Stock> Stocks => Set<Stock>();
+        public DbSet<PriceEntry> StockPriceEntries => Set<PriceEntry>();
+        public DbSet<AiBrief> StockAiBriefs => Set<AiBrief>();
+        public DbSet<StockWatchlistEntry> StockWatchlistEntries => Set<StockWatchlistEntry>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

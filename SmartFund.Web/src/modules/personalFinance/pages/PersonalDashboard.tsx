@@ -8,6 +8,7 @@ import InfoTooltip from '../components/InfoTooltip';
 import MonthOverMonthCard from '../components/MonthOverMonthCard';
 import KpiCarousel from '../components/KpiCarousel';
 import DailyBalanceChart from '../components/DailyBalanceChart';
+import StockWatchlistCard from '../../stocks/components/StockWatchlistCard';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Link } from 'react-router-dom';
 import {
@@ -229,27 +230,6 @@ export default function PersonalDashboard() {
 
   const runwayMonths = runway?.runwayMonths ?? null;
 
-  // Expected inflow: average of last 3 complete months' income
-  const expectedInflow = useMemo(() => {
-    const now = new Date();
-    const thisKey = monthKey(now.getFullYear(), now.getMonth() + 1);
-
-    const byMonth = new Map<string, number>();
-    for (const r of incomeRows) {
-      const k = monthKey(r.year, r.month);
-      byMonth.set(k, (byMonth.get(k) ?? 0) + r.amount);
-    }
-
-    const pastMonths = Array.from(byMonth.entries())
-      .filter(([k]) => k < thisKey)
-      .sort(([a], [b]) => b.localeCompare(a))
-      .slice(0, 3)
-      .map(([, v]) => v);
-
-    if (pastMonths.length === 0) return null;
-    return pastMonths.reduce((s, v) => s + v, 0) / pastMonths.length;
-  }, [incomeRows]);
-
   const bankTypeOptions = useMemo(() => {
     const types = Array.from(new Set(connectedAccounts
       .map(a => (a.accountType || '').trim().toLowerCase())
@@ -264,8 +244,12 @@ export default function PersonalDashboard() {
     return rows.reduce((sum, a) => sum + a.balanceNaira, 0);
   }, [connectedAccounts, bankTypeFilter]);
 
+  const displayedBankBalance = dashboard
+    ? (bankTypeFilter === 'all' ? dashboard.connectedBankBalance : filteredBankBalance)
+    : null;
+
   const totalBalanceValue = dashboard
-    ? dashboard.walletBalance + filteredBankBalance
+    ? dashboard.walletBalance + (displayedBankBalance ?? 0)
     : null;
 
   const activeDebts = debts.filter(d => d.status === 'Active');
@@ -342,8 +326,8 @@ export default function PersonalDashboard() {
                 ? maskAmount(totalBalanceValue, isPrivate)
                 : '—'
             }
-            subtitle={dashboard
-              ? `Wallets ${maskAmount(dashboard.walletBalance, isPrivate)} · Banks (${bankTypeFilter === 'all' ? 'all' : bankTypeFilter}) ${maskAmount(filteredBankBalance, isPrivate)}`
+            subtitle={dashboard && displayedBankBalance !== null
+              ? `Wallets ${maskAmount(dashboard.walletBalance, isPrivate)} · Banks (${bankTypeFilter === 'all' ? 'all' : bankTypeFilter}) ${maskAmount(displayedBankBalance, isPrivate)}`
               : undefined}
             description="Combined balance across your app wallets and connected bank accounts."
             icon={<WalletIcon />}
@@ -388,14 +372,6 @@ export default function PersonalDashboard() {
             }
             loading={loading}
             colorAccent={savings >= 0 ? 'emerald' : 'rose'}
-          />
-          <BalanceCard
-            title="Expected Inflow"
-            value={expectedInflow !== null ? maskAmount(expectedInflow, isPrivate) : '—'}
-            description="Estimated income for next month based on your last 3 months average."
-            icon={<ExpectedInflowIcon />}
-            loading={loading}
-            colorAccent="violet"
           />
         </KpiCarousel>
         </div>
@@ -596,13 +572,14 @@ export default function PersonalDashboard() {
           </Collapsible>
         </div>
 
-        {/* Right: AI Insights Panel */}
-        <div className="xl:sticky xl:top-4 xl:self-start max-h-[65vh] overflow-auto pr-1">
+        {/* Right: AI Insights Panel + Stock Watchlist */}
+        <div className="xl:sticky xl:top-4 xl:self-start space-y-4 max-h-[65vh] overflow-auto pr-1">
           <AIInsightsPanel
             dashboard={dashboard}
             incomeExpense={incomeExpenseData}
             loading={loading}
           />
+          <StockWatchlistCard />
         </div>
       </div>
 
@@ -741,10 +718,3 @@ function NetCashIcon() {
   );
 }
 
-function ExpectedInflowIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-    </svg>
-  );
-}

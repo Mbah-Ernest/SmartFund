@@ -20,6 +20,7 @@ const ROUTE_LABELS: Record<string, string> = {
   '/finance/bank/inbox': 'Bank Inbox',
   '/finance/bank/rules': 'Bank Rules',
   '/finance/ai-chat': 'AI Assistant',
+  '/finance/stocks': 'NGX Stocks',
   '/loans/apply': 'Apply for a Loan',
   '/loans/my': 'My Loans',
   '/admin/loans': 'Loan Applications',

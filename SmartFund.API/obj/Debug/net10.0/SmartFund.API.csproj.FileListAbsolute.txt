@@ -217,3 +217,5 @@ C:\Users\User\AppData\Local\Temp\sf-final-build\SmartFund.API.deps.json
 C:\Users\User\AppData\Local\Temp\sf-final-build\SmartFund.API.runtimeconfig.json
 C:\Users\User\AppData\Local\Temp\sf-final-build\SmartFund.API.dll
 C:\Users\User\AppData\Local\Temp\sf-final-build\SmartFund.API.pdb
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\bin\Debug\net10.0\Anthropic.SDK.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\bin\Debug\net10.0\Microsoft.Extensions.AI.Abstractions.dll

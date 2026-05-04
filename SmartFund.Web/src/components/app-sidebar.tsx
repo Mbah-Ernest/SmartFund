@@ -23,6 +23,7 @@ import {
   Bot,
   CreditCard,
   CalendarClock,
+  TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -70,6 +71,7 @@ const personalFinanceItems = [
   { title: 'Categories', href: '/finance/categories', icon: Tags },
   { title: 'Debts', href: '/finance/debts', icon: CreditCard },
   { title: 'Cash Flow Schedule', href: '/finance/income-schedule', icon: CalendarClock },
+  { title: 'Stocks', href: '/finance/stocks', icon: TrendingUp },
 ];
 
 const bankItems = [

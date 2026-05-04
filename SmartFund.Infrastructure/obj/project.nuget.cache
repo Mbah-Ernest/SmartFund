@@ -1,9 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "QC57wJ/Inmk=",
+  "dgSpecHash": "b3ewgz35ync=",
   "success": true,
   "projectFilePath": "C:\\Users\\User\\Desktop\\Tech-Ideas\\Personal\\SmartFund\\SmartFund.Infrastructure\\SmartFund.Infrastructure.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\User\\.nuget\\packages\\anthropic.sdk\\5.10.0\\anthropic.sdk.5.10.0.nupkg.sha512",
+    "C:\\Users\\User\\.nuget\\packages\\microsoft.bcl.asyncinterfaces\\10.0.3\\microsoft.bcl.asyncinterfaces.10.0.3.nupkg.sha512",
+    "C:\\Users\\User\\.nuget\\packages\\microsoft.extensions.ai.abstractions\\10.3.0\\microsoft.extensions.ai.abstractions.10.3.0.nupkg.sha512",
     "C:\\Users\\User\\.nuget\\packages\\microsoft.extensions.configuration\\10.0.0\\microsoft.extensions.configuration.10.0.0.nupkg.sha512",
     "C:\\Users\\User\\.nuget\\packages\\microsoft.extensions.configuration.abstractions\\10.0.0\\microsoft.extensions.configuration.abstractions.10.0.0.nupkg.sha512",
     "C:\\Users\\User\\.nuget\\packages\\microsoft.extensions.configuration.binder\\10.0.0\\microsoft.extensions.configuration.binder.10.0.0.nupkg.sha512",
