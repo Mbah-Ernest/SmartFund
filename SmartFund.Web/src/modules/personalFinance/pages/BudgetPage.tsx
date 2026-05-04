@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
@@ -387,13 +387,9 @@ function BudgetCard(props: {
 }) {
   const { b, overBudget, categoryName, spent, remaining, pct, tracking, onEdit, onDelete } = props;
   const [displayPct, setDisplayPct] = useState(0);
-  const mounted = useRef(false);
 
   useEffect(() => {
-    if (mounted.current) return;
-    mounted.current = true;
-    const timer = setTimeout(() => setDisplayPct(pct), 50);
-    return () => clearTimeout(timer);
+    setDisplayPct(pct);
   }, [pct]);
 
   return (
