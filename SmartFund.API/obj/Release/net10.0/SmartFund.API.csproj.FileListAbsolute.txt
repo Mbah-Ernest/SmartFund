@@ -169,5 +169,13 @@ C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\obj\Release\ne
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\obj\Release\net10.0\SmartFund.API.pdb
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\obj\Release\net10.0\SmartFund.API.genruntimeconfig.cache
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\obj\Release\net10.0\ref\SmartFund.API.dll
-C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\bin\Release\net10.0\Anthropic.dll
 C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\bin\Release\net10.0\Microsoft.Extensions.AI.Abstractions.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\bin\Release\net10.0\Anthropic.SDK.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\bin\Release\net10.0\BCrypt.Net-Next.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\bin\Release\net10.0\UglyToad.PdfPig.Core.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\bin\Release\net10.0\UglyToad.PdfPig.DocumentLayoutAnalysis.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\bin\Release\net10.0\UglyToad.PdfPig.Fonts.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\bin\Release\net10.0\UglyToad.PdfPig.Package.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\bin\Release\net10.0\UglyToad.PdfPig.Tokenization.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\bin\Release\net10.0\UglyToad.PdfPig.Tokens.dll
+C:\Users\User\Desktop\Tech-Ideas\Personal\SmartFund\SmartFund.API\bin\Release\net10.0\UglyToad.PdfPig.dll

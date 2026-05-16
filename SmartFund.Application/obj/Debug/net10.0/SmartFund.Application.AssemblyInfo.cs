@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SmartFund.Application")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+75fde482aeee36b0cd3193263e4608d935e48b94")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fdce754471634a2e887b809bb335547d1c76ece7")]
 [assembly: System.Reflection.AssemblyProductAttribute("SmartFund.Application")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SmartFund.Application")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

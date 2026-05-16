@@ -53,7 +53,16 @@
       "Bash(git push:*)",
       "Bash(grep -l \"LineChart\\\\|BarChart\\\\|PieChart\" \"C:\\\\Users\\\\User\\\\Desktop\\\\Tech-ideas\\\\Personal\\\\SmartFund\\\\SmartFund.Web\\\\src\\\\modules\\\\personalFinance\\\\components\"/*.tsx)",
       "Bash(xargs -I {} basename {})",
-      "Bash(grep -E \"\\\\.\\(cs|tsx|ts\\)$\")"
+      "Bash(grep -E \"\\\\.\\(cs|tsx|ts\\)$\")",
+      "Bash(docker --version)",
+      "Bash(docker compose *)",
+      "PowerShell(docker compose version *)",
+      "PowerShell(sqllocaldb info *)",
+      "PowerShell(sqllocaldb start *)",
+      "PowerShell(Get-NetTCPConnection *)",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:5123/swagger/index.html\" -UseBasicParsing -TimeoutSec 5; \"API status: $\\($r.StatusCode\\) $\\($r.StatusDescription\\) - Content-Length: $\\($r.RawContentLength\\)\" } catch { \"API error: $\\($_.Exception.Message\\)\" }; try { $r2 = Invoke-WebRequest -Uri \"http://localhost:5174/\" -UseBasicParsing -TimeoutSec 5; \"SPA status: $\\($r2.StatusCode\\) $\\($r2.StatusDescription\\) - Content-Length: $\\($r2.RawContentLength\\)\" } catch { \"SPA error: $\\($_.Exception.Message\\)\" }; try { $r3 = Invoke-WebRequest -Uri \"http://localhost:5174/api/personal-wallets\" -UseBasicParsing -TimeoutSec 5; \"SPA->API proxy status: $\\($r3.StatusCode\\)\" } catch { \"SPA->API proxy: $\\($_.Exception.Message\\) \\($\\($_.Exception.Response.StatusCode\\)\\)\" })",
+      "PowerShell(doctl version *)",
+      "Bash(git commit *)"
     ]
   }
 }
