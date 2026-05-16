@@ -246,9 +246,9 @@ if (missingGroqKeyInDev)
     app.Logger.LogWarning("Groq API key is not configured. Set environment variable 'GROQ_API_KEY' (or 'Groq__ApiKey') or user-secrets key 'Groq:ApiKey' to enable AI features.");
 }
 
-// Ensure the database schema is up-to-date in development.
-// This prevents runtime errors like "Invalid object name" after introducing new migrations.
-if (app.Environment.IsDevelopment())
+// Ensure the database schema is up-to-date on startup.
+// This prevents runtime errors like "Invalid object name" after introducing new migrations
+// and bootstraps a fresh container deployment without a separate migrate step.
 {
     try
     {

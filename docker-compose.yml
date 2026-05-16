@@ -1,0 +1,76 @@
+# Production stack for the single-Droplet deployment.
+# Brings up SQL Server (Express, free), the .NET API, and an nginx-served React SPA.
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: smartfund-db
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Express"           # Express edition is free (10 GB DB cap).
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD}"
+      MSSQL_TCP_PORT: "1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+    # Not published to the host — only reachable from the compose network.
+    expose:
+      - "1433"
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' || exit 1"
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smartfund-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: "Server=db,1433;Database=SmartFundDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;MultipleActiveResultSets=true"
+      Jwt__Issuer: "${JWT_ISSUER:-SmartFund}"
+      Jwt__Audience: "${JWT_AUDIENCE:-SmartFund.Web}"
+      Jwt__Key: "${JWT_KEY}"
+      Jwt__ExpiresMinutes: "${JWT_EXPIRES_MINUTES:-480}"
+      Auth__Username: "${AUTH_USERNAME}"
+      Auth__Password: "${AUTH_PASSWORD}"
+      GROQ_API_KEY: "${GROQ_API_KEY}"
+      GROQ_MODEL: "${GROQ_MODEL:-llama-3.3-70b-versatile}"
+      Anthropic__ApiKey: "${ANTHROPIC_API_KEY}"
+      Anthropic__Model: "${ANTHROPIC_MODEL:-claude-sonnet-4-6}"
+      Mono__PublicKey: "${MONO_PUBLIC_KEY}"
+      Mono__SecretKey: "${MONO_SECRET_KEY}"
+      Mono__WebhookSecret: "${MONO_WEBHOOK_SECRET}"
+      Mono__BaseUrl: "${MONO_BASE_URL:-https://api.withmono.com}"
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/swagger/index.html || curl -fsS http://localhost:8080/ || exit 0"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  web:
+    build:
+      context: ./SmartFund.Web
+      dockerfile: Dockerfile
+    container_name: smartfund-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+
+volumes:
+  mssql-data:

@@ -1,0 +1,87 @@
+# DigitalOcean App Platform spec — SmartFund.
+#
+# This spec deploys the React SPA as a STATIC SITE on App Platform's free tier.
+# The .NET API is NOT deployed here because App Platform cannot host SQL Server
+# (DO has no Managed SQL Server, and App Platform components are stateless).
+#
+# Path to a fully working public deployment:
+#   1. Apply this spec  →  https://<app>.ondigitalocean.app serves the SPA.
+#   2. Deploy the API on a Droplet using docker-compose.yml + deploy.md.
+#   3. Point the SPA at that API by setting VITE_API_BASE_URL below to the
+#      Droplet's public URL (e.g. https://api.yourdomain.com).
+#   4. Redeploy the static site (it picks up the env var at build time).
+#
+# Until step 2 is done, the SPA loads but every API call returns a network
+# error — that's expected and matches the "frontend up, backend pending" state.
+
+name: smartfund
+region: nyc
+
+static_sites:
+  - name: web
+    # Build the SPA from the SmartFund.Web subdirectory of the repo.
+    source_dir: /SmartFund.Web
+    github:
+      repo: Mbah-Ernest/SmartFund
+      branch: feature/transaction-intelligence
+      deploy_on_push: true
+
+    build_command: npm ci && npm run build
+    output_dir: dist
+
+    # Public-facing route. `path: /` makes this component the catch-all.
+    routes:
+      - path: /
+
+    # SPA fallback — any unmatched path returns index.html so React Router can handle it.
+    catchall_document: index.html
+
+    # Build-time env var. Leave blank to call /api on the same origin; set to
+    # your Droplet API URL once it's deployed.
+    envs:
+      - key: VITE_API_BASE_URL
+        scope: BUILD_TIME
+        value: ""        # e.g. https://api.smartfund.example/api
+
+# -----------------------------------------------------------------------------
+# Optional: ENABLE THE API SERVICE BELOW only after you've either
+#   (a) migrated the EF Core data layer from SQL Server to PostgreSQL, OR
+#   (b) wired ConnectionStrings__DefaultConnection to an external SQL Server.
+# Leaving this commented keeps the deployment in a known-good state.
+# -----------------------------------------------------------------------------
+#
+# services:
+#   - name: api
+#     dockerfile_path: Dockerfile
+#     source_dir: /
+#     github:
+#       repo: Mbah-Ernest/SmartFund
+#       branch: feature/transaction-intelligence
+#       deploy_on_push: true
+#     http_port: 8080
+#     instance_size_slug: basic-xxs          # $5/mo, 512 MB / 1 vCPU
+#     instance_count: 1
+#     routes:
+#       - path: /api                         # /api/* → this service
+#     health_check:
+#       http_path: /swagger/index.html
+#       initial_delay_seconds: 40
+#       period_seconds: 30
+#     envs:
+#       - { key: ASPNETCORE_ENVIRONMENT, value: Production }
+#       - { key: ASPNETCORE_URLS,        value: "http://+:8080" }
+#       - { key: ConnectionStrings__DefaultConnection, type: SECRET, scope: RUN_TIME, value: "" }
+#       - { key: Jwt__Issuer,            value: SmartFund }
+#       - { key: Jwt__Audience,          value: SmartFund.Web }
+#       - { key: Jwt__Key,               type: SECRET, scope: RUN_TIME, value: "" }
+#       - { key: Jwt__ExpiresMinutes,    value: "480" }
+#       - { key: Auth__Username,         value: admin }
+#       - { key: Auth__Password,         type: SECRET, scope: RUN_TIME, value: "" }
+#       - { key: GROQ_API_KEY,           type: SECRET, scope: RUN_TIME, value: "" }
+#       - { key: GROQ_MODEL,             value: llama-3.3-70b-versatile }
+#       - { key: Anthropic__ApiKey,      type: SECRET, scope: RUN_TIME, value: "" }
+#       - { key: Anthropic__Model,       value: claude-sonnet-4-6 }
+#       - { key: Mono__PublicKey,        type: SECRET, scope: RUN_TIME, value: "" }
+#       - { key: Mono__SecretKey,        type: SECRET, scope: RUN_TIME, value: "" }
+#       - { key: Mono__WebhookSecret,    type: SECRET, scope: RUN_TIME, value: "" }
+#       - { key: Mono__BaseUrl,          value: "https://api.withmono.com" }
