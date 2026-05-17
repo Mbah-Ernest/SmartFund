@@ -3,4 +3,5 @@ node_modules
 /.vite
 .env
 .env.*
+!.env*.example
 .DS_Store
