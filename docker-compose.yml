@@ -52,6 +52,7 @@ services:
       Mono__SecretKey: "${MONO_SECRET_KEY}"
       Mono__WebhookSecret: "${MONO_WEBHOOK_SECRET}"
       Mono__BaseUrl: "${MONO_BASE_URL:-https://api.withmono.com}"
+      Cors__AllowedOrigins: "${CORS_ALLOWED_ORIGINS}"
     expose:
       - "8080"
     healthcheck:
@@ -69,8 +70,29 @@ services:
     restart: unless-stopped
     depends_on:
       - api
+    # nginx listens on :80 internally; Caddy reverse-proxies to it and handles TLS.
+    expose:
+      - "80"
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: smartfund-caddy
+    restart: unless-stopped
+    depends_on:
+      - web
     ports:
       - "80:80"
+      - "443:443"
+    environment:
+      # Public hostname Caddy will issue a Let's Encrypt cert for.
+      # Default: <droplet-ip-with-dashes>.sslip.io — no domain registration needed.
+      CADDY_HOSTNAME: "${CADDY_HOSTNAME:-:80}"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
 
 volumes:
   mssql-data:
+  caddy-data:
+  caddy-config:

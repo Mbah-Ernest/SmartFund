@@ -1,0 +1,12 @@
+# Caddy reverse proxy in front of the nginx web container.
+# Terminates TLS, auto-renews via Let's Encrypt.
+#
+# CADDY_HOSTNAME is substituted from the environment:
+#   - For the sslip.io path: "164-90-170-223.sslip.io" → Let's Encrypt issues a real cert
+#   - For a custom domain:   "app.yourdomain.com"
+#   - Fallback ":80"         (HTTP only, useful for local testing without DNS)
+
+{$CADDY_HOSTNAME} {
+    encode zstd gzip
+    reverse_proxy web:80
+}

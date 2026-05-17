@@ -53,14 +53,21 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
+// Allowed origins: localhost (any port) + anything in Cors:AllowedOrigins
+// (semicolon-separated, e.g. "https://smartfund-9tu9r.ondigitalocean.app").
+var configuredOrigins = (builder.Configuration["Cors:AllowedOrigins"] ?? "")
+    .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("SmartFundWeb", policy =>
         policy
             .SetIsOriginAllowed(origin =>
             {
-                var uri = new Uri(origin);
-                return uri.Host == "localhost" || uri.Host == "127.0.0.1";
+                if (string.IsNullOrEmpty(origin)) return false;
+                if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)) return false;
+                if (uri.Host == "localhost" || uri.Host == "127.0.0.1") return true;
+                return configuredOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase);
             })
             .AllowAnyHeader()
             .AllowAnyMethod());
