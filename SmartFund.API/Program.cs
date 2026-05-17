@@ -262,6 +262,11 @@ if (missingGroqKeyInDev)
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<SmartFundDbContext>();
 
+        // If the configured database doesn't exist yet, skip the baseline checks
+        // (they'd 4060 on the connection open) and let Migrate() create it.
+        var dbCreator = db.GetService<Microsoft.EntityFrameworkCore.Storage.IRelationalDatabaseCreator>();
+        var databaseExists = dbCreator.Exists();
+
         static bool TableExists(SmartFundDbContext ctx, string tableName)
         {
             var conn = ctx.Database.GetDbConnection();
@@ -294,9 +299,9 @@ if (missingGroqKeyInDev)
         // In that case, we baseline the history table to the current set of migrations, then apply pending.
         var history = db.GetService<IHistoryRepository>();
 
-        var historyExists = history.Exists();
+        var historyExists = databaseExists && history.Exists();
         var hasAppliedMigrations = historyExists && history.GetAppliedMigrations().Count > 0;
-        var looksLikeExistingDb = TableExists(db, "LedgerTransactions");
+        var looksLikeExistingDb = databaseExists && TableExists(db, "LedgerTransactions");
 
         var needsBaseline = (!historyExists && looksLikeExistingDb) || (historyExists && !hasAppliedMigrations && looksLikeExistingDb);
 
