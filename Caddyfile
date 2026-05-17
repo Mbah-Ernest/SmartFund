@@ -6,7 +6,10 @@
 #   - For a custom domain:   "app.yourdomain.com"
 #   - Fallback ":80"         (HTTP only, useful for local testing without DNS)
 
-{$CADDY_HOSTNAME} {
+# Primary domain (from CADDY_HOSTNAME) plus an optional secondary hostname
+# (from CADDY_HOSTNAME_FALLBACK) — useful during DNS cut-over windows or for
+# keeping the sslip.io URL working while a real domain takes over.
+{$CADDY_HOSTNAME}, {$CADDY_HOSTNAME_FALLBACK:localhost} {
     encode zstd gzip
     reverse_proxy web:80
 }

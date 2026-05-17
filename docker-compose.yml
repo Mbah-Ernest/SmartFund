@@ -87,6 +87,8 @@ services:
       # Public hostname Caddy will issue a Let's Encrypt cert for.
       # Default: <droplet-ip-with-dashes>.sslip.io — no domain registration needed.
       CADDY_HOSTNAME: "${CADDY_HOSTNAME:-:80}"
+      # Optional secondary hostname — useful during DNS cut-over windows.
+      CADDY_HOSTNAME_FALLBACK: "${CADDY_HOSTNAME_FALLBACK:-localhost}"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data

@@ -15,4 +15,4 @@ static_sites:
   envs:
   - key: VITE_API_BASE_URL
     scope: BUILD_TIME
-    value: "https://164-90-170-223.sslip.io/api"
+    value: "https://smartfund.ibuildmanagement.tech/api"
