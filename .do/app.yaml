@@ -15,7 +15,7 @@
 # error — that's expected and matches the "frontend up, backend pending" state.
 
 name: smartfund
-region: nyc
+region: fra
 
 static_sites:
   - name: web
